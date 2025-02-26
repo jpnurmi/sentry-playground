@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QQmlApplicationEngine>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -19,6 +20,8 @@ public:
 
 private slots:
     void on_breadcrumbButton_clicked();
+    void on_screenshotButton_clicked();
+    void on_quickButton_clicked();
     void on_nullDerefButton_clicked();
     void on_stackOverflowButton_clicked();
     void on_assertButton_clicked();
@@ -26,6 +29,7 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    QQmlApplicationEngine qml;
 };
 
 #endif // MAINWINDOW_H

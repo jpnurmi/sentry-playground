@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.19)
 project(sentry-playground LANGUAGES CXX VERSION 1.2.3)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Quick)
 
-qt_standard_project_setup()
+qt_standard_project_setup(REQUIRES 6.5)
 
 qt_add_executable(sentry-playground
     WIN32 MACOSX_BUNDLE
@@ -13,7 +13,13 @@ qt_add_executable(sentry-playground
     mainwindow.ui
 )
 
-target_link_libraries(sentry-playground PRIVATE Qt::Core Qt::Widgets)
+qt_add_qml_module(sentry-playground
+    URI sentry-playground
+    VERSION 1.0
+    QML_FILES Main.qml
+)
+
+target_link_libraries(sentry-playground PRIVATE Qt::Core Qt::Widgets Qt::Quick)
 
 include(GNUInstallDirs)
 
@@ -30,7 +36,9 @@ qt_generate_deploy_app_script(
 )
 install(SCRIPT ${deploy_script})
 
-set(SENTRY_BACKEND crashpad)
+set(SENTRY_BACKEND inproc)
+#set(SENTRY_BACKEND breakpad)
+#set(SENTRY_BACKEND crashpad)
 set(SENTRY_BUILD_SHARED_LIBS ON)
 set(SENTRY_INTEGRATION_QT ON)
 add_subdirectory(sentry-native)
@@ -41,6 +49,7 @@ if(NOT WIN32)
 endif()
 
 target_compile_definitions(sentry-playground PRIVATE
+    SENTRY_BACKEND="${SENTRY_BACKEND}"
     SENTRY_PLAYGROUND_HANDLER="${SENTRY_PLAYGROUND_HANDLER}"
     SENTRY_PLAYGROUND_DSN="$ENV{SENTRY_PLAYGROUND_DSN}"
     SENTRY_PLAYGROUND_RELEASE="${PROJECT_NAME}@${PROJECT_VERSION}"

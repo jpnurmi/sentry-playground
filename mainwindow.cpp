@@ -1,6 +1,8 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include <QTimer>
+
 #include <sentry.h>
 
 static void add_breadcrumb()
@@ -38,6 +40,18 @@ MainWindow::~MainWindow()
 void MainWindow::on_breadcrumbButton_clicked()
 {
     add_breadcrumb();
+}
+
+void MainWindow::on_screenshotButton_clicked()
+{
+    // QTimer::singleShot(1000, []() {
+    //     sentry_capture_screenshot();
+    // });
+}
+
+void MainWindow::on_quickButton_clicked()
+{
+    qml.loadFromModule("sentry-playground", "Main");
 }
 
 void MainWindow::on_nullDerefButton_clicked()
