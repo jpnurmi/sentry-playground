@@ -20,7 +20,6 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     app.setApplicationDisplayName("Sentry Playground");
     MainWindow window;
-    window.setWindowFilePath(SENTRY_BACKEND);
     window.show();
 
     return app.exec();

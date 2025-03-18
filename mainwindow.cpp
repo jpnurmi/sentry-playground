@@ -1,8 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#include <QLabel>
-
 static void trigger_null_deref()
 {
     int* ptr = nullptr;
@@ -20,6 +18,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    setWindowFilePath(SENTRY_BACKEND);
 #ifndef Q_OS_WINDOWS
     ui->fastfailButton->setEnabled(false);
 #endif
@@ -30,11 +29,16 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::on_subwindowButton_clicked()
+
+void MainWindow::on_actionQuit_triggered()
 {
-    QLabel* subwindow = new QLabel("Sub-window");
-    subwindow->setAlignment(Qt::AlignCenter);
-    subwindow->setWindowFilePath(SENTRY_BACKEND);
+    QCoreApplication::quit();
+}
+
+
+void MainWindow::on_actionSubwindow_triggered()
+{
+    MainWindow* subwindow = new MainWindow();
     subwindow->resize(300, 200);
     subwindow->show();
 }

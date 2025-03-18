@@ -18,7 +18,8 @@ public:
     ~MainWindow();
 
 private slots:
-    void on_subwindowButton_clicked();
+    void on_actionQuit_triggered();
+    void on_actionSubwindow_triggered();
     void on_nullDerefButton_clicked();
     void on_stackOverflowButton_clicked();
     void on_fastfailButton_clicked();
