@@ -35,7 +35,7 @@ set(SENTRY_BACKEND inproc)
 #set(SENTRY_BACKEND crashpad)
 set(SENTRY_BUILD_SHARED_LIBS ON)
 set(SENTRY_INTEGRATION_QT ON)
-add_subdirectory(sentry-native)
+add_subdirectory(../sentry-native ${CMAKE_BINARY_DIR}/sentry-native)
 target_link_libraries(sentry-playground PRIVATE sentry)
 
 if(NOT WIN32)
