@@ -19,8 +19,10 @@ public:
 
 private slots:
     void on_breadcrumbButton_clicked();
+    void on_subwindowButton_clicked();
     void on_nullDerefButton_clicked();
     void on_stackOverflowButton_clicked();
+    void on_fastfailButton_clicked();
     void on_assertButton_clicked();
     void on_abortButton_clicked();
 
