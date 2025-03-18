@@ -30,7 +30,9 @@ qt_generate_deploy_app_script(
 )
 install(SCRIPT ${deploy_script})
 
-set(SENTRY_BACKEND crashpad)
+set(SENTRY_BACKEND inproc)
+#set(SENTRY_BACKEND breakpad)
+#set(SENTRY_BACKEND crashpad)
 set(SENTRY_BUILD_SHARED_LIBS ON)
 set(SENTRY_INTEGRATION_QT ON)
 add_subdirectory(sentry-native)
@@ -41,6 +43,7 @@ if(NOT WIN32)
 endif()
 
 target_compile_definitions(sentry-playground PRIVATE
+    SENTRY_BACKEND="${SENTRY_BACKEND}"
     SENTRY_PLAYGROUND_HANDLER="${SENTRY_PLAYGROUND_HANDLER}"
     SENTRY_PLAYGROUND_DSN="$ENV{SENTRY_PLAYGROUND_DSN}"
     SENTRY_PLAYGROUND_RELEASE="${PROJECT_NAME}@${PROJECT_VERSION}"
