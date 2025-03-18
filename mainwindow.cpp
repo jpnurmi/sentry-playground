@@ -3,16 +3,6 @@
 
 #include <QLabel>
 
-#include <sentry.h>
-
-static void add_breadcrumb()
-{
-    sentry_value_t crumb = sentry_value_new_breadcrumb(nullptr, "Just a debug crumb...");
-    sentry_value_set_by_key(crumb, "category", sentry_value_new_string("sample"));
-    sentry_value_set_by_key(crumb, "level", sentry_value_new_string("debug"));
-    sentry_add_breadcrumb(crumb);
-}
-
 static void trigger_null_deref()
 {
     int* ptr = nullptr;
@@ -38,11 +28,6 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     delete ui;
-}
-
-void MainWindow::on_breadcrumbButton_clicked()
-{
-    add_breadcrumb();
 }
 
 void MainWindow::on_subwindowButton_clicked()

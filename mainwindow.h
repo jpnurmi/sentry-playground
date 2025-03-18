@@ -18,7 +18,6 @@ public:
     ~MainWindow();
 
 private slots:
-    void on_breadcrumbButton_clicked();
     void on_subwindowButton_clicked();
     void on_nullDerefButton_clicked();
     void on_stackOverflowButton_clicked();
