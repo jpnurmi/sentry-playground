@@ -19,6 +19,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     setWindowFilePath(SENTRY_BACKEND);
+    ui->backendLabel->setText(SENTRY_BACKEND);
 #ifndef Q_OS_WINDOWS
     ui->fastfailButton->setEnabled(false);
 #endif
