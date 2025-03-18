@@ -36,7 +36,10 @@ set(SENTRY_INTEGRATION_QT ON)
 add_subdirectory(sentry-native)
 target_link_libraries(sentry-playground PRIVATE sentry)
 
-set(SENTRY_PLAYGROUND_HANDLER "${CMAKE_BINARY_DIR}/sentry-native/crashpad_build/handler/${CMAKE_CFG_INTDIR}/crashpad_handler${CMAKE_EXECUTABLE_SUFFIX}")
+if(NOT WIN32)
+    set(SENTRY_PLAYGROUND_HANDLER "${CMAKE_BINARY_DIR}/sentry-native/crashpad_build/handler/crashpad_handler")
+endif()
+
 target_compile_definitions(sentry-playground PRIVATE
     SENTRY_PLAYGROUND_HANDLER="${SENTRY_PLAYGROUND_HANDLER}"
     SENTRY_PLAYGROUND_DSN="$ENV{SENTRY_PLAYGROUND_DSN}"
