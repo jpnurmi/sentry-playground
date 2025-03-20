@@ -4,6 +4,8 @@
 
 int main(int argc, char *argv[])
 {
+    qDebug().nospace() << "[sentry-playground] backend=" << SENTRY_BACKEND << ", tid=" << gettid();
+
     sentry_options_t *options = sentry_options_new();
 #ifdef SENTRY_PLAYGROUND_HANDLER
     sentry_options_set_handler_path(options, SENTRY_PLAYGROUND_HANDLER);

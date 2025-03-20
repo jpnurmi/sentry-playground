@@ -9,6 +9,24 @@ class MainWindow;
 }
 QT_END_NAMESPACE
 
+#ifdef Q_OS_WINDOWS
+#include <windows.h>
+static int gettid()
+{
+    return GetCurrentProcessId();
+}
+#endif
+
+#ifdef Q_OS_MACOS
+#include <pthread.h>
+static int gettid()
+{
+    uint64_t tid = 0;
+    pthread_threadid_np(pthread_self(), &tid);
+    return tid;
+}
+#endif
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT

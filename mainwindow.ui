@@ -109,6 +109,13 @@
       </property>
      </widget>
     </item>
+    <item row="7" column="1">
+     <widget class="QCheckBox" name="workerBox">
+      <property name="text">
+       <string>Worker</string>
+      </property>
+     </widget>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
