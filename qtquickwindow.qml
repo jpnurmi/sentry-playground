@@ -50,6 +50,7 @@ ApplicationWindow {
         }
         Button {
             text: "Fast-fail"
+            enabled: Qt.platform.os === "windows"
             onClicked: SentryPlayground.triggerFastfail()
             Layout.fillWidth: true
         }
