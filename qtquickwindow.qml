@@ -27,6 +27,10 @@ ApplicationWindow {
                 text: "Qt&Quick"
                 onTriggered: SentryPlayground.showQuick()
             }
+            Action {
+                text: "QtOpen&GL"
+                onTriggered: SentryPlayground.showOpenGL()
+            }
         }
     }
 

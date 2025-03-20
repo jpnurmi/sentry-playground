@@ -26,6 +26,7 @@ signals:
 public slots:
     void viewWidgets();
     void viewQuick();
+    void viewOpenGL();
 
     void triggerCrash();
     void triggerStackOverflow();

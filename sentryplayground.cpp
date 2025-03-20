@@ -1,5 +1,6 @@
 #include "sentryplayground.h"
 #include "qtwidgetswindow.h"
+#include "qtopenglwindow.h"
 
 #include <QtCore/qdebug.h>
 #include <QtCore/qthread.h>
@@ -114,6 +115,13 @@ void SentryPlayground::viewQuick()
     QQmlApplicationEngine* engine = new QQmlApplicationEngine(qApp);
     engine->load(QUrl("qrc:/qtquickwindow.qml"));
 }
+
+void SentryPlayground::viewOpenGL()
+{
+    QtOpenGLWindow* subwindow = new QtOpenGLWindow();
+    subwindow->show();
+}
+
 
 void SentryPlayground::triggerCrash()
 {
