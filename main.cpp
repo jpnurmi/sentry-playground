@@ -10,6 +10,7 @@ int main(int argc, char *argv[])
 #endif
     sentry_options_set_dsn(options, SENTRY_PLAYGROUND_DSN);
     sentry_options_set_release(options, SENTRY_PLAYGROUND_RELEASE);
+    sentry_options_set_attach_screenshot(options, true);
     sentry_options_set_debug(options, 1);
     sentry_init(options);
 
