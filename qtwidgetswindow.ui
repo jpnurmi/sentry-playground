@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MainWindow</class>
- <widget class="QMainWindow" name="MainWindow">
+ <class>QtWidgetsWindow</class>
+ <widget class="QMainWindow" name="QtWidgetsWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>553</width>
-    <height>496</height>
+    <width>520</width>
+    <height>360</height>
    </rect>
+  </property>
+  <property name="windowTitle">
+   <string>QtWidgets - Sentry Playground</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
@@ -53,9 +56,9 @@
      </widget>
     </item>
     <item row="2" column="1">
-     <widget class="QPushButton" name="nullDerefButton">
+     <widget class="QPushButton" name="crashButton">
       <property name="text">
-       <string>Null deref</string>
+       <string>Crash</string>
       </property>
      </widget>
     </item>
@@ -123,7 +126,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>553</width>
+     <width>520</width>
      <height>23</height>
     </rect>
    </property>
@@ -137,7 +140,8 @@
     <property name="title">
      <string>&amp;View</string>
     </property>
-    <addaction name="actionSubwindow"/>
+    <addaction name="actionWidgets"/>
+    <addaction name="actionQuick"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menu_View"/>
@@ -148,9 +152,14 @@
     <string>&amp;Quit</string>
    </property>
   </action>
-  <action name="actionSubwindow">
+  <action name="actionWidgets">
    <property name="text">
-    <string>Sub-&amp;window</string>
+    <string>Qt&amp;Widgets</string>
+   </property>
+  </action>
+  <action name="actionQuick">
+   <property name="text">
+    <string>Qt&amp;Quick</string>
    </property>
   </action>
  </widget>

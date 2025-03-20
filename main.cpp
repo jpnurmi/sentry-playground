@@ -1,10 +1,11 @@
 #include <QApplication>
 #include <sentry.h>
-#include "mainwindow.h"
+#include "sentryplayground.h"
+#include "qtwidgetswindow.h"
 
 int main(int argc, char *argv[])
 {
-    qDebug().nospace() << "[sentry-playground] backend=" << SENTRY_BACKEND << ", tid=" << gettid();
+    SentryPlayground::debug().nospace() << "backend=" << SENTRY_BACKEND;
 
     sentry_options_t *options = sentry_options_new();
 #ifdef SENTRY_PLAYGROUND_HANDLER
@@ -20,10 +21,10 @@ int main(int argc, char *argv[])
 
     auto sentryClose = qScopeGuard([] { sentry_close(); });
 
-    QApplication app(argc, argv);
-    app.setApplicationDisplayName("Sentry Playground");
-    MainWindow window;
-    window.show();
+    qmlRegisterSingletonInstance("SentryPlayground", 1, 0, "SentryPlayground", SentryPlayground::instance());
 
+    QApplication app(argc, argv);
+    QtWidgetsWindow window;
+    window.show();
     return app.exec();
 }
