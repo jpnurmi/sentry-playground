@@ -38,6 +38,11 @@ ApplicationWindow {
         anchors.centerIn: parent
 
         Label {
+            text: "QtQuick"
+            horizontalAlignment: Qt.AlignHCenter
+            Layout.fillWidth: true
+        }
+        Label {
             text: SentryPlayground.backend
             horizontalAlignment: Qt.AlignHCenter
             Layout.fillWidth: true
