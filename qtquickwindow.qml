@@ -21,15 +21,15 @@ ApplicationWindow {
             title: "&View"
             Action {
                 text: "Qt&Widgets"
-                onTriggered: SentryPlayground.showWidgets()
+                onTriggered: SentryPlayground.viewWidgets()
             }
             Action {
                 text: "Qt&Quick"
-                onTriggered: SentryPlayground.showQuick()
+                onTriggered: SentryPlayground.viewQuick()
             }
             Action {
                 text: "QtOpen&GL"
-                onTriggered: SentryPlayground.showOpenGL()
+                onTriggered: SentryPlayground.viewOpenGL()
             }
         }
     }
