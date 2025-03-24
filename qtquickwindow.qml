@@ -21,14 +21,17 @@ ApplicationWindow {
             title: "&View"
             Action {
                 text: "Qt&Widgets"
+                enabled: SentryPlayground.haveWidgets
                 onTriggered: SentryPlayground.viewWidgets()
             }
             Action {
                 text: "Qt&Quick"
+                enabled: SentryPlayground.haveQuick
                 onTriggered: SentryPlayground.viewQuick()
             }
             Action {
                 text: "QtOpen&GL"
+                enabled: SentryPlayground.haveOpenGL
                 onTriggered: SentryPlayground.viewOpenGL()
             }
         }

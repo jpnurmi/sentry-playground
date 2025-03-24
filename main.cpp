@@ -1,7 +1,7 @@
-#include <QApplication>
+#include <QtCore/qscopeguard.h>
+#include <QtGui/qguiapplication.h>
 #include <sentry.h>
 #include "sentryplayground.h"
-#include "qtwidgetswindow.h"
 
 int main(int argc, char *argv[])
 {
@@ -21,10 +21,7 @@ int main(int argc, char *argv[])
 
     auto sentryClose = qScopeGuard([] { sentry_close(); });
 
-    qmlRegisterSingletonInstance("SentryPlayground", 1, 0, "SentryPlayground", SentryPlayground::instance());
-
-    QApplication app(argc, argv);
-    QtWidgetsWindow window;
-    window.show();
-    return app.exec();
+    QScopedPointer<QGuiApplication> app(SentryPlayground::init(argc, argv));
+    SentryPlayground::instance()->showWindow();
+    return app->exec();
 }

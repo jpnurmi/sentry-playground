@@ -9,24 +9,33 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Quick OpenGL)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Quick OpenGL)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Gui Qml Widgets Quick OpenGL)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Gui Qml Widgets Quick OpenGL)
 
 set(PROJECT_SOURCES
         main.cpp
-        qtwidgetswindow.cpp
-        qtwidgetswindow.h
-        qtwidgetswindow.ui
+        sentryplayground.h
+        sentryplayground.cpp
 )
+
+set(HAVE_WIDGETS ON)
+set(HAVE_QUICK ON)
+set(HAVE_OPENGL ON)
+
+if(HAVE_WIDGETS)
+    list(APPEND PROJECT_SOURCES qtwidgetswindow.h qtwidgetswindow.cpp qtwidgetswindow.ui)
+endif()
+if(HAVE_QUICK)
+    list(APPEND PROJECT_SOURCES qtquickwindow.qml qml.qrc)
+endif()
+if(HAVE_OPENGL)
+    list(APPEND PROJECT_SOURCES qtopenglwindow.h qtopenglwindow.cpp)
+endif()
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(sentry-playground
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        qtquickwindow.qml
-        qml.qrc
-        sentryplayground.h sentryplayground.cpp
-        qtopenglwindow.h qtopenglwindow.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET sentry-playground APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -46,9 +55,19 @@ else()
     endif()
 endif()
 
-target_link_libraries(sentry-playground PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
-target_link_libraries(sentry-playground PRIVATE Qt${QT_VERSION_MAJOR}::Quick)
-target_link_libraries(sentry-playground PRIVATE Qt${QT_VERSION_MAJOR}::OpenGL)
+target_link_libraries(sentry-playground PRIVATE Qt${QT_VERSION_MAJOR}::Gui Qt${QT_VERSION_MAJOR}::Qml)
+if(HAVE_WIDGETS)
+    target_compile_definitions(sentry-playground PRIVATE HAVE_WIDGETS)
+    target_link_libraries(sentry-playground PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+endif()
+if(HAVE_QUICK)
+    target_compile_definitions(sentry-playground PRIVATE HAVE_QUICK)
+    target_link_libraries(sentry-playground PRIVATE Qt${QT_VERSION_MAJOR}::Quick)
+endif()
+if(HAVE_OPENGL)
+    target_compile_definitions(sentry-playground PRIVATE HAVE_OPENGL)
+    target_link_libraries(sentry-playground PRIVATE Qt${QT_VERSION_MAJOR}::OpenGL)
+endif()
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an

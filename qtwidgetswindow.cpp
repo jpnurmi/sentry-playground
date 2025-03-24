@@ -9,6 +9,12 @@ QtWidgetsWindow::QtWidgetsWindow(QWidget *parent)
 #ifndef Q_OS_WINDOWS
     ui.fastfailButton->setEnabled(false);
 #endif
+#ifndef HAVE_QUICK
+    ui.actionQuick->setEnabled(false);
+#endif
+#ifndef HAVE_OPENGL
+    ui.actionOpenGL->setEnabled(false);
+#endif
 
     SentryPlayground* playground = SentryPlayground::instance();
     QObject::connect(ui.crashButton, &QAbstractButton::clicked, playground, &SentryPlayground::triggerCrash);

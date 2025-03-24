@@ -1,6 +1,10 @@
 #include "sentryplayground.h"
+#ifdef HAVE_WIDGETS
 #include "qtwidgetswindow.h"
+#endif
+#ifdef HAVE_OPENGL
 #include "qtopenglwindow.h"
+#endif
 
 #include <QtCore/qdebug.h>
 #include <QtCore/qthread.h>
@@ -72,6 +76,20 @@ SentryPlayground::SentryPlayground(QObject *parent) : QObject{parent}
 {
 }
 
+QGuiApplication* SentryPlayground::init(int& argc, char* argv[])
+{
+
+#ifdef HAVE_WIDGETS
+    QApplication* app = new QApplication(argc, argv);
+#else
+    QGuiApplication* app = new QGuiApplication(argc, argv);
+#endif
+#ifdef HAVE_QUICK
+    qmlRegisterSingletonInstance("SentryPlayground", 1, 0, "SentryPlayground", SentryPlayground::instance());
+#endif
+    return app;
+}
+
 SentryPlayground* SentryPlayground::instance()
 {
     static SentryPlayground playground;
@@ -104,24 +122,69 @@ void SentryPlayground::setWorker(bool worker)
     emit workerChanged(worker);
 }
 
+bool SentryPlayground::haveWidgets()
+{
+#ifdef HAVE_WIDGETS
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool SentryPlayground::haveQuick()
+{
+#ifdef HAVE_QUICK
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool SentryPlayground::haveOpenGL()
+{
+#ifdef HAVE_OPENGL
+    return true;
+#else
+    return false;
+#endif
+}
+
 void SentryPlayground::viewWidgets()
 {
+#ifdef HAVE_WIDGETS
     QtWidgetsWindow* subwindow = new QtWidgetsWindow();
     subwindow->show();
+#endif
 }
 
 void SentryPlayground::viewQuick()
 {
+#ifdef HAVE_QUICK
     QQmlApplicationEngine* engine = new QQmlApplicationEngine(qApp);
     engine->load(QUrl("qrc:/qtquickwindow.qml"));
+#endif
 }
 
 void SentryPlayground::viewOpenGL()
 {
+#ifdef HAVE_OPENGL
     QtOpenGLWindow* subwindow = new QtOpenGLWindow();
     subwindow->show();
+#endif
 }
 
+void SentryPlayground::showWindow()
+{
+#if defined(HAVE_WIDGETS)
+    SentryPlayground::viewWidgets();
+#elif defined(HAVE_QUICK)
+    SentryPlayground::viewQuick();
+#elif defined(HAVE_OPENGL)
+    SentryPlayground::viewOpenGL();
+#else
+    #error Either QtWidgets, QtQuick, QtOpenGL must be enabled.
+#endif
+}
 
 void SentryPlayground::triggerCrash()
 {
