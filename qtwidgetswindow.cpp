@@ -15,6 +15,9 @@ QtWidgetsWindow::QtWidgetsWindow(QWidget *parent)
 #ifndef HAVE_OPENGL
     ui.actionOpenGL->setEnabled(false);
 #endif
+#ifndef HAVE_VULKAN
+    ui.actionVulkan->setEnabled(false);
+#endif
 
     SentryPlayground* playground = SentryPlayground::instance();
     QObject::connect(ui.crashButton, &QAbstractButton::clicked, playground, &SentryPlayground::triggerCrash);
@@ -27,6 +30,7 @@ QtWidgetsWindow::QtWidgetsWindow(QWidget *parent)
     QObject::connect(ui.actionWidgets, &QAction::triggered, playground, &SentryPlayground::viewWidgets);
     QObject::connect(ui.actionQuick, &QAction::triggered, playground, &SentryPlayground::viewQuick);
     QObject::connect(ui.actionOpenGL, &QAction::triggered, playground, &SentryPlayground::viewOpenGL);
+    QObject::connect(ui.actionVulkan, &QAction::triggered, playground, &SentryPlayground::viewVulkan);
 
     QObject::connect(ui.workerBox, &QAbstractButton::toggled, playground, &SentryPlayground::setWorker);
     QObject::connect(playground, &SentryPlayground::workerChanged, ui.workerBox, &QAbstractButton::setChecked);

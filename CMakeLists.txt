@@ -9,8 +9,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Gui Qml Widgets Quick OpenGL)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Gui Qml Widgets Quick OpenGL)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Gui OPTIONAL_COMPONENTS Widgets Quick OpenGL)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Gui OPTIONAL_COMPONENTS Widgets Quick OpenGL)
 
 set(PROJECT_SOURCES
         main.cpp
@@ -18,9 +18,29 @@ set(PROJECT_SOURCES
         sentryplayground.cpp
 )
 
-set(HAVE_WIDGETS ON)
-set(HAVE_QUICK ON)
-set(HAVE_OPENGL ON)
+if(TARGET Qt${QT_VERSION_MAJOR}::Widgets)
+    set(HAVE_WIDGETS ON)
+else()
+    set(HAVE_WIDGETS OFF)
+endif()
+
+if(TARGET Qt${QT_VERSION_MAJOR}::Quick)
+    set(HAVE_QUICK ON)
+else()
+    set(HAVE_QUICK OFF)
+endif()
+
+if(TARGET Qt${QT_VERSION_MAJOR}::OpenGL)
+    set(HAVE_OPENGL ON)
+else()
+    set(HAVE_OPENGL OFF)
+endif()
+
+if(LINUX)
+    set(HAVE_VULKAN ON)
+else()
+    set(HAVE_VULKAN OFF)
+endif()
 
 if(HAVE_WIDGETS)
     list(APPEND PROJECT_SOURCES qtwidgetswindow.h qtwidgetswindow.cpp qtwidgetswindow.ui)
@@ -30,6 +50,9 @@ if(HAVE_QUICK)
 endif()
 if(HAVE_OPENGL)
     list(APPEND PROJECT_SOURCES qtopenglwindow.h qtopenglwindow.cpp)
+endif()
+if(HAVE_VULKAN)
+    list(APPEND PROJECT_SOURCES qtvulkanwindow.h qtvulkanwindow.cpp)
 endif()
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -55,7 +78,7 @@ else()
     endif()
 endif()
 
-target_link_libraries(sentry-playground PRIVATE Qt${QT_VERSION_MAJOR}::Gui Qt${QT_VERSION_MAJOR}::Qml)
+target_link_libraries(sentry-playground PRIVATE Qt${QT_VERSION_MAJOR}::Gui)
 if(HAVE_WIDGETS)
     target_compile_definitions(sentry-playground PRIVATE HAVE_WIDGETS)
     target_link_libraries(sentry-playground PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
@@ -67,6 +90,9 @@ endif()
 if(HAVE_OPENGL)
     target_compile_definitions(sentry-playground PRIVATE HAVE_OPENGL)
     target_link_libraries(sentry-playground PRIVATE Qt${QT_VERSION_MAJOR}::OpenGL)
+endif()
+if(HAVE_VULKAN)
+    target_compile_definitions(sentry-playground PRIVATE HAVE_VULKAN)
 endif()
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

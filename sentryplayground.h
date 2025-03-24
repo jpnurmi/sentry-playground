@@ -3,7 +3,6 @@
 
 #include <QtCore/qobject.h>
 #include <QtGui/qguiapplication.h>
-#include <QtQml/qqmlengine.h>
 
 class SentryPlayground : public QObject
 {
@@ -12,6 +11,7 @@ class SentryPlayground : public QObject
     Q_PROPERTY(bool haveWidgets READ haveWidgets CONSTANT)
     Q_PROPERTY(bool haveQuick READ haveQuick CONSTANT)
     Q_PROPERTY(bool haveOpenGL READ haveOpenGL CONSTANT)
+    Q_PROPERTY(bool haveVulkan READ haveVulkan CONSTANT)
     Q_PROPERTY(bool worker READ worker WRITE setWorker NOTIFY workerChanged)
 
 public:
@@ -25,6 +25,7 @@ public:
     static bool haveWidgets();
     static bool haveQuick();
     static bool haveOpenGL();
+    static bool haveVulkan();
 
     bool worker() const;
     void setWorker(bool worker);
@@ -36,6 +37,7 @@ public slots:
     void viewWidgets();
     void viewQuick();
     void viewOpenGL();
+    void viewVulkan();
     void showWindow();
 
     void triggerCrash();

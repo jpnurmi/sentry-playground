@@ -20,19 +20,24 @@ ApplicationWindow {
         Menu {
             title: "&View"
             Action {
-                text: "Qt&Widgets"
+                text: "&Widgets"
                 enabled: SentryPlayground.haveWidgets
                 onTriggered: SentryPlayground.viewWidgets()
             }
             Action {
-                text: "Qt&Quick"
+                text: "&Quick"
                 enabled: SentryPlayground.haveQuick
                 onTriggered: SentryPlayground.viewQuick()
             }
             Action {
-                text: "QtOpen&GL"
+                text: "Open&GL"
                 enabled: SentryPlayground.haveOpenGL
                 onTriggered: SentryPlayground.viewOpenGL()
+            }
+            Action {
+                text: "&Vulkan"
+                enabled: SentryPlayground.haveVulkan
+                onTriggered: SentryPlayground.viewVulkan()
             }
         }
     }
