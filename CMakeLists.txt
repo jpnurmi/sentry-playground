@@ -131,21 +131,33 @@ set(SENTRY_WITH_QTGUI ON)
 add_subdirectory(../sentry-native ${CMAKE_BINARY_DIR}/sentry-native)
 target_link_libraries(sentry-playground PRIVATE sentry)
 
-if(NOT WIN32)
-    set(SENTRY_PLAYGROUND_HANDLER "${CMAKE_BINARY_DIR}/sentry-native/crashpad_build/handler/crashpad_handler")
+if(WIN32)
+    set(SENTRY_HANDLER_PATH "${CMAKE_BINARY_DIR}/sentry-native/crashpad_build/handler/crashpad_handler.exe")
+else()
+    set(SENTRY_HANDLER_PATH "${CMAKE_BINARY_DIR}/sentry-native/crashpad_build/handler/crashpad_handler")
 endif()
 
 target_compile_definitions(sentry-playground PRIVATE
     SENTRY_BACKEND="${SENTRY_BACKEND}"
-    SENTRY_PLAYGROUND_HANDLER="${SENTRY_PLAYGROUND_HANDLER}"
-    SENTRY_PLAYGROUND_DSN="$ENV{SENTRY_PLAYGROUND_DSN}"
-    SENTRY_PLAYGROUND_RELEASE="${PROJECT_NAME}@${PROJECT_VERSION}"
+    SENTRY_DSN="$ENV{SENTRY_DSN}"
+    SENTRY_RELEASE="${PROJECT_NAME}@${PROJECT_VERSION}"
+    SENTRY_HANDLER_PATH="${SENTRY_HANDLER_PATH}"
 )
 
-add_custom_target(sentry_debug_files_upload ALL
-    COMMAND sentry-cli --url "$ENV{SENTRY_PLAYGROUND_DSN}" debug-files upload --project playground .
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    COMMENT "Uploading debug info files to Sentry..."
-    VERBATIM
-)
-add_dependencies(sentry_debug_files_upload sentry-playground)
+target_compile_options(sentry-playground PRIVATE -fno-omit-frame-pointer)
+
+set(SENTRY_DSN $ENV{SENTRY_DSN})
+string(REGEX REPLACE "^([^@]+@)?([^/]+)/[0-9]+$" "http://\\2" SENTRY_URL "${SENTRY_DSN}")
+if(SENTRY_URL)
+    message(STATUS "SENTRY_DSN=${SENTRY_DSN}")
+    message(STATUS "SENTRY_URL=${SENTRY_URL}")
+    add_custom_target(sentry_debug_files_upload ALL
+        COMMAND sentry-cli --url "${SENTRY_URL}" debug-files upload --project playground .
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Uploading debug info files to Sentry..."
+        VERBATIM
+    )
+    add_dependencies(sentry_debug_files_upload sentry-playground)
+else()
+    message(WARNING "Set SENTRY_DSN environment variable")
+endif()
