@@ -17,6 +17,7 @@ int main(int argc, char *argv[])
     sentry_init(options);
 
     sentry_set_tag("backend", SENTRY_BACKEND);
+    sentry_set_user(sentry_value_new_user(NULL, "nobody", "nobody@example.com", NULL));
 
     auto sentryClose = qScopeGuard([] { sentry_close(); });
 
