@@ -149,7 +149,7 @@ if(SENTRY_URL)
     message(STATUS "SENTRY_DSN=${SENTRY_DSN}")
     message(STATUS "SENTRY_URL=${SENTRY_URL}")
     add_custom_target(sentry_debug_files_upload ALL
-        COMMAND sentry-cli --url "${SENTRY_URL}" debug-files upload --project playground .
+        COMMAND sentry-cli --url "${SENTRY_URL}" debug-files upload --project playground --org sentry .
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         COMMENT "Uploading debug info files to Sentry..."
         VERBATIM
