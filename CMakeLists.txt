@@ -144,12 +144,12 @@ target_compile_definitions(sentry-playground PRIVATE
 target_compile_options(sentry-playground PRIVATE -fno-omit-frame-pointer)
 
 set(SENTRY_DSN $ENV{SENTRY_DSN})
-string(REGEX REPLACE "^([^@]+@)?([^/]+)/[0-9]+$" "http://\\2" SENTRY_URL "${SENTRY_DSN}")
+string(REGEX REPLACE "^(https?://)([^@]+@)?([^/]+)/[0-9]+$" "\\1\\3" SENTRY_URL "${SENTRY_DSN}")
 if(SENTRY_URL)
     message(STATUS "SENTRY_DSN=${SENTRY_DSN}")
     message(STATUS "SENTRY_URL=${SENTRY_URL}")
     add_custom_target(sentry_debug_files_upload ALL
-        COMMAND sentry-cli --url "${SENTRY_URL}" debug-files upload --project playground --org sentry .
+        COMMAND sentry-cli --url "${SENTRY_URL}" debug-files upload --project sentry-native --org sentry-sdks .
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         COMMENT "Uploading debug info files to Sentry..."
         VERBATIM
