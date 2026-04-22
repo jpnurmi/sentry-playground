@@ -125,6 +125,7 @@ endif()
 #set(SENTRY_BACKEND crashpad)
 set(SENTRY_BACKEND native)
 set(SENTRY_BUILD_SHARED_LIBS ON)
+set(CRASHPAD_ENABLE_STACKTRACE ON CACHE BOOL "" FORCE)
 add_subdirectory(../sentry-native ${CMAKE_BINARY_DIR}/sentry-native)
 target_link_libraries(sentry-playground PRIVATE sentry)
 
