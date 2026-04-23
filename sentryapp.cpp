@@ -84,9 +84,7 @@ bool SentryApp::notify(QObject *receiver, QEvent *event)
     }
 
     const char *typeName = QMetaEnum::fromType<QEvent::Type>().valueToKey(event->type());
-    QByteArray desc = QByteArray(typeName)
-        + " -> " + receiver->metaObject()->className()
-        + "(" + receiver->objectName().toUtf8() + ")";
+    QByteArray desc = "QEvent::" + QByteArray(typeName);
     TRACE_SCOPE("event", desc.constData());
     return QApplication::notify(receiver, event);
 }
