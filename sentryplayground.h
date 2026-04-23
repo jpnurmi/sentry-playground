@@ -27,7 +27,6 @@ signals:
     void workerChanged(bool worker);
 
 public slots:
-    void viewWidgets();
     void showWindow();
 
     void triggerCrash();

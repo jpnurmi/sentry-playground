@@ -1,6 +1,6 @@
 #include "sentryplayground.h"
 #include "sentrytrace.h"
-#include "qtwidgetswindow.h"
+#include "sentrywindow.h"
 
 #include <QtCore/qdebug.h>
 #include <QtCore/qmetaobject.h>
@@ -214,17 +214,11 @@ void SentryPlayground::setWorker(bool worker)
     emit workerChanged(worker);
 }
 
-void SentryPlayground::viewWidgets()
-{
-    TRACE_FUNCTION();
-    QtWidgetsWindow* subwindow = new QtWidgetsWindow();
-    subwindow->show();
-}
-
 void SentryPlayground::showWindow()
 {
     TRACE_FUNCTION();
-    SentryPlayground::viewWidgets();
+    SentryWindow* window = new SentryWindow();
+    window->show();
 }
 
 void SentryPlayground::triggerCrash()

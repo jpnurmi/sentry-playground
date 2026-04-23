@@ -1,8 +1,8 @@
-#include "qtwidgetswindow.h"
+#include "sentrywindow.h"
 #include "sentryplayground.h"
 #include "sentrytrace.h"
 
-QtWidgetsWindow::QtWidgetsWindow(QWidget *parent)
+SentryWindow::SentryWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     TRACE_FUNCTION();
@@ -20,7 +20,7 @@ QtWidgetsWindow::QtWidgetsWindow(QWidget *parent)
     QObject::connect(ui.abortButton, &QAbstractButton::clicked, playground, &SentryPlayground::triggerAbort);
 
     QObject::connect(ui.actionQuit, &QAction::triggered, qApp, &QCoreApplication::quit);
-    QObject::connect(ui.actionWidgets, &QAction::triggered, playground, &SentryPlayground::viewWidgets);
+    QObject::connect(ui.actionWindow, &QAction::triggered, playground, &SentryPlayground::showWindow);
 
     QObject::connect(ui.workerBox, &QAbstractButton::toggled, playground, &SentryPlayground::setWorker);
     QObject::connect(playground, &SentryPlayground::workerChanged, ui.workerBox, &QAbstractButton::setChecked);

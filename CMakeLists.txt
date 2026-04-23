@@ -16,9 +16,9 @@ set(PROJECT_SOURCES
         main.cpp
         sentryplayground.h
         sentryplayground.cpp
-        qtwidgetswindow.h
-        qtwidgetswindow.cpp
-        qtwidgetswindow.ui
+        sentrywindow.h
+        sentrywindow.cpp
+        sentrywindow.ui
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
