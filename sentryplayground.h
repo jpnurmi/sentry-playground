@@ -10,7 +10,6 @@ class SentryPlayground : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QString backend READ backend CONSTANT)
-    Q_PROPERTY(bool haveWidgets READ haveWidgets CONSTANT)
     Q_PROPERTY(bool worker READ worker WRITE setWorker NOTIFY workerChanged)
 
 public:
@@ -21,8 +20,6 @@ public:
     static SentryPlayground* instance();
     static QString backend();
     static QDebug debug();
-
-    static bool haveWidgets();
 
     bool worker() const;
     void setWorker(bool worker);

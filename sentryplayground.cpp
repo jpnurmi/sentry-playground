@@ -1,7 +1,5 @@
 #include "sentryplayground.h"
-#ifdef HAVE_WIDGETS
 #include "qtwidgetswindow.h"
-#endif
 
 #include <QtCore/qdebug.h>
 #include <QtCore/qmetaobject.h>
@@ -53,16 +51,10 @@ static void onSignalEnd(QObject *caller, int signalIndex)
     SentryPlayground::instance()->traceEnd();
 }
 
-#ifdef HAVE_WIDGETS
-using PlaygroundApplicationBase = QApplication;
-#else
-using PlaygroundApplicationBase = QGuiApplication;
-#endif
-
-class PlaygroundApplication : public PlaygroundApplicationBase
+class PlaygroundApplication : public QApplication
 {
 public:
-    using PlaygroundApplicationBase::PlaygroundApplicationBase;
+    using QApplication::QApplication;
 
     bool notify(QObject *receiver, QEvent *event) override
     {
@@ -84,10 +76,10 @@ public:
         case QEvent::ShortcutOverride:
         case QEvent::Shortcut:
             if (!qobject_cast<QWindow *>(receiver))
-                return PlaygroundApplicationBase::notify(receiver, event);
+                return QApplication::notify(receiver, event);
             break;
         default:
-            return PlaygroundApplicationBase::notify(receiver, event);
+            return QApplication::notify(receiver, event);
         }
 
         const char *typeName = QMetaEnum::fromType<QEvent::Type>().valueToKey(event->type());
@@ -95,7 +87,7 @@ public:
             + " -> " + receiver->metaObject()->className()
             + "(" + receiver->objectName().toUtf8() + ")";
         TRACE_SCOPE("event", desc.constData());
-        return PlaygroundApplicationBase::notify(receiver, event);
+        return QApplication::notify(receiver, event);
     }
 };
 
@@ -272,32 +264,17 @@ SentryPlayground::TraceScope::~TraceScope()
     SentryPlayground::instance()->traceEnd();
 }
 
-bool SentryPlayground::haveWidgets()
-{
-#ifdef HAVE_WIDGETS
-    return true;
-#else
-    return false;
-#endif
-}
-
 void SentryPlayground::viewWidgets()
 {
     TRACE_FUNCTION();
-#ifdef HAVE_WIDGETS
     QtWidgetsWindow* subwindow = new QtWidgetsWindow();
     subwindow->show();
-#endif
 }
 
 void SentryPlayground::showWindow()
 {
     TRACE_FUNCTION();
-#if defined(HAVE_WIDGETS)
     SentryPlayground::viewWidgets();
-#else
-    #error Widgets must be enabled.
-#endif
 }
 
 void SentryPlayground::triggerCrash()
