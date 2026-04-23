@@ -9,8 +9,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core CorePrivate Gui OPTIONAL_COMPONENTS Widgets Quick)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core CorePrivate Gui OPTIONAL_COMPONENTS Widgets Quick)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core CorePrivate Gui OPTIONAL_COMPONENTS Widgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core CorePrivate Gui OPTIONAL_COMPONENTS Widgets)
 
 set(PROJECT_SOURCES
         main.cpp
@@ -24,17 +24,8 @@ else()
     set(HAVE_WIDGETS OFF)
 endif()
 
-if(TARGET Qt${QT_VERSION_MAJOR}::Quick)
-    set(HAVE_QUICK ON)
-else()
-    set(HAVE_QUICK OFF)
-endif()
-
 if(HAVE_WIDGETS)
     list(APPEND PROJECT_SOURCES qtwidgetswindow.h qtwidgetswindow.cpp qtwidgetswindow.ui)
-endif()
-if(HAVE_QUICK)
-    list(APPEND PROJECT_SOURCES qtquickwindow.qml qml.qrc)
 endif()
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -64,10 +55,6 @@ target_link_libraries(sentry-playground PRIVATE Qt${QT_VERSION_MAJOR}::Gui Qt${Q
 if(HAVE_WIDGETS)
     target_compile_definitions(sentry-playground PRIVATE HAVE_WIDGETS)
     target_link_libraries(sentry-playground PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
-endif()
-if(HAVE_QUICK)
-    target_compile_definitions(sentry-playground PRIVATE HAVE_QUICK)
-    target_link_libraries(sentry-playground PRIVATE Qt${QT_VERSION_MAJOR}::Quick)
 endif()
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

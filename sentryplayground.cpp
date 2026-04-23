@@ -10,9 +10,6 @@
 #include <QtCore/private/qobject_p.h>
 #include <QtGui/qevent.h>
 #include <QtGui/qwindow.h>
-#ifdef HAVE_QUICK
-#include <QtQml/qqmlapplicationengine.h>
-#endif
 
 static bool shouldTraceSignal(const QMetaObject *mo, const char *signalName)
 {
@@ -189,9 +186,6 @@ QGuiApplication* SentryPlayground::init(int& argc, char* argv[])
 
     static QSignalSpyCallbackSet spy_callbacks = { &onSignalBegin, nullptr, &onSignalEnd, nullptr };
     qt_register_signal_spy_callbacks(&spy_callbacks);
-#ifdef HAVE_QUICK
-    qmlRegisterSingletonInstance("SentryPlayground", 1, 0, "SentryPlayground", SentryPlayground::instance());
-#endif
 
     QObject::connect(app, &QCoreApplication::aboutToQuit, SentryPlayground::instance(), &SentryPlayground::uninit);
     return app;
@@ -287,15 +281,6 @@ bool SentryPlayground::haveWidgets()
 #endif
 }
 
-bool SentryPlayground::haveQuick()
-{
-#ifdef HAVE_QUICK
-    return true;
-#else
-    return false;
-#endif
-}
-
 void SentryPlayground::viewWidgets()
 {
     TRACE_FUNCTION();
@@ -305,23 +290,13 @@ void SentryPlayground::viewWidgets()
 #endif
 }
 
-void SentryPlayground::viewQuick()
-{
-#ifdef HAVE_QUICK
-    QQmlApplicationEngine* engine = new QQmlApplicationEngine(qApp);
-    engine->load(QUrl("qrc:/qtquickwindow.qml"));
-#endif
-}
-
 void SentryPlayground::showWindow()
 {
     TRACE_FUNCTION();
 #if defined(HAVE_WIDGETS)
     SentryPlayground::viewWidgets();
-#elif defined(HAVE_QUICK)
-    SentryPlayground::viewQuick();
 #else
-    #error Either Widgets or Quick must be enabled.
+    #error Widgets must be enabled.
 #endif
 }
 

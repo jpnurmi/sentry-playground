@@ -1,5 +1,0 @@
-<RCC>
-    <qresource prefix="/">
-        <file>qtquickwindow.qml</file>
-    </qresource>
-</RCC>
