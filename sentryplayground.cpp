@@ -209,13 +209,39 @@ void SentryPlayground::triggerAbort()
     }
 }
 
-void SentryPlayground::captureMessage(int level)
+QStringList SentryPlayground::attachments() const
+{
+    return m_attachments.keys();
+}
+
+void SentryPlayground::addAttachment(const QString& path)
 {
     TRACE_FUNCTION();
-    debug() << "captureMessage" << level;
+    if (path.isEmpty() || m_attachments.contains(path))
+        return;
+    sentry_attachment_t *handle = sentry_attach_file(path.toUtf8().constData());
+    m_attachments.insert(path, handle);
+    emit attachmentsChanged(attachments());
+}
+
+void SentryPlayground::removeAttachment(const QString& path)
+{
+    TRACE_FUNCTION();
+    auto it = m_attachments.find(path);
+    if (it == m_attachments.end())
+        return;
+    sentry_remove_attachment(static_cast<sentry_attachment_t *>(it.value()));
+    m_attachments.erase(it);
+    emit attachmentsChanged(attachments());
+}
+
+void SentryPlayground::captureMessage(int level, const QString& message)
+{
+    TRACE_FUNCTION();
+    debug() << "captureMessage" << level << message;
     sentry_value_t event = sentry_value_new_message_event(
         static_cast<sentry_level_t>(level),
         "sentry-playground",
-        "Hello from Sentry Playground");
+        message.toUtf8().constData());
     sentry_capture_event(event);
 }

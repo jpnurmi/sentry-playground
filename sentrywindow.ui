@@ -14,21 +14,8 @@
    <string>Sentry Playground</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="1">
-     <spacer name="verticalSpacer">
-      <property name="orientation">
-       <enum>Qt::Orientation::Vertical</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>0</width>
-        <height>0</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="1" column="1">
+   <layout class="QVBoxLayout" name="rootLayout">
+    <item>
      <widget class="QLabel" name="backendLabel">
       <property name="text">
        <string>backend</string>
@@ -38,116 +25,196 @@
       </property>
      </widget>
     </item>
-    <item row="2" column="0">
-     <spacer name="horizontalSpacer">
-      <property name="orientation">
-       <enum>Qt::Orientation::Horizontal</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>0</width>
-        <height>0</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="2" column="2">
-     <spacer name="horizontalSpacer_2">
-      <property name="orientation">
-       <enum>Qt::Orientation::Horizontal</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>0</width>
-        <height>0</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="2" column="1">
-     <layout class="QHBoxLayout" name="messageLayout">
+    <item>
+     <layout class="QHBoxLayout" name="columnsLayout">
       <item>
-       <widget class="QComboBox" name="messageLevelBox">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="sizeAdjustPolicy">
-         <enum>QComboBox::SizeAdjustPolicy::AdjustToContents</enum>
-        </property>
-       </widget>
+       <layout class="QVBoxLayout" name="leftColumn">
+        <item>
+         <widget class="QLabel" name="crashesHeader">
+          <property name="styleSheet">
+           <string notr="true">color: #888; font-weight: bold;</string>
+          </property>
+          <property name="text">
+           <string>CRASH</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="crashButton">
+          <property name="text">
+           <string>Segfault</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="stackOverflowButton">
+          <property name="text">
+           <string>Stack overflow</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="fastfailButton">
+          <property name="text">
+           <string>Fast-fail</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="assertButton">
+          <property name="text">
+           <string>Assert</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="abortButton">
+          <property name="text">
+           <string>Abort</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="leftSpacer">
+          <property name="orientation">
+           <enum>Qt::Orientation::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item alignment="Qt::AlignmentFlag::AlignRight">
+         <widget class="QCheckBox" name="workerBox">
+          <property name="text">
+           <string>Worker</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
       <item>
-       <widget class="QPushButton" name="captureMessageButton">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="text">
-         <string>Message</string>
-        </property>
-       </widget>
+       <layout class="QVBoxLayout" name="rightColumn">
+        <item>
+         <layout class="QHBoxLayout" name="captureHeaderLayout">
+          <item>
+           <widget class="QLabel" name="captureHeader">
+            <property name="styleSheet">
+             <string notr="true">color: #888; font-weight: bold;</string>
+            </property>
+            <property name="text">
+             <string>MESSAGE</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="captureHeaderSpacer">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QComboBox" name="messageLevelBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="sizeAdjustPolicy">
+             <enum>QComboBox::SizeAdjustPolicy::AdjustToContents</enum>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="messageLayout">
+          <item>
+           <widget class="QLineEdit" name="messageText">
+            <property name="placeholderText">
+             <string>message</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="captureMessageButton">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>→</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="attachmentHeaderLayout">
+          <item>
+           <widget class="QLabel" name="attachmentHeader">
+            <property name="styleSheet">
+             <string notr="true">color: #888; font-weight: bold; margin-top: 8px;</string>
+            </property>
+            <property name="text">
+             <string>ATTACH</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="attachmentHeaderSpacer">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QToolButton" name="addButton">
+            <property name="toolTip">
+             <string>Add attachment…</string>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QToolButton { border: none; background: transparent; padding: 2px 6px; }</string>
+            </property>
+            <property name="text">
+             <string>+</string>
+            </property>
+            <property name="autoRaise">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QListWidget" name="attachmentList">
+          <property name="contextMenuPolicy">
+           <enum>Qt::ContextMenuPolicy::CustomContextMenu</enum>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
      </layout>
-    </item>
-    <item row="3" column="1">
-     <widget class="QPushButton" name="crashButton">
-      <property name="text">
-       <string>Crash</string>
-      </property>
-     </widget>
-    </item>
-    <item row="4" column="1">
-     <widget class="QPushButton" name="stackOverflowButton">
-      <property name="text">
-       <string>Stack overflow</string>
-      </property>
-     </widget>
-    </item>
-    <item row="5" column="1">
-     <widget class="QPushButton" name="fastfailButton">
-      <property name="text">
-       <string>Fast-fail</string>
-      </property>
-     </widget>
-    </item>
-    <item row="6" column="1">
-     <widget class="QPushButton" name="assertButton">
-      <property name="text">
-       <string>Assert</string>
-      </property>
-     </widget>
-    </item>
-    <item row="7" column="1">
-     <widget class="QPushButton" name="abortButton">
-      <property name="text">
-       <string>Abort</string>
-      </property>
-     </widget>
-    </item>
-    <item row="8" column="1">
-     <widget class="QCheckBox" name="workerBox">
-      <property name="text">
-       <string>Worker</string>
-      </property>
-     </widget>
-    </item>
-    <item row="9" column="1">
-     <spacer name="verticalSpacer_2">
-      <property name="orientation">
-       <enum>Qt::Orientation::Vertical</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>0</width>
-        <height>0</height>
-       </size>
-      </property>
-     </spacer>
     </item>
    </layout>
   </widget>

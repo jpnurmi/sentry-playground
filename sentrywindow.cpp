@@ -4,11 +4,20 @@
 
 #include <sentry.h>
 
+#include <QtCore/qfileinfo.h>
+#include <QtCore/qlocale.h>
+#include <QtCore/qsettings.h>
+#include <QtCore/qstandardpaths.h>
 #include <QtWidgets/qboxlayout.h>
 #include <QtWidgets/qcombobox.h>
+#include <QtWidgets/qfiledialog.h>
 #include <QtWidgets/qlabel.h>
+#include <QtWidgets/qlineedit.h>
+#include <QtWidgets/qlistwidget.h>
+#include <QtWidgets/qmenu.h>
 #include <QtWidgets/qpushbutton.h>
 #include <QtWidgets/qstatusbar.h>
+#include <QtWidgets/qtoolbutton.h>
 
 SentryWindow::SentryWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -33,9 +42,48 @@ SentryWindow::SentryWindow(QWidget *parent)
     ui.messageLevelBox->addItem("Error", SENTRY_LEVEL_ERROR);
     ui.messageLevelBox->addItem("Fatal", SENTRY_LEVEL_FATAL);
     ui.messageLevelBox->setCurrentIndex(1);
-    QObject::connect(ui.captureMessageButton, &QAbstractButton::clicked, playground, [this, playground]() {
-        playground->captureMessage(ui.messageLevelBox->currentData().toInt());
+    ui.messageText->setText(QSettings().value("message", "Hello from Sentry Playground").toString());
+    QObject::connect(ui.messageText, &QLineEdit::textEdited, this, [](const QString& text) {
+        QSettings().setValue("message", text);
     });
+    QObject::connect(ui.captureMessageButton, &QAbstractButton::clicked, playground, [this, playground]() {
+        playground->captureMessage(ui.messageLevelBox->currentData().toInt(), ui.messageText->text());
+    });
+
+    auto refreshAttachments = [this, playground]() {
+        ui.attachmentList->clear();
+        for (const QString& path : playground->attachments()) {
+            QFileInfo info(path);
+            QString label = QString("%1  (%2)").arg(info.fileName(),
+                QLocale::system().formattedDataSize(info.size()));
+            auto *item = new QListWidgetItem(label);
+            item->setToolTip(path);
+            item->setData(Qt::UserRole, path);
+            ui.attachmentList->addItem(item);
+        }
+    };
+    refreshAttachments();
+    QObject::connect(playground, &SentryPlayground::attachmentsChanged, this,
+        [refreshAttachments]() { refreshAttachments(); });
+    QObject::connect(ui.addButton, &QAbstractButton::clicked, this, [this, playground]() {
+        QString lastDir = QSettings().value("attachmentDir",
+            QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
+        QString path = QFileDialog::getOpenFileName(this, "Select attachment", lastDir);
+        if (path.isEmpty())
+            return;
+        QSettings().setValue("attachmentDir", QFileInfo(path).absolutePath());
+        playground->addAttachment(path);
+    });
+    QObject::connect(ui.attachmentList, &QListWidget::customContextMenuRequested, this,
+        [this, playground](const QPoint& pos) {
+            auto *item = ui.attachmentList->itemAt(pos);
+            if (!item)
+                return;
+            QMenu menu(this);
+            QString path = item->data(Qt::UserRole).toString();
+            menu.addAction("Remove", [playground, path]() { playground->removeAttachment(path); });
+            menu.exec(ui.attachmentList->mapToGlobal(pos));
+        });
 
     QObject::connect(ui.actionQuit, &QAction::triggered, qApp, &QCoreApplication::quit);
     QObject::connect(ui.actionWindow, &QAction::triggered, playground, &SentryPlayground::showWindow);
