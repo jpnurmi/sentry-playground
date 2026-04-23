@@ -22,7 +22,6 @@ static sentry_value_t before_send(sentry_value_t event, void *hint, void *userda
 
 static sentry_value_t on_crash(const sentry_ucontext_t *uctx, sentry_value_t event, void *userdata)
 {
-    SentryPlayground::uninit();
     return ensure_fingerprint(event);
 }
 
