@@ -1,5 +1,6 @@
 #include "qtwidgetswindow.h"
 #include "sentryplayground.h"
+#include "sentrytrace.h"
 
 QtWidgetsWindow::QtWidgetsWindow(QWidget *parent)
     : QMainWindow(parent)
