@@ -5,9 +5,6 @@
 #ifdef HAVE_OPENGL
 #include "qtopenglwindow.h"
 #endif
-#ifdef HAVE_VULKAN
-#include "qtvulkanwindow.h"
-#endif
 
 #include <QtCore/qdebug.h>
 #include <QtCore/qmetaobject.h>
@@ -311,15 +308,6 @@ bool SentryPlayground::haveOpenGL()
 #endif
 }
 
-bool SentryPlayground::haveVulkan()
-{
-#ifdef HAVE_VULKAN
-    return true;
-#else
-    return false;
-#endif
-}
-
 void SentryPlayground::viewWidgets()
 {
     TRACE_FUNCTION();
@@ -345,28 +333,6 @@ void SentryPlayground::viewOpenGL()
 #endif
 }
 
-void SentryPlayground::viewVulkan()
-{
-#ifdef HAVE_VULKAN
-    static QVulkanInstance* vulkanInstance = nullptr;
-    if (!vulkanInstance) {
-        vulkanInstance = new QVulkanInstance;
-        vulkanInstance->setLayers(QByteArrayList()
-                       << "VK_LAYER_GOOGLE_threading"
-                       << "VK_LAYER_LUNARG_parameter_validation"
-                       << "VK_LAYER_LUNARG_object_tracker"
-                       << "VK_LAYER_LUNARG_core_validation"
-                       << "VK_LAYER_LUNARG_image"
-                       << "VK_LAYER_LUNARG_swapchain"
-                       << "VK_LAYER_GOOGLE_unique_objects");
-        vulkanInstance->create();
-    }
-    QtVulkanWindow* subwindow = new QtVulkanWindow();
-    subwindow->setVulkanInstance(vulkanInstance);
-    subwindow->show();
-#endif
-}
-
 void SentryPlayground::showWindow()
 {
     TRACE_FUNCTION();
@@ -376,10 +342,8 @@ void SentryPlayground::showWindow()
     SentryPlayground::viewQuick();
 #elif defined(HAVE_OPENGL)
     SentryPlayground::viewOpenGL();
-#elif defined(HAVE_VULKAN)
-    SentryPlayground::viewVulkan();
 #else
-    #error Either Widgets, Quick, OpenGL, or Vulkan must be enabled.
+    #error Either Widgets, Quick, or OpenGL must be enabled.
 #endif
 }
 

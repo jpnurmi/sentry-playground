@@ -34,11 +34,6 @@ ApplicationWindow {
                 enabled: SentryPlayground.haveOpenGL
                 onTriggered: SentryPlayground.viewOpenGL()
             }
-            Action {
-                text: "&Vulkan"
-                enabled: SentryPlayground.haveVulkan
-                onTriggered: SentryPlayground.viewVulkan()
-            }
         }
     }
 

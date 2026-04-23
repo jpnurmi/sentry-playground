@@ -153,7 +153,6 @@
     <addaction name="actionWidgets"/>
     <addaction name="actionQuick"/>
     <addaction name="actionOpenGL"/>
-    <addaction name="actionVulkan"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menu_View"/>
@@ -177,11 +176,6 @@
   <action name="actionOpenGL">
    <property name="text">
     <string>Open&amp;GL</string>
-   </property>
-  </action>
-  <action name="actionVulkan">
-   <property name="text">
-    <string>&amp;Vulkan</string>
    </property>
   </action>
  </widget>
