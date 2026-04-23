@@ -4,6 +4,7 @@
 QtWidgetsWindow::QtWidgetsWindow(QWidget *parent)
     : QMainWindow(parent)
 {
+    TRACE_FUNCTION();
     ui.setupUi(this);
     ui.backendLabel->setText(SentryPlayground::backend());
 #ifndef Q_OS_WINDOWS
