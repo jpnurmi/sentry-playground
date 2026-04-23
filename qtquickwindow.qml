@@ -29,11 +29,6 @@ ApplicationWindow {
                 enabled: SentryPlayground.haveQuick
                 onTriggered: SentryPlayground.viewQuick()
             }
-            Action {
-                text: "Open&GL"
-                enabled: SentryPlayground.haveOpenGL
-                onTriggered: SentryPlayground.viewOpenGL()
-            }
         }
     }
 

@@ -152,7 +152,6 @@
     </property>
     <addaction name="actionWidgets"/>
     <addaction name="actionQuick"/>
-    <addaction name="actionOpenGL"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menu_View"/>
@@ -171,11 +170,6 @@
   <action name="actionQuick">
    <property name="text">
     <string>&amp;Quick</string>
-   </property>
-  </action>
-  <action name="actionOpenGL">
-   <property name="text">
-    <string>Open&amp;GL</string>
    </property>
   </action>
  </widget>

@@ -2,9 +2,6 @@
 #ifdef HAVE_WIDGETS
 #include "qtwidgetswindow.h"
 #endif
-#ifdef HAVE_OPENGL
-#include "qtopenglwindow.h"
-#endif
 
 #include <QtCore/qdebug.h>
 #include <QtCore/qmetaobject.h>
@@ -299,15 +296,6 @@ bool SentryPlayground::haveQuick()
 #endif
 }
 
-bool SentryPlayground::haveOpenGL()
-{
-#ifdef HAVE_OPENGL
-    return true;
-#else
-    return false;
-#endif
-}
-
 void SentryPlayground::viewWidgets()
 {
     TRACE_FUNCTION();
@@ -325,14 +313,6 @@ void SentryPlayground::viewQuick()
 #endif
 }
 
-void SentryPlayground::viewOpenGL()
-{
-#ifdef HAVE_OPENGL
-    QtOpenGLWindow* subwindow = new QtOpenGLWindow();
-    subwindow->show();
-#endif
-}
-
 void SentryPlayground::showWindow()
 {
     TRACE_FUNCTION();
@@ -340,10 +320,8 @@ void SentryPlayground::showWindow()
     SentryPlayground::viewWidgets();
 #elif defined(HAVE_QUICK)
     SentryPlayground::viewQuick();
-#elif defined(HAVE_OPENGL)
-    SentryPlayground::viewOpenGL();
 #else
-    #error Either Widgets, Quick, or OpenGL must be enabled.
+    #error Either Widgets or Quick must be enabled.
 #endif
 }
 

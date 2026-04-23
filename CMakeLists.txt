@@ -9,8 +9,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core CorePrivate Gui OPTIONAL_COMPONENTS Widgets Quick OpenGL)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core CorePrivate Gui OPTIONAL_COMPONENTS Widgets Quick OpenGL)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core CorePrivate Gui OPTIONAL_COMPONENTS Widgets Quick)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core CorePrivate Gui OPTIONAL_COMPONENTS Widgets Quick)
 
 set(PROJECT_SOURCES
         main.cpp
@@ -30,20 +30,11 @@ else()
     set(HAVE_QUICK OFF)
 endif()
 
-if(TARGET Qt${QT_VERSION_MAJOR}::OpenGL)
-    set(HAVE_OPENGL ON)
-else()
-    set(HAVE_OPENGL OFF)
-endif()
-
 if(HAVE_WIDGETS)
     list(APPEND PROJECT_SOURCES qtwidgetswindow.h qtwidgetswindow.cpp qtwidgetswindow.ui)
 endif()
 if(HAVE_QUICK)
     list(APPEND PROJECT_SOURCES qtquickwindow.qml qml.qrc)
-endif()
-if(HAVE_OPENGL)
-    list(APPEND PROJECT_SOURCES qtopenglwindow.h qtopenglwindow.cpp)
 endif()
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -77,10 +68,6 @@ endif()
 if(HAVE_QUICK)
     target_compile_definitions(sentry-playground PRIVATE HAVE_QUICK)
     target_link_libraries(sentry-playground PRIVATE Qt${QT_VERSION_MAJOR}::Quick)
-endif()
-if(HAVE_OPENGL)
-    target_compile_definitions(sentry-playground PRIVATE HAVE_OPENGL)
-    target_link_libraries(sentry-playground PRIVATE Qt${QT_VERSION_MAJOR}::OpenGL)
 endif()
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
