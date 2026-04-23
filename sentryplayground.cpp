@@ -208,3 +208,14 @@ void SentryPlayground::triggerAbort()
         trigger_abort();
     }
 }
+
+void SentryPlayground::captureMessage(int level)
+{
+    TRACE_FUNCTION();
+    debug() << "captureMessage" << level;
+    sentry_value_t event = sentry_value_new_message_event(
+        static_cast<sentry_level_t>(level),
+        "sentry-playground",
+        "Hello from Sentry Playground");
+    sentry_capture_event(event);
+}

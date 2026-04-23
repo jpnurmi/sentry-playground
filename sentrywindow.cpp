@@ -2,7 +2,10 @@
 #include "sentryplayground.h"
 #include "sentrytrace.h"
 
+#include <sentry.h>
+
 #include <QtWidgets/qboxlayout.h>
+#include <QtWidgets/qcombobox.h>
 #include <QtWidgets/qlabel.h>
 #include <QtWidgets/qpushbutton.h>
 #include <QtWidgets/qstatusbar.h>
@@ -23,6 +26,16 @@ SentryWindow::SentryWindow(QWidget *parent)
     QObject::connect(ui.fastfailButton, &QAbstractButton::clicked, playground, &SentryPlayground::triggerFastfail);
     QObject::connect(ui.assertButton, &QAbstractButton::clicked, playground, &SentryPlayground::triggerAssertFailure);
     QObject::connect(ui.abortButton, &QAbstractButton::clicked, playground, &SentryPlayground::triggerAbort);
+
+    ui.messageLevelBox->addItem("Debug", SENTRY_LEVEL_DEBUG);
+    ui.messageLevelBox->addItem("Info", SENTRY_LEVEL_INFO);
+    ui.messageLevelBox->addItem("Warning", SENTRY_LEVEL_WARNING);
+    ui.messageLevelBox->addItem("Error", SENTRY_LEVEL_ERROR);
+    ui.messageLevelBox->addItem("Fatal", SENTRY_LEVEL_FATAL);
+    ui.messageLevelBox->setCurrentIndex(1);
+    QObject::connect(ui.captureMessageButton, &QAbstractButton::clicked, playground, [this, playground]() {
+        playground->captureMessage(ui.messageLevelBox->currentData().toInt());
+    });
 
     QObject::connect(ui.actionQuit, &QAction::triggered, qApp, &QCoreApplication::quit);
     QObject::connect(ui.actionWindow, &QAction::triggered, playground, &SentryPlayground::showWindow);

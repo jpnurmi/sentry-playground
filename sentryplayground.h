@@ -40,6 +40,8 @@ public slots:
     void triggerAssertFailure();
     void triggerAbort();
 
+    void captureMessage(int level);
+
 private:
     bool m_worker = false;
 };
