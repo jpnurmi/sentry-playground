@@ -9,7 +9,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core CorePrivate Gui Widgets)
+find_package(QT NAMES Qt6 REQUIRED COMPONENTS Core CorePrivate Gui Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core CorePrivate Gui Widgets)
 
 set(PROJECT_SOURCES
@@ -18,43 +18,20 @@ set(PROJECT_SOURCES
         sentryapp.cpp
         sentryplayground.h
         sentryplayground.cpp
+        sentrytrace.h
+        sentrytrace.cpp
         sentrywindow.h
         sentrywindow.cpp
         sentrywindow.ui
 )
 
-if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(sentry-playground
-        MANUAL_FINALIZATION
-        ${PROJECT_SOURCES}
-        sentrytrace.h sentrytrace.cpp
-    )
-# Define target properties for Android with Qt 6 as:
-#    set_property(TARGET sentry-playground APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
-#                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
-# For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
-else()
-    if(ANDROID)
-        add_library(sentry-playground SHARED
-            ${PROJECT_SOURCES}
-        )
-# Define properties for Android with Qt 5 after find_package() calls as:
-#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
-    else()
-        add_executable(sentry-playground
-            ${PROJECT_SOURCES}
-        )
-    endif()
-endif()
+qt_add_executable(sentry-playground
+    MANUAL_FINALIZATION
+    ${PROJECT_SOURCES}
+)
 
 target_link_libraries(sentry-playground PRIVATE Qt${QT_VERSION_MAJOR}::Gui Qt${QT_VERSION_MAJOR}::CorePrivate Qt${QT_VERSION_MAJOR}::Widgets)
 
-# Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
-# If you are developing for iOS or macOS you should consider setting an
-# explicit, fixed bundle identifier manually though.
-if(${QT_VERSION} VERSION_LESS 6.1.0)
-  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.sentry-playground)
-endif()
 set_target_properties(sentry-playground PROPERTIES
     ${BUNDLE_ID_OPTION}
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
@@ -70,9 +47,7 @@ install(TARGETS sentry-playground
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-if(QT_VERSION_MAJOR EQUAL 6)
-    qt_finalize_executable(sentry-playground)
-endif()
+qt_finalize_executable(sentry-playground)
 
 #set(SENTRY_BACKEND inproc)
 #set(SENTRY_BACKEND breakpad)
