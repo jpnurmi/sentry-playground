@@ -24,7 +24,7 @@ SentryWindow::SentryWindow(QWidget *parent)
 {
     TRACE_FUNCTION();
     ui.setupUi(this);
-    ui.backendLabel->setText(SentryPlayground::backend());
+    setWindowTitle(windowTitle() + " (" + SentryPlayground::backend() + ")");
 #ifndef Q_OS_WINDOWS
     ui.fastfailButton->setEnabled(false);
 #endif

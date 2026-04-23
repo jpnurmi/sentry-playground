@@ -16,16 +16,6 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="rootLayout">
     <item>
-     <widget class="QLabel" name="backendLabel">
-      <property name="text">
-       <string>backend</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignmentFlag::AlignCenter</set>
-      </property>
-     </widget>
-    </item>
-    <item>
      <layout class="QHBoxLayout" name="columnsLayout">
       <item>
        <layout class="QVBoxLayout" name="leftColumn">
