@@ -14,6 +14,8 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core CorePrivate Gui Widg
 
 set(PROJECT_SOURCES
         main.cpp
+        sentryapp.h
+        sentryapp.cpp
         sentryplayground.h
         sentryplayground.cpp
         sentrywindow.h
