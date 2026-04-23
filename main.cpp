@@ -38,6 +38,7 @@ int main(int argc, char *argv[])
     sentry_options_set_before_send(options, before_send, NULL);
     sentry_options_set_on_crash(options, on_crash, NULL);
     sentry_options_set_traces_sample_rate(options, 1.0);
+    sentry_options_set_require_user_consent(options, 1);
     sentry_options_set_debug(options, 1);
     sentry_init(options);
     auto _ = qScopeGuard([] { sentry_close(); });

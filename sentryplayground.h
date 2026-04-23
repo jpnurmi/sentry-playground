@@ -10,6 +10,7 @@ class SentryPlayground : public QObject
     Q_OBJECT
     Q_PROPERTY(QString backend READ backend CONSTANT)
     Q_PROPERTY(bool worker READ worker WRITE setWorker NOTIFY workerChanged)
+    Q_PROPERTY(Qt::CheckState consent READ consent WRITE setConsent NOTIFY consentChanged)
 
 public:
     explicit SentryPlayground(QObject *parent = nullptr);
@@ -23,8 +24,12 @@ public:
     bool worker() const;
     void setWorker(bool worker);
 
+    Qt::CheckState consent() const;
+    void setConsent(Qt::CheckState consent);
+
 signals:
     void workerChanged(bool worker);
+    void consentChanged(Qt::CheckState consent);
 
 public slots:
     void showWindow();

@@ -3,6 +3,8 @@
 #include "sentrytrace.h"
 #include "sentrywindow.h"
 
+#include <sentry.h>
+
 #include <QtCore/qdebug.h>
 #include <QtCore/qthread.h>
 
@@ -123,6 +125,30 @@ void SentryPlayground::setWorker(bool worker)
 
     m_worker = worker;
     emit workerChanged(worker);
+}
+
+Qt::CheckState SentryPlayground::consent() const
+{
+    switch (sentry_user_consent_get()) {
+    case SENTRY_USER_CONSENT_GIVEN: return Qt::Checked;
+    case SENTRY_USER_CONSENT_REVOKED: return Qt::Unchecked;
+    case SENTRY_USER_CONSENT_UNKNOWN:
+    default: return Qt::PartiallyChecked;
+    }
+}
+
+void SentryPlayground::setConsent(Qt::CheckState consent)
+{
+    TRACE_FUNCTION();
+    if (this->consent() == consent)
+        return;
+
+    switch (consent) {
+    case Qt::Checked: sentry_user_consent_give(); break;
+    case Qt::Unchecked: sentry_user_consent_revoke(); break;
+    case Qt::PartiallyChecked: sentry_user_consent_reset(); break;
+    }
+    emit consentChanged(consent);
 }
 
 void SentryPlayground::showWindow()
