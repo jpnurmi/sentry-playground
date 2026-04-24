@@ -3,6 +3,8 @@
 
 #include <sentry.h>
 
+#include <stdexcept>
+
 #include <QtCore/qdebug.h>
 #include <QtCore/qthread.h>
 
@@ -71,6 +73,14 @@ static void trigger_abort()
     SentryPlayground::debug() << "trigger_abort";
 
     std::abort();
+}
+
+static void trigger_exception()
+{
+    TRACE_FUNCTION();
+    SentryPlayground::debug() << "trigger_exception";
+
+    throw std::runtime_error("uncaught C++ exception");
 }
 
 SentryPlayground::SentryPlayground(QObject *parent) : QObject{parent}
@@ -185,6 +195,16 @@ void SentryPlayground::triggerAbort()
         QThread::create([]() { trigger_abort(); })->start();
     } else {
         trigger_abort();
+    }
+}
+
+void SentryPlayground::triggerException()
+{
+    TRACE_FUNCTION();
+    if (m_worker) {
+        QThread::create([]() { trigger_exception(); })->start();
+    } else {
+        trigger_exception();
     }
 }
 

@@ -42,6 +42,7 @@ SentryWindow::SentryWindow(QWidget *parent)
     QObject::connect(ui.fastfailButton, &QAbstractButton::clicked, playground, &SentryPlayground::triggerFastfail);
     QObject::connect(ui.assertButton, &QAbstractButton::clicked, playground, &SentryPlayground::triggerAssertFailure);
     QObject::connect(ui.abortButton, &QAbstractButton::clicked, playground, &SentryPlayground::triggerAbort);
+    QObject::connect(ui.exceptionButton, &QAbstractButton::clicked, playground, &SentryPlayground::triggerException);
 
     ui.messageLevelBox->addItem("Debug", SENTRY_LEVEL_DEBUG);
     ui.messageLevelBox->addItem("Info", SENTRY_LEVEL_INFO);

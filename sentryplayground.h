@@ -51,6 +51,7 @@ public slots:
     void triggerFastfail();
     void triggerAssertFailure();
     void triggerAbort();
+    void triggerException();
 
     void captureMessage(int level, const QString& message);
 
