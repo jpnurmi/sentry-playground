@@ -243,6 +243,29 @@ SentryWindow::SentryWindow(QWidget *parent)
             }
         });
 
+    struct UserField { QLineEdit* edit; const char* key; };
+    const QList<UserField> userFields = {
+        { ui.userIdEdit, "id" },
+        { ui.userNameEdit, "name" },
+        { ui.userEmailEdit, "email" },
+        { ui.userIpEdit, "ip_address" },
+    };
+    auto populateUser = [userFields, playground]() {
+        QVariantMap user = playground->user();
+        for (const UserField& f : userFields) {
+            QSignalBlocker blocker(f.edit);
+            if (!f.edit->hasFocus())
+                f.edit->setText(user.value(f.key).toString());
+        }
+    };
+    populateUser();
+    for (const UserField& f : userFields) {
+        QObject::connect(f.edit, &QLineEdit::editingFinished, this,
+            [f, playground]() { playground->updateUser(f.key, f.edit->text()); });
+    }
+    QObject::connect(playground, &SentryPlayground::userChanged, this,
+        [populateUser](const QVariantMap&) { populateUser(); });
+
     QObject::connect(ui.attachmentTable, &QWidget::customContextMenuRequested, this,
         [this, playground](const QPoint& pos) {
             auto* item = ui.attachmentTable->itemAt(pos);

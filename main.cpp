@@ -43,8 +43,6 @@ int main(int argc, char *argv[])
     sentry_init(options);
     auto _ = qScopeGuard([] { sentry_close(); });
 
-    sentry_set_user(sentry_value_new_user(NULL, "nobody", "nobody@example.com", NULL));
-
     QScopedPointer<QGuiApplication> app(SentryPlayground::init(argc, argv));
     SentryPlayground::instance()->showWindow();
 

@@ -78,6 +78,8 @@ static void trigger_abort()
 SentryPlayground::SentryPlayground(QObject *parent) : QObject{parent}
 {
     setTag("backend", SENTRY_BACKEND);
+    updateUser("name", "nobody");
+    updateUser("email", "nobody@example.com");
 }
 
 QGuiApplication* SentryPlayground::init(int& argc, char* argv[])
@@ -285,6 +287,31 @@ void SentryPlayground::removeContext(const QString& name)
         return;
     sentry_remove_context(name.toUtf8().constData());
     emit contextsChanged(m_contexts);
+}
+
+QVariantMap SentryPlayground::user() const
+{
+    return m_user;
+}
+
+void SentryPlayground::updateUser(const QString& field, const QString& value)
+{
+    TRACE_FUNCTION();
+    if (m_user.value(field).toString() == value && m_user.contains(field))
+        return;
+    m_user.insert(field, value);
+
+    QByteArray id = m_user.value("id").toString().toUtf8();
+    QByteArray name = m_user.value("name").toString().toUtf8();
+    QByteArray email = m_user.value("email").toString().toUtf8();
+    QByteArray ip = m_user.value("ip_address").toString().toUtf8();
+    sentry_set_user(sentry_value_new_user(
+        id.isEmpty() ? nullptr : id.constData(),
+        name.isEmpty() ? nullptr : name.constData(),
+        email.isEmpty() ? nullptr : email.constData(),
+        ip.isEmpty() ? nullptr : ip.constData()));
+
+    emit userChanged(m_user);
 }
 
 void SentryPlayground::captureMessage(int level, const QString& message)

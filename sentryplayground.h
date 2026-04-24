@@ -16,6 +16,7 @@ class SentryPlayground : public QObject
     Q_PROPERTY(QStringList attachments READ attachments NOTIFY attachmentsChanged)
     Q_PROPERTY(QVariantMap tags READ tags NOTIFY tagsChanged)
     Q_PROPERTY(QVariantMap contexts READ contexts NOTIFY contextsChanged)
+    Q_PROPERTY(QVariantMap user READ user NOTIFY userChanged)
 
 public:
     explicit SentryPlayground(QObject *parent = nullptr);
@@ -36,6 +37,7 @@ public:
 
     QVariantMap tags() const;
     QVariantMap contexts() const;
+    QVariantMap user() const;
 
 signals:
     void workerChanged(bool worker);
@@ -43,6 +45,7 @@ signals:
     void attachmentsChanged(const QStringList& attachments);
     void tagsChanged(const QVariantMap& tags);
     void contextsChanged(const QVariantMap& contexts);
+    void userChanged(const QVariantMap& user);
 
 public slots:
     void showWindow();
@@ -66,11 +69,14 @@ public slots:
     void setContext(const QString& name, const QString& value);
     void removeContext(const QString& name);
 
+    void updateUser(const QString& field, const QString& value);
+
 private:
     bool m_worker = false;
     QMap<QString, void*> m_attachments;
     QVariantMap m_tags;
     QVariantMap m_contexts;
+    QVariantMap m_user;
 };
 
 #endif // SENTRYPLAYGROUND_H
