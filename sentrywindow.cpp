@@ -263,6 +263,30 @@ SentryWindow::SentryWindow(QWidget *parent)
         tree->editItem(item, 0);
     };
 
+    const char* kCircularButton =
+        "QToolButton {"
+        " border: none; border-radius: 11px;"
+        " background: #3a3a3a; padding: 0; %1 }"
+        "QToolButton:hover { background: #4a4a4a; }"
+        "QToolButton:pressed { background: #555; }";
+    ui.addButton->setFixedSize(22, 22);
+    ui.addButton->setStyleSheet(QString(kCircularButton).arg(""));
+
+    auto makePlusIcon = [this](qreal dpr) {
+        const int size = 12;
+        QPixmap pixmap(size * dpr, size * dpr);
+        pixmap.setDevicePixelRatio(dpr);
+        pixmap.fill(Qt::transparent);
+        QPainter p(&pixmap);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setPen(QPen(palette().color(QPalette::Text), 1.5, Qt::SolidLine, Qt::RoundCap));
+        p.drawLine(QPointF(size / 2.0, 2), QPointF(size / 2.0, size - 2));
+        p.drawLine(QPointF(2, size / 2.0), QPointF(size - 2, size / 2.0));
+        return QIcon(pixmap);
+    };
+    ui.addButton->setText("");
+    ui.addButton->setIcon(makePlusIcon(devicePixelRatioF()));
+
     auto updateAddButton = [this]() {
         bool isAttachments = ui.categoryStack->currentIndex() == 2;
         ui.addButton->setToolTip(isAttachments ? "Add attachment…" : "Add row");
@@ -310,11 +334,11 @@ SentryWindow::SentryWindow(QWidget *parent)
         return ui.releaseEdit->text() != playground->release()
             || ui.environmentEdit->text() != playground->environment();
     };
-    ui.sessionButton->setFixedSize(26, 26);
+    ui.sessionButton->setFixedSize(22, 22);
     QPalette editDefaultPalette = ui.releaseEdit->palette();
     QPalette editPendingPalette = editDefaultPalette;
     editPendingPalette.setColor(QPalette::Text, QColor("#ff3b30"));
-    auto updateSessionButton = [this, playground, editDefaultPalette, editPendingPalette]() {
+    auto updateSessionButton = [this, playground, editDefaultPalette, editPendingPalette, kCircularButton]() {
         bool releasePending = ui.releaseEdit->text() != playground->release();
         bool envPending = ui.environmentEdit->text() != playground->environment();
         bool pending = releasePending || envPending;
@@ -324,15 +348,12 @@ SentryWindow::SentryWindow(QWidget *parent)
         if (pending) {
             ui.sessionButton->setText("⟳");
             ui.sessionButton->setToolTip("Apply and restart session");
-            ui.sessionButton->setStyleSheet(
-                "QToolButton { border: none; background: transparent; padding: 0;"
-                " font-size: 16px; font-weight: bold; color: #ff3b30; }");
+            ui.sessionButton->setStyleSheet(QString(kCircularButton).arg(
+                "font-size: 16px; font-weight: bold; color: #ff3b30;"));
         } else {
             ui.sessionButton->setText(active ? "⏹" : "▶");
             ui.sessionButton->setToolTip(active ? "End session" : "Start session");
-            ui.sessionButton->setStyleSheet(
-                "QToolButton { border: none; background: transparent; padding: 0;"
-                " font-size: 16px; }");
+            ui.sessionButton->setStyleSheet(QString(kCircularButton).arg("font-size: 16px;"));
         }
     };
     updateSessionButton();

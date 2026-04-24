@@ -327,14 +327,8 @@
             </item>
             <item>
              <widget class="QToolButton" name="addButton">
-              <property name="styleSheet">
-               <string notr="true">QToolButton { border: none; background: transparent; padding: 2px 6px; }</string>
-              </property>
               <property name="text">
                <string>+</string>
-              </property>
-              <property name="autoRaise">
-               <bool>true</bool>
               </property>
              </widget>
             </item>
@@ -518,11 +512,7 @@
              </spacer>
             </item>
             <item>
-             <widget class="QToolButton" name="sessionButton">
-              <property name="autoRaise">
-               <bool>true</bool>
-              </property>
-             </widget>
+             <widget class="QToolButton" name="sessionButton"/>
             </item>
            </layout>
           </item>
