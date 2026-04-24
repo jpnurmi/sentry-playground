@@ -18,6 +18,8 @@ set(PROJECT_SOURCES
         main.cpp
         sentryapp.h
         sentryapp.cpp
+        sentryfeedbackdialog.h
+        sentryfeedbackdialog.cpp
         sentryplayground.h
         sentryplayground.cpp
         sentrytrace.h

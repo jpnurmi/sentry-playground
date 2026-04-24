@@ -489,6 +489,21 @@ void SentryPlayground::captureException(int level, const QString& type, const QS
     sentry_capture_event(event);
 }
 
+void SentryPlayground::captureFeedback(const QString& message, const QString& name, const QString& email)
+{
+    TRACE_FUNCTION();
+    debug() << "captureFeedback" << name << email << message;
+    QByteArray msg = message.toUtf8();
+    QByteArray nm = name.toUtf8();
+    QByteArray em = email.toUtf8();
+    sentry_value_t feedback = sentry_value_new_feedback(
+        msg.constData(),
+        em.isEmpty() ? nullptr : em.constData(),
+        nm.isEmpty() ? nullptr : nm.constData(),
+        nullptr);
+    sentry_capture_feedback(feedback);
+}
+
 void SentryPlayground::reapplyScope()
 {
     TRACE_FUNCTION();

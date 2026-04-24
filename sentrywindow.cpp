@@ -1,4 +1,5 @@
 #include "sentrywindow.h"
+#include "sentryfeedbackdialog.h"
 #include "sentryplayground.h"
 #include "sentrytrace.h"
 
@@ -14,6 +15,7 @@
 #include <QtWidgets/qbuttongroup.h>
 #include <QtWidgets/qcheckbox.h>
 #include <QtWidgets/qcombobox.h>
+#include <QtWidgets/qdialog.h>
 #include <QtWidgets/qfiledialog.h>
 #include <QtWidgets/qheaderview.h>
 #include <QtWidgets/qlabel.h>
@@ -415,6 +417,7 @@ SentryWindow::SentryWindow(QWidget *parent)
     QObject::connect(playground, &SentryPlayground::filterChanged, ui.filterBox, &QAbstractButton::setChecked);
 
     auto* consentButton = new QPushButton(this);
+    consentButton->setObjectName("consentButton");
     consentButton->setCheckable(true);
     consentButton->setFlat(true);
     auto* consentIcon = new QLabel(consentButton);
@@ -428,6 +431,18 @@ SentryWindow::SentryWindow(QWidget *parent)
     consentText->setAttribute(Qt::WA_TransparentForMouseEvents);
     statusBar()->addPermanentWidget(consentButton, 1);
     statusBar()->setSizeGripEnabled(false);
+
+    auto* feedbackButton = new QPushButton("Feedback", this);
+    feedbackButton->setObjectName("feedbackButton");
+    statusBar()->addPermanentWidget(feedbackButton);
+    QObject::connect(feedbackButton, &QAbstractButton::clicked, this, [this, playground]() {
+        SentryFeedbackDialog dialog(this);
+        QVariantMap user = playground->user();
+        dialog.setName(user.value("name").toString());
+        dialog.setEmail(user.value("email").toString());
+        if (dialog.exec() == QDialog::Accepted)
+            playground->captureFeedback(dialog.message(), dialog.name(), dialog.email());
+    });
     QObject::connect(consentButton, &QAbstractButton::clicked, playground, [playground]() {
         switch (playground->consent()) {
         case Qt::PartiallyChecked: playground->setConsent(Qt::Checked); break;
@@ -439,9 +454,18 @@ SentryWindow::SentryWindow(QWidget *parent)
     auto updateConsentStatus = [this, consentButton, consentIcon, consentText](Qt::CheckState state) {
         static const char* kStyle =
             "QStatusBar { background-color: %1; }"
-            "QStatusBar QPushButton { border: none; background: transparent; }"
+            "QStatusBar QPushButton#consentButton { border: none; background: transparent; }"
             "QStatusBar QLabel { color: white; font-weight: bold; background: transparent; }"
-            "QStatusBar QLabel#consentIcon { font-size: 18px; }";
+            "QStatusBar QLabel#consentIcon { font-size: 18px; }"
+            "QStatusBar QPushButton#feedbackButton {"
+            " color: white; font-weight: bold;"
+            " background: rgba(255, 255, 255, 0.15);"
+            " border: 1px solid rgba(255, 255, 255, 0.5);"
+            " border-radius: 4px; padding: 3px 12px; }"
+            "QStatusBar QPushButton#feedbackButton:hover {"
+            " background: rgba(255, 255, 255, 0.25); }"
+            "QStatusBar QPushButton#feedbackButton:pressed {"
+            " background: rgba(255, 255, 255, 0.35); }";
         switch (state) {
         case Qt::Checked:
             statusBar()->setStyleSheet(QString(kStyle).arg("#2ecc71"));

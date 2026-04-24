@@ -80,6 +80,7 @@ public slots:
 
     void captureMessage(int level, const QString& message);
     void captureException(int level, const QString& type, const QString& value);
+    void captureFeedback(const QString& message, const QString& name, const QString& email);
 
     void addBreadcrumb(const QString& type, int level, const QString& message);
 
