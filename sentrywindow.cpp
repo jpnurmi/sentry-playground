@@ -519,4 +519,6 @@ SentryWindow::SentryWindow(QWidget *parent)
     consentIcon->setObjectName("consentIcon");
     updateConsentStatus(playground->consent());
     QObject::connect(playground, &SentryPlayground::consentChanged, this, updateConsentStatus);
+
+    setFocus();
 }
