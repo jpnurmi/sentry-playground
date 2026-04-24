@@ -5,6 +5,7 @@
 
 #include <stdexcept>
 
+#include <QtCore/qcoreapplication.h>
 #include <QtCore/qdebug.h>
 #include <QtCore/qsettings.h>
 #include <QtCore/qthread.h>
@@ -119,6 +120,15 @@ void SentryPlayground::init()
 {
     debug().nospace() << "backend=" << SENTRY_BACKEND;
 
+    QCoreApplication::setOrganizationName("Sentry");
+    QCoreApplication::setOrganizationDomain("sentry.io");
+    QCoreApplication::setApplicationName("Playground");
+
+    open();
+}
+
+void SentryPlayground::open()
+{
     QSettings settings;
     bool reporterEnabled = settings.value("externalCrashReporter/enabled", false).toBool();
     QString reporterPath = settings.value("externalCrashReporter/path").toString();
@@ -150,7 +160,7 @@ void SentryPlayground::reinit()
 {
     TRACE_FUNCTION();
     close();
-    init();
+    open();
     instance()->reapplyScope();
 }
 
