@@ -12,6 +12,7 @@
 #include <QtCore/qstandardpaths.h>
 #include <QtWidgets/qboxlayout.h>
 #include <QtWidgets/qbuttongroup.h>
+#include <QtWidgets/qcheckbox.h>
 #include <QtWidgets/qcombobox.h>
 #include <QtWidgets/qfiledialog.h>
 #include <QtWidgets/qheaderview.h>
@@ -358,6 +359,42 @@ SentryWindow::SentryWindow(QWidget *parent)
             QString path = item->data(0, Qt::UserRole).toString();
             menu.addAction("Remove", [playground, path]() { playground->removeAttachment(path); });
             menu.exec(ui.attachmentTable->viewport()->mapToGlobal(pos));
+        });
+
+    ui.reporterEnabledBox->setChecked(QSettings().value("externalCrashReporter/enabled", false).toBool());
+    ui.reporterPathEdit->setText(QSettings().value("externalCrashReporter/path").toString());
+    auto updateReporterApply = [this]() {
+        QSettings settings;
+        bool savedEnabled = settings.value("externalCrashReporter/enabled", false).toBool();
+        QString savedPath = settings.value("externalCrashReporter/path").toString();
+        bool pending = ui.reporterEnabledBox->isChecked() != savedEnabled
+            || ui.reporterPathEdit->text() != savedPath;
+        bool valid = !ui.reporterEnabledBox->isChecked() || !ui.reporterPathEdit->text().isEmpty();
+        ui.reporterApplyButton->setEnabled(pending && valid);
+    };
+    updateReporterApply();
+    QObject::connect(ui.reporterEnabledBox, &QAbstractButton::toggled, this,
+        [updateReporterApply](bool) { updateReporterApply(); });
+    QObject::connect(ui.reporterPathEdit, &QLineEdit::textChanged, this,
+        [updateReporterApply](const QString&) { updateReporterApply(); });
+    QObject::connect(ui.reporterBrowseButton, &QAbstractButton::clicked, this, [this]() {
+        QString seed = ui.reporterPathEdit->text();
+        if (seed.isEmpty())
+            seed = QSettings().value("externalCrashReporter/lastDir",
+                QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation)).toString();
+        QString path = QFileDialog::getOpenFileName(this, "Select external crash reporter", seed);
+        if (path.isEmpty())
+            return;
+        QSettings().setValue("externalCrashReporter/lastDir", QFileInfo(path).absolutePath());
+        ui.reporterPathEdit->setText(path);
+    });
+    QObject::connect(ui.reporterApplyButton, &QAbstractButton::clicked, this,
+        [updateReporterApply, this]() {
+            QSettings settings;
+            settings.setValue("externalCrashReporter/enabled", ui.reporterEnabledBox->isChecked());
+            settings.setValue("externalCrashReporter/path", ui.reporterPathEdit->text());
+            SentryPlayground::reinit();
+            updateReporterApply();
         });
 
     QObject::connect(ui.actionQuit, &QAction::triggered, qApp, &QCoreApplication::quit);

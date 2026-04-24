@@ -26,6 +26,7 @@ public:
 
     static void init();
     static void close();
+    static void reinit();
 
     static SentryPlayground* instance();
     static QString backend();
@@ -88,6 +89,7 @@ public slots:
     void updateUser(const QString& field, const QString& value);
 
 private:
+    void reapplyScope();
     bool m_worker = false;
     QMap<QString, void*> m_attachments;
     QVariantMap m_tags;
