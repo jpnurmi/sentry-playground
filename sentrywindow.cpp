@@ -147,6 +147,14 @@ SentryWindow::SentryWindow(QWidget *parent)
     categoryGroup->addButton(ui.tagsButton);
     categoryGroup->addButton(ui.contextsButton);
     categoryGroup->addButton(ui.attachmentsButton);
+
+    const auto segmentedButtons = messageGroup->buttons() + categoryGroup->buttons();
+    int segmentedWidth = 0;
+    for (auto* b : segmentedButtons)
+        segmentedWidth = qMax(segmentedWidth, b->sizeHint().width());
+    for (auto* b : segmentedButtons)
+        b->setFixedWidth(segmentedWidth);
+
     ui.tagsButton->setChecked(true);
     ui.categoryStack->setCurrentIndex(0);
     QObject::connect(ui.tagsButton, &QAbstractButton::clicked, this,
