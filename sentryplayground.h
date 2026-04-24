@@ -21,6 +21,9 @@ class SentryPlayground : public QObject
 public:
     explicit SentryPlayground(QObject *parent = nullptr);
 
+    static void init();
+    static void close();
+
     static SentryPlayground* instance();
     static QString backend();
     static QDebug debug();
