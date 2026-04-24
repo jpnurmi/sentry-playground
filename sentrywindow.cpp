@@ -411,6 +411,9 @@ SentryWindow::SentryWindow(QWidget *parent)
     QObject::connect(ui.workerBox, &QAbstractButton::toggled, playground, &SentryPlayground::setWorker);
     QObject::connect(playground, &SentryPlayground::workerChanged, ui.workerBox, &QAbstractButton::setChecked);
 
+    QObject::connect(ui.filterBox, &QAbstractButton::toggled, playground, &SentryPlayground::setFilter);
+    QObject::connect(playground, &SentryPlayground::filterChanged, ui.filterBox, &QAbstractButton::setChecked);
+
     auto* consentButton = new QPushButton(this);
     consentButton->setCheckable(true);
     consentButton->setFlat(true);

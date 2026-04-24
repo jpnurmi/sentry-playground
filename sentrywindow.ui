@@ -87,12 +87,36 @@
           </property>
          </spacer>
         </item>
-        <item alignment="Qt::AlignmentFlag::AlignRight">
-         <widget class="QCheckBox" name="workerBox">
-          <property name="text">
-           <string>Worker</string>
-          </property>
-         </widget>
+        <item>
+         <layout class="QHBoxLayout" name="togglesLayout">
+          <item>
+           <spacer name="togglesSpacer">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="filterBox">
+            <property name="text">
+             <string>Filter</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="workerBox">
+            <property name="text">
+             <string>Worker</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </item>

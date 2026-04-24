@@ -99,11 +99,19 @@ static sentry_value_t ensure_fingerprint(sentry_value_t event)
 
 static sentry_value_t before_send(sentry_value_t event, void *hint, void *userdata)
 {
+    if (SentryPlayground::instance()->filter()) {
+        sentry_value_decref(event);
+        return sentry_value_new_null();
+    }
     return ensure_fingerprint(event);
 }
 
 static sentry_value_t on_crash(const sentry_ucontext_t *uctx, sentry_value_t event, void *userdata)
 {
+    if (SentryPlayground::instance()->filter()) {
+        sentry_value_decref(event);
+        return sentry_value_new_null();
+    }
     return ensure_fingerprint(event);
 }
 
@@ -194,6 +202,21 @@ void SentryPlayground::setWorker(bool worker)
 
     m_worker = worker;
     emit workerChanged(worker);
+}
+
+bool SentryPlayground::filter() const
+{
+    return m_filter;
+}
+
+void SentryPlayground::setFilter(bool filter)
+{
+    TRACE_FUNCTION();
+    if (m_filter == filter)
+        return;
+
+    m_filter = filter;
+    emit filterChanged(filter);
 }
 
 Qt::CheckState SentryPlayground::consent() const

@@ -12,6 +12,7 @@ class SentryPlayground : public QObject
     Q_OBJECT
     Q_PROPERTY(QString backend READ backend CONSTANT)
     Q_PROPERTY(bool worker READ worker WRITE setWorker NOTIFY workerChanged)
+    Q_PROPERTY(bool filter READ filter WRITE setFilter NOTIFY filterChanged)
     Q_PROPERTY(Qt::CheckState consent READ consent WRITE setConsent NOTIFY consentChanged)
     Q_PROPERTY(QStringList attachments READ attachments NOTIFY attachmentsChanged)
     Q_PROPERTY(QVariantMap tags READ tags NOTIFY tagsChanged)
@@ -36,6 +37,9 @@ public:
     bool worker() const;
     void setWorker(bool worker);
 
+    bool filter() const;
+    void setFilter(bool filter);
+
     Qt::CheckState consent() const;
     void setConsent(Qt::CheckState consent);
 
@@ -56,6 +60,7 @@ public:
 
 signals:
     void workerChanged(bool worker);
+    void filterChanged(bool filter);
     void consentChanged(Qt::CheckState consent);
     void attachmentsChanged(const QStringList& attachments);
     void tagsChanged(const QVariantMap& tags);
@@ -92,6 +97,7 @@ public slots:
 private:
     void reapplyScope();
     bool m_worker = false;
+    bool m_filter = false;
     QMap<QString, void*> m_attachments;
     QVariantMap m_tags;
     QVariantMap m_contexts;
