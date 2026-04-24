@@ -153,19 +153,51 @@
          </layout>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="attachmentHeaderLayout">
+         <layout class="QHBoxLayout" name="categoryHeaderLayout">
+          <property name="spacing">
+           <number>0</number>
+          </property>
           <item>
-           <widget class="QLabel" name="attachmentHeader">
-            <property name="styleSheet">
-             <string notr="true">color: #888; font-weight: bold; margin-top: 8px;</string>
+           <widget class="QPushButton" name="tagsButton">
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+            <property name="autoExclusive">
+             <bool>true</bool>
             </property>
             <property name="text">
-             <string>ATTACH</string>
+             <string>TAGS</string>
             </property>
            </widget>
           </item>
           <item>
-           <spacer name="attachmentHeaderSpacer">
+           <widget class="QPushButton" name="contextsButton">
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+            <property name="autoExclusive">
+             <bool>true</bool>
+            </property>
+            <property name="text">
+             <string>CONTEXTS</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="attachmentsButton">
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+            <property name="autoExclusive">
+             <bool>true</bool>
+            </property>
+            <property name="text">
+             <string>ATTACHMENTS</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="categoryHeaderSpacer">
             <property name="orientation">
              <enum>Qt::Orientation::Horizontal</enum>
             </property>
@@ -179,9 +211,6 @@
           </item>
           <item>
            <widget class="QToolButton" name="addButton">
-            <property name="toolTip">
-             <string>Add attachment…</string>
-            </property>
             <property name="styleSheet">
              <string notr="true">QToolButton { border: none; background: transparent; padding: 2px 6px; }</string>
             </property>
@@ -196,10 +225,52 @@
          </layout>
         </item>
         <item>
-         <widget class="QListWidget" name="attachmentList">
-          <property name="contextMenuPolicy">
-           <enum>Qt::ContextMenuPolicy::CustomContextMenu</enum>
-          </property>
+         <widget class="QStackedWidget" name="categoryStack">
+          <widget class="QTreeWidget" name="tagsTable">
+           <property name="contextMenuPolicy">
+            <enum>Qt::ContextMenuPolicy::CustomContextMenu</enum>
+           </property>
+           <column>
+            <property name="text">
+             <string>Key</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Value</string>
+            </property>
+           </column>
+          </widget>
+          <widget class="QTreeWidget" name="contextsTable">
+           <property name="contextMenuPolicy">
+            <enum>Qt::ContextMenuPolicy::CustomContextMenu</enum>
+           </property>
+           <column>
+            <property name="text">
+             <string>Name</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Value</string>
+            </property>
+           </column>
+          </widget>
+          <widget class="QTreeWidget" name="attachmentTable">
+           <property name="contextMenuPolicy">
+            <enum>Qt::ContextMenuPolicy::CustomContextMenu</enum>
+           </property>
+           <column>
+            <property name="text">
+             <string>File</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Size</string>
+            </property>
+           </column>
+          </widget>
          </widget>
         </item>
        </layout>

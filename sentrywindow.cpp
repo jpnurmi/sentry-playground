@@ -4,6 +4,8 @@
 
 #include <sentry.h>
 
+#include <functional>
+
 #include <QtCore/qfileinfo.h>
 #include <QtCore/qlocale.h>
 #include <QtCore/qsettings.h>
@@ -11,13 +13,15 @@
 #include <QtWidgets/qboxlayout.h>
 #include <QtWidgets/qcombobox.h>
 #include <QtWidgets/qfiledialog.h>
+#include <QtWidgets/qheaderview.h>
 #include <QtWidgets/qlabel.h>
 #include <QtWidgets/qlineedit.h>
-#include <QtWidgets/qlistwidget.h>
 #include <QtWidgets/qmenu.h>
 #include <QtWidgets/qpushbutton.h>
+#include <QtWidgets/qstackedwidget.h>
 #include <QtWidgets/qstatusbar.h>
 #include <QtWidgets/qtoolbutton.h>
+#include <QtWidgets/qtreewidget.h>
 
 SentryWindow::SentryWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -50,22 +54,108 @@ SentryWindow::SentryWindow(QWidget *parent)
         playground->captureMessage(ui.messageLevelBox->currentData().toInt(), ui.messageText->text());
     });
 
+    const char* kSegmentedBase =
+        "QPushButton { color: #888; font-weight: bold; background: transparent;"
+        " border: 1px solid #555; padding: 2px 10px; %1 }"
+        "QPushButton:checked { background: #444; color: white; }";
+    ui.tagsButton->setStyleSheet(QString(kSegmentedBase).arg(
+        "border-top-left-radius: 4px; border-bottom-left-radius: 4px;"));
+    ui.contextsButton->setStyleSheet(QString(kSegmentedBase).arg("border-left: none;"));
+    ui.attachmentsButton->setStyleSheet(QString(kSegmentedBase).arg(
+        "border-left: none; border-top-right-radius: 4px; border-bottom-right-radius: 4px;"));
+    ui.tagsButton->setChecked(true);
+    ui.categoryStack->setCurrentIndex(0);
+    QObject::connect(ui.tagsButton, &QAbstractButton::clicked, this,
+        [this]() { ui.categoryStack->setCurrentIndex(0); });
+    QObject::connect(ui.contextsButton, &QAbstractButton::clicked, this,
+        [this]() { ui.categoryStack->setCurrentIndex(1); });
+    QObject::connect(ui.attachmentsButton, &QAbstractButton::clicked, this,
+        [this]() { ui.categoryStack->setCurrentIndex(2); });
+
+    auto setupTree = [](QTreeWidget* tree, int narrowColumn, QHeaderView::ResizeMode narrowMode, int narrowWidth = -1) {
+        int stretchColumn = 1 - narrowColumn;
+        tree->header()->setStretchLastSection(false);
+        tree->header()->setSectionResizeMode(narrowColumn, narrowMode);
+        tree->header()->setSectionResizeMode(stretchColumn, QHeaderView::Stretch);
+        if (narrowWidth > 0)
+            tree->header()->resizeSection(narrowColumn, narrowWidth);
+        tree->setRootIsDecorated(false);
+        tree->setUniformRowHeights(true);
+        tree->setAllColumnsShowFocus(true);
+    };
+    setupTree(ui.tagsTable, 0, QHeaderView::Interactive, 100);
+    setupTree(ui.contextsTable, 0, QHeaderView::Interactive, 100);
+    setupTree(ui.attachmentTable, 1, QHeaderView::ResizeToContents);
+
+    auto wireKeyValueTree = [this](QTreeWidget* tree,
+        std::function<void(const QString&, const QString&)> onSet,
+        std::function<void(const QString&)> onRemove) {
+        QObject::connect(tree, &QTreeWidget::itemChanged, this,
+            [onSet, onRemove](QTreeWidgetItem* item, int) {
+                QString key = item->text(0).trimmed();
+                QString value = item->text(1);
+                QString oldKey = item->data(0, Qt::UserRole).toString();
+                if (!oldKey.isEmpty() && oldKey != key)
+                    onRemove(oldKey);
+                if (!key.isEmpty()) {
+                    onSet(key, value);
+                    item->setData(0, Qt::UserRole, key);
+                }
+            });
+        QObject::connect(tree, &QWidget::customContextMenuRequested, this,
+            [this, tree, onRemove](const QPoint& pos) {
+                auto* item = tree->itemAt(pos);
+                if (!item)
+                    return;
+                QMenu menu(this);
+                menu.addAction("Remove", [tree, item, onRemove]() {
+                    QString oldKey = item->data(0, Qt::UserRole).toString();
+                    if (!oldKey.isEmpty())
+                        onRemove(oldKey);
+                    delete tree->takeTopLevelItem(tree->indexOfTopLevelItem(item));
+                });
+                menu.exec(tree->viewport()->mapToGlobal(pos));
+            });
+    };
+    wireKeyValueTree(ui.tagsTable,
+        [playground](const QString& k, const QString& v) { playground->setTag(k, v); },
+        [playground](const QString& k) { playground->removeTag(k); });
+    wireKeyValueTree(ui.contextsTable,
+        [playground](const QString& k, const QString& v) { playground->setContext(k, v); },
+        [playground](const QString& k) { playground->removeContext(k); });
+
+    auto populateKeyValueTree = [](QTreeWidget* tree, const QVariantMap& map) {
+        QSignalBlocker blocker(tree);
+        tree->clear();
+        for (auto it = map.constBegin(); it != map.constEnd(); ++it) {
+            auto* item = new QTreeWidgetItem(tree);
+            item->setFlags(item->flags() | Qt::ItemIsEditable);
+            item->setText(0, it.key());
+            item->setText(1, it.value().toString());
+            item->setData(0, Qt::UserRole, it.key());
+        }
+    };
+    populateKeyValueTree(ui.tagsTable, playground->tags());
+    populateKeyValueTree(ui.contextsTable, playground->contexts());
+
     auto refreshAttachments = [this, playground]() {
-        ui.attachmentList->clear();
+        QSignalBlocker blocker(ui.attachmentTable);
+        ui.attachmentTable->clear();
         for (const QString& path : playground->attachments()) {
             QFileInfo info(path);
-            QString label = QString("%1  (%2)").arg(info.fileName(),
-                QLocale::system().formattedDataSize(info.size()));
-            auto *item = new QListWidgetItem(label);
-            item->setToolTip(path);
-            item->setData(Qt::UserRole, path);
-            ui.attachmentList->addItem(item);
+            auto* item = new QTreeWidgetItem(ui.attachmentTable);
+            item->setText(0, info.fileName());
+            item->setToolTip(0, path);
+            item->setData(0, Qt::UserRole, path);
+            item->setText(1, QLocale::system().formattedDataSize(info.size()));
+            item->setTextAlignment(1, Qt::AlignRight | Qt::AlignVCenter);
         }
     };
     refreshAttachments();
     QObject::connect(playground, &SentryPlayground::attachmentsChanged, this,
         [refreshAttachments]() { refreshAttachments(); });
-    QObject::connect(ui.addButton, &QAbstractButton::clicked, this, [this, playground]() {
+
+    auto addAttachmentRow = [this, playground]() {
         QString lastDir = QSettings().value("attachmentDir",
             QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
         QString path = QFileDialog::getOpenFileName(this, "Select attachment", lastDir);
@@ -73,16 +163,40 @@ SentryWindow::SentryWindow(QWidget *parent)
             return;
         QSettings().setValue("attachmentDir", QFileInfo(path).absolutePath());
         playground->addAttachment(path);
-    });
-    QObject::connect(ui.attachmentList, &QListWidget::customContextMenuRequested, this,
+    };
+
+    auto addEmptyRow = [](QTreeWidget* tree) {
+        auto* item = new QTreeWidgetItem(tree);
+        item->setFlags(item->flags() | Qt::ItemIsEditable);
+        tree->editItem(item, 0);
+    };
+
+    auto updateAddButton = [this]() {
+        bool isAttachments = ui.categoryStack->currentIndex() == 2;
+        ui.addButton->setToolTip(isAttachments ? "Add attachment…" : "Add row");
+    };
+    updateAddButton();
+    QObject::connect(ui.categoryStack, &QStackedWidget::currentChanged, this,
+        [updateAddButton](int) { updateAddButton(); });
+
+    QObject::connect(ui.addButton, &QAbstractButton::clicked, this,
+        [this, addAttachmentRow, addEmptyRow]() {
+            switch (ui.categoryStack->currentIndex()) {
+            case 0: addEmptyRow(ui.tagsTable); break;
+            case 1: addEmptyRow(ui.contextsTable); break;
+            case 2: addAttachmentRow(); break;
+            }
+        });
+
+    QObject::connect(ui.attachmentTable, &QWidget::customContextMenuRequested, this,
         [this, playground](const QPoint& pos) {
-            auto *item = ui.attachmentList->itemAt(pos);
+            auto* item = ui.attachmentTable->itemAt(pos);
             if (!item)
                 return;
             QMenu menu(this);
-            QString path = item->data(Qt::UserRole).toString();
+            QString path = item->data(0, Qt::UserRole).toString();
             menu.addAction("Remove", [playground, path]() { playground->removeAttachment(path); });
-            menu.exec(ui.attachmentList->mapToGlobal(pos));
+            menu.exec(ui.attachmentTable->viewport()->mapToGlobal(pos));
         });
 
     QObject::connect(ui.actionQuit, &QAction::triggered, qApp, &QCoreApplication::quit);

@@ -77,6 +77,7 @@ static void trigger_abort()
 
 SentryPlayground::SentryPlayground(QObject *parent) : QObject{parent}
 {
+    setTag("backend", SENTRY_BACKEND);
 }
 
 QGuiApplication* SentryPlayground::init(int& argc, char* argv[])
@@ -233,6 +234,57 @@ void SentryPlayground::removeAttachment(const QString& path)
     sentry_remove_attachment(static_cast<sentry_attachment_t *>(it.value()));
     m_attachments.erase(it);
     emit attachmentsChanged(attachments());
+}
+
+QVariantMap SentryPlayground::tags() const
+{
+    return m_tags;
+}
+
+void SentryPlayground::setTag(const QString& key, const QString& value)
+{
+    TRACE_FUNCTION();
+    if (m_tags.value(key).toString() == value && m_tags.contains(key))
+        return;
+    m_tags.insert(key, value);
+    sentry_set_tag(key.toUtf8().constData(), value.toUtf8().constData());
+    emit tagsChanged(m_tags);
+}
+
+void SentryPlayground::removeTag(const QString& key)
+{
+    TRACE_FUNCTION();
+    if (m_tags.remove(key) == 0)
+        return;
+    sentry_remove_tag(key.toUtf8().constData());
+    emit tagsChanged(m_tags);
+}
+
+QVariantMap SentryPlayground::contexts() const
+{
+    return m_contexts;
+}
+
+void SentryPlayground::setContext(const QString& name, const QString& value)
+{
+    TRACE_FUNCTION();
+    if (m_contexts.value(name).toString() == value && m_contexts.contains(name))
+        return;
+    m_contexts.insert(name, value);
+    sentry_value_t object = sentry_value_new_object();
+    sentry_value_set_by_key(object, "value",
+        sentry_value_new_string(value.toUtf8().constData()));
+    sentry_set_context(name.toUtf8().constData(), object);
+    emit contextsChanged(m_contexts);
+}
+
+void SentryPlayground::removeContext(const QString& name)
+{
+    TRACE_FUNCTION();
+    if (m_contexts.remove(name) == 0)
+        return;
+    sentry_remove_context(name.toUtf8().constData());
+    emit contextsChanged(m_contexts);
 }
 
 void SentryPlayground::captureMessage(int level, const QString& message)
