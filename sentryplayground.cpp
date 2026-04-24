@@ -1,7 +1,5 @@
 #include "sentryplayground.h"
-#include "sentryapp.h"
 #include "sentrytrace.h"
-#include "sentrywindow.h"
 
 #include <sentry.h>
 
@@ -82,21 +80,6 @@ SentryPlayground::SentryPlayground(QObject *parent) : QObject{parent}
     updateUser("email", "nobody@example.com");
 }
 
-QGuiApplication* SentryPlayground::init(int& argc, char* argv[])
-{
-    TRACE_FUNCTION();
-
-    auto *app = new SentryApp(argc, argv);
-
-    QObject::connect(app, &QCoreApplication::aboutToQuit, SentryPlayground::instance(), &SentryPlayground::uninit);
-    return app;
-}
-
-void SentryPlayground::uninit()
-{
-    SentryTrace::flush();
-}
-
 SentryPlayground* SentryPlayground::instance()
 {
     static SentryPlayground playground;
@@ -154,13 +137,6 @@ void SentryPlayground::setConsent(Qt::CheckState consent)
     emit consentChanged(consent);
 }
 
-void SentryPlayground::showWindow()
-{
-    TRACE_FUNCTION();
-    SentryWindow* window = new SentryWindow();
-    window->show();
-}
-
 void SentryPlayground::triggerCrash()
 {
     TRACE_FUNCTION();
@@ -184,7 +160,7 @@ void SentryPlayground::triggerStackOverflow()
 void SentryPlayground::triggerFastfail()
 {
     TRACE_FUNCTION();
-    uninit();
+    SentryTrace::flush();
     if (m_worker) {
         QThread::create([]() { trigger_fastfail(); })->start();
     } else {

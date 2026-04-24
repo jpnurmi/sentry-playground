@@ -278,7 +278,10 @@ SentryWindow::SentryWindow(QWidget *parent)
         });
 
     QObject::connect(ui.actionQuit, &QAction::triggered, qApp, &QCoreApplication::quit);
-    QObject::connect(ui.actionWindow, &QAction::triggered, playground, &SentryPlayground::showWindow);
+    QObject::connect(ui.actionWindow, &QAction::triggered, this, [this] {
+        SentryWindow* subwindow = new SentryWindow(this);
+        subwindow->show();
+    });
 
     QObject::connect(ui.workerBox, &QAbstractButton::toggled, playground, &SentryPlayground::setWorker);
     QObject::connect(playground, &SentryPlayground::workerChanged, ui.workerBox, &QAbstractButton::setChecked);

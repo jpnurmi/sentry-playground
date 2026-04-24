@@ -21,8 +21,6 @@ class SentryPlayground : public QObject
 public:
     explicit SentryPlayground(QObject *parent = nullptr);
 
-    static QGuiApplication* init(int& argc, char* argv[]);
-    static void uninit();
     static SentryPlayground* instance();
     static QString backend();
     static QDebug debug();
@@ -48,8 +46,6 @@ signals:
     void userChanged(const QVariantMap& user);
 
 public slots:
-    void showWindow();
-
     void triggerCrash();
     void triggerStackOverflow();
     void triggerFastfail();

@@ -1,7 +1,10 @@
 #include <QtCore/qscopeguard.h>
 #include <QtGui/qguiapplication.h>
 #include <sentry.h>
+#include "sentryapp.h"
 #include "sentryplayground.h"
+#include "sentrytrace.h"
+#include "sentrywindow.h"
 
 static sentry_value_t ensure_fingerprint(sentry_value_t event)
 {
@@ -41,10 +44,13 @@ int main(int argc, char *argv[])
     sentry_options_set_require_user_consent(options, 1);
     sentry_options_set_debug(options, 1);
     sentry_init(options);
-    auto _ = qScopeGuard([] { sentry_close(); });
+    auto _ = qScopeGuard([] {
+        SentryTrace::flush();
+        sentry_close();
+    });
 
-    QScopedPointer<QGuiApplication> app(SentryPlayground::init(argc, argv));
-    SentryPlayground::instance()->showWindow();
-
-    return app->exec();
+    SentryApp app(argc, argv);
+    SentryWindow window;
+    window.show();
+    return app.exec();
 }
