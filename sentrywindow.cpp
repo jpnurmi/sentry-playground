@@ -61,7 +61,7 @@ SentryWindow::SentryWindow(QWidget *parent)
 
     const char* kMessageSegmentedBase =
         "QPushButton { color: #888; font-weight: bold; background: transparent;"
-        " border: 1px solid #555; padding: 6px 12px; %1 }"
+        " border: 1px solid #555; padding: 3px 12px; %1 }"
         "QPushButton:checked { background: #444; color: white; }";
     ui.messageButton->setStyleSheet(QString(kMessageSegmentedBase).arg(
         "border-top-left-radius: 4px; border-bottom-left-radius: 4px;"));
@@ -90,7 +90,12 @@ SentryWindow::SentryWindow(QWidget *parent)
     });
 
 #ifdef Q_OS_MACOS
-    ui.messageText->setFixedHeight(28);
+    for (QLineEdit* edit : { ui.messageText, ui.userIdEdit, ui.userNameEdit,
+             ui.userEmailEdit, ui.userIpEdit, ui.releaseEdit, ui.environmentEdit,
+             ui.reporterPathEdit }) {
+        edit->setFixedHeight(28);
+        edit->setContentsMargins(0, 4, 0, 0);
+    }
     ui.messageText->setContentsMargins(0, 2, 0, 0);
 #endif
 
@@ -128,7 +133,7 @@ SentryWindow::SentryWindow(QWidget *parent)
 
     const char* kSegmentedBase =
         "QPushButton { color: #888; font-weight: bold; background: transparent;"
-        " border: 1px solid #555; padding: 6px 12px; %1 }"
+        " border: 1px solid #555; padding: 3px 12px; %1 }"
         "QPushButton:checked { background: #444; color: white; }";
     ui.tagsButton->setStyleSheet(QString(kSegmentedBase).arg(
         "border-top-left-radius: 4px; border-bottom-left-radius: 4px;"));

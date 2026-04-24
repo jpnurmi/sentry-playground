@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>587</width>
-    <height>401</height>
+    <width>599</width>
+    <height>585</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -544,7 +544,7 @@
         <item>
          <layout class="QVBoxLayout" name="reporterSection">
           <property name="spacing">
-           <number>8</number>
+           <number>0</number>
           </property>
           <item>
            <layout class="QHBoxLayout" name="reporterHeaderLayout">
@@ -589,16 +589,16 @@
              <number>8</number>
             </property>
             <item>
-             <widget class="QLineEdit" name="reporterPathEdit">
-              <property name="placeholderText">
-               <string>/path/to/crash-reporter</string>
+             <widget class="QPushButton" name="reporterBrowseButton">
+              <property name="text">
+               <string>Browse…</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="reporterBrowseButton">
-              <property name="text">
-               <string>Browse…</string>
+             <widget class="QLineEdit" name="reporterPathEdit">
+              <property name="placeholderText">
+               <string>/path/to/crash-reporter</string>
               </property>
              </widget>
             </item>
@@ -617,7 +617,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>587</width>
+     <width>599</width>
      <height>30</height>
     </rect>
    </property>
