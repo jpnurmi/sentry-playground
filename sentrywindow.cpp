@@ -287,6 +287,68 @@ SentryWindow::SentryWindow(QWidget *parent)
     QObject::connect(playground, &SentryPlayground::userChanged, this,
         [populateUser](const QVariantMap&) { populateUser(); });
 
+    ui.releaseEdit->setText(playground->release());
+    ui.environmentEdit->setText(playground->environment());
+
+    auto isSessionPending = [this, playground]() {
+        return ui.releaseEdit->text() != playground->release()
+            || ui.environmentEdit->text() != playground->environment();
+    };
+    ui.sessionButton->setFixedSize(26, 26);
+    QPalette editDefaultPalette = ui.releaseEdit->palette();
+    QPalette editPendingPalette = editDefaultPalette;
+    editPendingPalette.setColor(QPalette::Text, QColor("#ff3b30"));
+    auto updateSessionButton = [this, playground, editDefaultPalette, editPendingPalette]() {
+        bool releasePending = ui.releaseEdit->text() != playground->release();
+        bool envPending = ui.environmentEdit->text() != playground->environment();
+        bool pending = releasePending || envPending;
+        bool active = playground->session();
+        ui.releaseEdit->setPalette(releasePending ? editPendingPalette : editDefaultPalette);
+        ui.environmentEdit->setPalette(envPending ? editPendingPalette : editDefaultPalette);
+        if (pending) {
+            ui.sessionButton->setText("⟳");
+            ui.sessionButton->setToolTip("Apply and restart session");
+            ui.sessionButton->setStyleSheet(
+                "QToolButton { border: none; background: transparent; padding: 0;"
+                " font-size: 16px; font-weight: bold; color: #ff3b30; }");
+        } else {
+            ui.sessionButton->setText(active ? "⏹" : "▶");
+            ui.sessionButton->setToolTip(active ? "End session" : "Start session");
+            ui.sessionButton->setStyleSheet(
+                "QToolButton { border: none; background: transparent; padding: 0;"
+                " font-size: 16px; }");
+        }
+    };
+    updateSessionButton();
+    QObject::connect(ui.releaseEdit, &QLineEdit::textChanged, this,
+        [updateSessionButton](const QString&) { updateSessionButton(); });
+    QObject::connect(ui.environmentEdit, &QLineEdit::textChanged, this,
+        [updateSessionButton](const QString&) { updateSessionButton(); });
+    QObject::connect(playground, &SentryPlayground::releaseChanged, this,
+        [this](const QString& release) {
+            if (!ui.releaseEdit->hasFocus())
+                ui.releaseEdit->setText(release);
+        });
+    QObject::connect(playground, &SentryPlayground::environmentChanged, this,
+        [this](const QString& environment) {
+            if (!ui.environmentEdit->hasFocus())
+                ui.environmentEdit->setText(environment);
+        });
+    QObject::connect(playground, &SentryPlayground::sessionChanged, this,
+        [updateSessionButton](bool) { updateSessionButton(); });
+    QObject::connect(ui.sessionButton, &QAbstractButton::clicked, this,
+        [this, playground, isSessionPending]() {
+            if (isSessionPending()) {
+                playground->setRelease(ui.releaseEdit->text());
+                playground->setEnvironment(ui.environmentEdit->text());
+                if (playground->session())
+                    playground->setSession(false);
+                playground->setSession(true);
+            } else {
+                playground->setSession(!playground->session());
+            }
+        });
+
     QObject::connect(ui.attachmentTable, &QWidget::customContextMenuRequested, this,
         [this, playground](const QPoint& pos) {
             auto* item = ui.attachmentTable->itemAt(pos);

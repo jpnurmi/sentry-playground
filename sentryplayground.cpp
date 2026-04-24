@@ -110,6 +110,8 @@ SentryPlayground::SentryPlayground(QObject *parent) : QObject{parent}
     setTag("backend", SENTRY_BACKEND);
     updateUser("name", "nobody");
     updateUser("email", "nobody@example.com");
+    m_release = SENTRY_RELEASE;
+    m_environment = "playground";
 }
 
 void SentryPlayground::init()
@@ -355,6 +357,54 @@ void SentryPlayground::updateUser(const QString& field, const QString& value)
         ip.isEmpty() ? nullptr : ip.constData()));
 
     emit userChanged(m_user);
+}
+
+QString SentryPlayground::release() const
+{
+    return m_release;
+}
+
+void SentryPlayground::setRelease(const QString& release)
+{
+    TRACE_FUNCTION();
+    if (m_release == release)
+        return;
+    m_release = release;
+    sentry_set_release(release.toUtf8().constData());
+    emit releaseChanged(release);
+}
+
+QString SentryPlayground::environment() const
+{
+    return m_environment;
+}
+
+void SentryPlayground::setEnvironment(const QString& environment)
+{
+    TRACE_FUNCTION();
+    if (m_environment == environment)
+        return;
+    m_environment = environment;
+    sentry_set_environment(environment.toUtf8().constData());
+    emit environmentChanged(environment);
+}
+
+bool SentryPlayground::session() const
+{
+    return m_session;
+}
+
+void SentryPlayground::setSession(bool session)
+{
+    TRACE_FUNCTION();
+    if (m_session == session)
+        return;
+    m_session = session;
+    if (session)
+        sentry_start_session();
+    else
+        sentry_end_session();
+    emit sessionChanged(session);
 }
 
 void SentryPlayground::captureMessage(int level, const QString& message)

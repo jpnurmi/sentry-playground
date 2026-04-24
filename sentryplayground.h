@@ -17,6 +17,9 @@ class SentryPlayground : public QObject
     Q_PROPERTY(QVariantMap tags READ tags NOTIFY tagsChanged)
     Q_PROPERTY(QVariantMap contexts READ contexts NOTIFY contextsChanged)
     Q_PROPERTY(QVariantMap user READ user NOTIFY userChanged)
+    Q_PROPERTY(QString release READ release WRITE setRelease NOTIFY releaseChanged)
+    Q_PROPERTY(QString environment READ environment WRITE setEnvironment NOTIFY environmentChanged)
+    Q_PROPERTY(bool session READ session WRITE setSession NOTIFY sessionChanged)
 
 public:
     explicit SentryPlayground(QObject *parent = nullptr);
@@ -40,6 +43,15 @@ public:
     QVariantMap contexts() const;
     QVariantMap user() const;
 
+    QString release() const;
+    void setRelease(const QString& release);
+
+    QString environment() const;
+    void setEnvironment(const QString& environment);
+
+    bool session() const;
+    void setSession(bool session);
+
 signals:
     void workerChanged(bool worker);
     void consentChanged(Qt::CheckState consent);
@@ -47,6 +59,9 @@ signals:
     void tagsChanged(const QVariantMap& tags);
     void contextsChanged(const QVariantMap& contexts);
     void userChanged(const QVariantMap& user);
+    void releaseChanged(const QString& release);
+    void environmentChanged(const QString& environment);
+    void sessionChanged(bool session);
 
 public slots:
     void triggerCrash();
@@ -78,6 +93,9 @@ private:
     QVariantMap m_tags;
     QVariantMap m_contexts;
     QVariantMap m_user;
+    QString m_release;
+    QString m_environment;
+    bool m_session = true;
 };
 
 #endif // SENTRYPLAYGROUND_H
