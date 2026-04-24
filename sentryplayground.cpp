@@ -297,3 +297,24 @@ void SentryPlayground::captureMessage(int level, const QString& message)
         message.toUtf8().constData());
     sentry_capture_event(event);
 }
+
+void SentryPlayground::addBreadcrumb(const QString& type, int level, const QString& message)
+{
+    TRACE_FUNCTION();
+    debug() << "addBreadcrumb" << type << level << message;
+    const char* levelStr = nullptr;
+    switch (static_cast<sentry_level_t>(level)) {
+    case SENTRY_LEVEL_TRACE: levelStr = "trace"; break;
+    case SENTRY_LEVEL_DEBUG: levelStr = "debug"; break;
+    case SENTRY_LEVEL_INFO: levelStr = "info"; break;
+    case SENTRY_LEVEL_WARNING: levelStr = "warning"; break;
+    case SENTRY_LEVEL_ERROR: levelStr = "error"; break;
+    case SENTRY_LEVEL_FATAL: levelStr = "fatal"; break;
+    }
+    sentry_value_t crumb = sentry_value_new_breadcrumb(
+        type.toUtf8().constData(),
+        message.toUtf8().constData());
+    if (levelStr)
+        sentry_value_set_by_key(crumb, "level", sentry_value_new_string(levelStr));
+    sentry_add_breadcrumb(crumb);
+}

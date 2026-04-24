@@ -55,6 +55,8 @@ public slots:
 
     void captureMessage(int level, const QString& message);
 
+    void addBreadcrumb(const QString& type, int level, const QString& message);
+
     void addAttachment(const QString& path);
     void removeAttachment(const QString& path);
 

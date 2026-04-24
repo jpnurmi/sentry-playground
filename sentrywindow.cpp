@@ -11,6 +11,7 @@
 #include <QtCore/qsettings.h>
 #include <QtCore/qstandardpaths.h>
 #include <QtWidgets/qboxlayout.h>
+#include <QtWidgets/qbuttongroup.h>
 #include <QtWidgets/qcombobox.h>
 #include <QtWidgets/qfiledialog.h>
 #include <QtWidgets/qheaderview.h>
@@ -18,6 +19,8 @@
 #include <QtWidgets/qlineedit.h>
 #include <QtWidgets/qmenu.h>
 #include <QtWidgets/qpushbutton.h>
+#include <QtGui/qpainter.h>
+#include <QtGui/qpixmap.h>
 #include <QtWidgets/qstackedwidget.h>
 #include <QtWidgets/qstatusbar.h>
 #include <QtWidgets/qtoolbutton.h>
@@ -46,23 +49,75 @@ SentryWindow::SentryWindow(QWidget *parent)
     ui.messageLevelBox->addItem("Error", SENTRY_LEVEL_ERROR);
     ui.messageLevelBox->addItem("Fatal", SENTRY_LEVEL_FATAL);
     ui.messageLevelBox->setCurrentIndex(1);
-    ui.messageText->setText(QSettings().value("message", "Hello from Sentry Playground").toString());
-    QObject::connect(ui.messageText, &QLineEdit::textEdited, this, [](const QString& text) {
-        QSettings().setValue("message", text);
-    });
-    QObject::connect(ui.captureMessageButton, &QAbstractButton::clicked, playground, [this, playground]() {
-        playground->captureMessage(ui.messageLevelBox->currentData().toInt(), ui.messageText->text());
-    });
+    for (const char* type : { "default", "debug", "info", "navigation", "http", "query", "transaction", "ui", "user", "error" })
+        ui.breadcrumbTypeBox->addItem(type);
+
+    const char* kMessageSegmentedBase =
+        "QPushButton { color: #888; font-weight: bold; background: transparent;"
+        " border: 1px solid #555; padding: 6px 12px; %1 }"
+        "QPushButton:checked { background: #444; color: white; }";
+    ui.messageButton->setStyleSheet(QString(kMessageSegmentedBase).arg(
+        "border-top-left-radius: 4px; border-bottom-left-radius: 4px;"));
+    ui.breadcrumbButton->setStyleSheet(QString(kMessageSegmentedBase).arg(
+        "border-left: none; border-top-right-radius: 4px; border-bottom-right-radius: 4px;"));
+    auto* messageGroup = new QButtonGroup(this);
+    messageGroup->setExclusive(true);
+    messageGroup->addButton(ui.messageButton);
+    messageGroup->addButton(ui.breadcrumbButton);
+
+    ui.breadcrumbTypeBox->setVisible(false);
+    QObject::connect(ui.messageButton, &QAbstractButton::clicked, ui.breadcrumbTypeBox, &QWidget::hide);
+    QObject::connect(ui.breadcrumbButton, &QAbstractButton::clicked, ui.breadcrumbTypeBox, &QWidget::show);
+
+#ifdef Q_OS_MACOS
+    ui.messageText->setFixedHeight(28);
+    ui.messageText->setContentsMargins(0, 2, 0, 0);
+#endif
+
+    auto makeArrowIcon = [this](qreal dpr) {
+        const int size = 16;
+        QPixmap pixmap(size * dpr, size * dpr);
+        pixmap.setDevicePixelRatio(dpr);
+        pixmap.fill(Qt::transparent);
+        QPainter p(&pixmap);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setPen(QPen(palette().color(QPalette::Text), 1.5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+        p.translate(size / 2.0, size / 2.0);
+        p.drawLine(QPointF(-5, 0), QPointF(5, 0));
+        p.drawLine(QPointF(5, 0), QPointF(1, -4));
+        p.drawLine(QPointF(5, 0), QPointF(1, 4));
+        return QIcon(pixmap);
+    };
+    auto* messageAction = ui.messageText->addAction(
+        makeArrowIcon(devicePixelRatioF()), QLineEdit::TrailingPosition);
+    auto triggerSend = [this, playground]() {
+        int level = ui.messageLevelBox->currentData().toInt();
+        if (ui.messageButton->isChecked()) {
+            playground->captureMessage(level, ui.messageText->text());
+        } else {
+            playground->addBreadcrumb(ui.breadcrumbTypeBox->currentText(), level, ui.messageText->text());
+        }
+    };
+    QObject::connect(messageAction, &QAction::triggered, playground, triggerSend);
+    QObject::connect(ui.messageText, &QLineEdit::returnPressed, playground, triggerSend);
+    messageAction->setEnabled(!ui.messageText->text().isEmpty());
+    QObject::connect(ui.messageText, &QLineEdit::textChanged, this,
+        [messageAction](const QString& text) { messageAction->setEnabled(!text.isEmpty()); });
 
     const char* kSegmentedBase =
         "QPushButton { color: #888; font-weight: bold; background: transparent;"
-        " border: 1px solid #555; padding: 2px 10px; %1 }"
+        " border: 1px solid #555; padding: 6px 12px; %1 }"
         "QPushButton:checked { background: #444; color: white; }";
     ui.tagsButton->setStyleSheet(QString(kSegmentedBase).arg(
         "border-top-left-radius: 4px; border-bottom-left-radius: 4px;"));
     ui.contextsButton->setStyleSheet(QString(kSegmentedBase).arg("border-left: none;"));
     ui.attachmentsButton->setStyleSheet(QString(kSegmentedBase).arg(
         "border-left: none; border-top-right-radius: 4px; border-bottom-right-radius: 4px;"));
+    auto* categoryGroup = new QButtonGroup(this);
+    categoryGroup->setExclusive(true);
+    categoryGroup->addButton(ui.tagsButton);
+    categoryGroup->addButton(ui.contextsButton);
+    categoryGroup->addButton(ui.attachmentsButton);
     ui.tagsButton->setChecked(true);
     ui.categoryStack->setCurrentIndex(0);
     QObject::connect(ui.tagsButton, &QAbstractButton::clicked, this,
