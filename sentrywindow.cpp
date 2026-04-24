@@ -42,7 +42,7 @@ SentryWindow::SentryWindow(QWidget *parent)
     QObject::connect(ui.fastfailButton, &QAbstractButton::clicked, playground, &SentryPlayground::triggerFastfail);
     QObject::connect(ui.assertButton, &QAbstractButton::clicked, playground, &SentryPlayground::triggerAssertFailure);
     QObject::connect(ui.abortButton, &QAbstractButton::clicked, playground, &SentryPlayground::triggerAbort);
-    QObject::connect(ui.exceptionButton, &QAbstractButton::clicked, playground, &SentryPlayground::triggerException);
+    QObject::connect(ui.throwButton, &QAbstractButton::clicked, playground, &SentryPlayground::triggerException);
 
     ui.messageLevelBox->addItem("Debug", SENTRY_LEVEL_DEBUG);
     ui.messageLevelBox->addItem("Info", SENTRY_LEVEL_INFO);
@@ -52,6 +52,11 @@ SentryWindow::SentryWindow(QWidget *parent)
     ui.messageLevelBox->setCurrentIndex(1);
     for (const char* type : { "default", "debug", "info", "navigation", "http", "query", "transaction", "ui", "user", "error" })
         ui.breadcrumbTypeBox->addItem(type);
+    for (const char* type : { "std::exception", "std::runtime_error", "std::logic_error", "std::invalid_argument", "std::out_of_range", "std::bad_alloc", "Error" })
+        ui.exceptionTypeBox->addItem(type);
+    int typeBoxWidth = qMax(ui.breadcrumbTypeBox->sizeHint().width(), ui.exceptionTypeBox->sizeHint().width());
+    ui.breadcrumbTypeBox->setFixedWidth(typeBoxWidth);
+    ui.exceptionTypeBox->setFixedWidth(typeBoxWidth);
 
     const char* kMessageSegmentedBase =
         "QPushButton { color: #888; font-weight: bold; background: transparent;"
@@ -59,16 +64,29 @@ SentryWindow::SentryWindow(QWidget *parent)
         "QPushButton:checked { background: #444; color: white; }";
     ui.messageButton->setStyleSheet(QString(kMessageSegmentedBase).arg(
         "border-top-left-radius: 4px; border-bottom-left-radius: 4px;"));
+    ui.exceptionButton->setStyleSheet(QString(kMessageSegmentedBase).arg("border-left: none;"));
     ui.breadcrumbButton->setStyleSheet(QString(kMessageSegmentedBase).arg(
         "border-left: none; border-top-right-radius: 4px; border-bottom-right-radius: 4px;"));
     auto* messageGroup = new QButtonGroup(this);
     messageGroup->setExclusive(true);
     messageGroup->addButton(ui.messageButton);
+    messageGroup->addButton(ui.exceptionButton);
     messageGroup->addButton(ui.breadcrumbButton);
 
     ui.breadcrumbTypeBox->setVisible(false);
-    QObject::connect(ui.messageButton, &QAbstractButton::clicked, ui.breadcrumbTypeBox, &QWidget::hide);
-    QObject::connect(ui.breadcrumbButton, &QAbstractButton::clicked, ui.breadcrumbTypeBox, &QWidget::show);
+    ui.exceptionTypeBox->setVisible(false);
+    QObject::connect(ui.messageButton, &QAbstractButton::clicked, this, [this]() {
+        ui.breadcrumbTypeBox->hide();
+        ui.exceptionTypeBox->hide();
+    });
+    QObject::connect(ui.breadcrumbButton, &QAbstractButton::clicked, this, [this]() {
+        ui.breadcrumbTypeBox->show();
+        ui.exceptionTypeBox->hide();
+    });
+    QObject::connect(ui.exceptionButton, &QAbstractButton::clicked, this, [this]() {
+        ui.breadcrumbTypeBox->hide();
+        ui.exceptionTypeBox->show();
+    });
 
 #ifdef Q_OS_MACOS
     ui.messageText->setFixedHeight(28);
@@ -95,8 +113,10 @@ SentryWindow::SentryWindow(QWidget *parent)
         int level = ui.messageLevelBox->currentData().toInt();
         if (ui.messageButton->isChecked()) {
             playground->captureMessage(level, ui.messageText->text());
-        } else {
+        } else if (ui.breadcrumbButton->isChecked()) {
             playground->addBreadcrumb(ui.breadcrumbTypeBox->currentText(), level, ui.messageText->text());
+        } else {
+            playground->captureException(level, ui.exceptionTypeBox->currentText(), ui.messageText->text());
         }
     };
     QObject::connect(messageAction, &QAction::triggered, playground, triggerSend);

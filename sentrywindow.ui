@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>520</width>
-    <height>365</height>
+    <width>587</width>
+    <height>401</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -47,7 +47,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="exceptionButton">
+         <widget class="QPushButton" name="throwButton">
           <property name="text">
            <string>Exception</string>
           </property>
@@ -120,6 +120,16 @@
            </widget>
           </item>
           <item>
+           <widget class="QPushButton" name="exceptionButton">
+            <property name="text">
+             <string>EXCEPTION</string>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QPushButton" name="breadcrumbButton">
             <property name="text">
              <string>BREADCRUMB</string>
@@ -138,6 +148,22 @@
              <size>
               <width>0</width>
               <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Policy::MinimumExpanding</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>12</width>
+              <height>20</height>
              </size>
             </property>
            </spacer>
@@ -162,6 +188,22 @@
           <property name="spacing">
            <number>8</number>
           </property>
+          <item>
+           <widget class="QComboBox" name="exceptionTypeBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="editable">
+             <bool>true</bool>
+            </property>
+            <property name="sizeAdjustPolicy">
+             <enum>QComboBox::SizeAdjustPolicy::AdjustToContents</enum>
+            </property>
+           </widget>
+          </item>
           <item>
            <widget class="QComboBox" name="breadcrumbTypeBox">
             <property name="sizePolicy">
@@ -413,7 +455,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>520</width>
+     <width>587</width>
      <height>30</height>
     </rect>
    </property>
