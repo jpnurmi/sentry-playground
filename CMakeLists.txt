@@ -9,6 +9,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
 find_package(QT NAMES Qt6 REQUIRED COMPONENTS Core CorePrivate Gui Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core CorePrivate Gui Widgets)
 
@@ -33,16 +35,11 @@ qt_add_executable(sentry-playground
 target_link_libraries(sentry-playground PRIVATE Qt${QT_VERSION_MAJOR}::Gui Qt${QT_VERSION_MAJOR}::CorePrivate Qt${QT_VERSION_MAJOR}::Widgets)
 
 set_target_properties(sentry-playground PROPERTIES
-    ${BUNDLE_ID_OPTION}
-    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-    MACOSX_BUNDLE TRUE
     WIN32_EXECUTABLE TRUE
 )
 
 include(GNUInstallDirs)
 install(TARGETS sentry-playground
-    BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
@@ -58,25 +55,10 @@ set(CRASHPAD_ENABLE_STACKTRACE ON CACHE BOOL "" FORCE)
 add_subdirectory(../sentry-native ${CMAKE_BINARY_DIR}/sentry-native)
 target_link_libraries(sentry-playground PRIVATE sentry)
 
-if(WIN32)
-    if(SENTRY_BACKEND STREQUAL "crashpad")
-        set(SENTRY_HANDLER_PATH "${CMAKE_BINARY_DIR}/sentry-native/crashpad_build/handler/crashpad_handler.exe")
-    else()
-        set(SENTRY_HANDLER_PATH "${CMAKE_BINARY_DIR}/sentry-native/sentry-crash.exe")
-    endif()
-else()
-    if(SENTRY_BACKEND STREQUAL "crashpad")
-        set(SENTRY_HANDLER_PATH "${CMAKE_BINARY_DIR}/sentry-native/crashpad_build/handler/crashpad_handler")
-    else()
-        set(SENTRY_HANDLER_PATH "${CMAKE_BINARY_DIR}/sentry-native/sentry-crash")
-    endif()
-endif()
-
 target_compile_definitions(sentry-playground PRIVATE
     SENTRY_BACKEND="${SENTRY_BACKEND}"
     SENTRY_DSN="$ENV{SENTRY_DSN}"
     SENTRY_RELEASE="${PROJECT_NAME}@${PROJECT_VERSION}"
-    SENTRY_HANDLER_PATH="${SENTRY_HANDLER_PATH}"
 )
 
 target_compile_options(sentry-playground PRIVATE -fno-omit-frame-pointer)

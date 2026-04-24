@@ -137,7 +137,6 @@ void SentryPlayground::open()
     sentry_options_set_dsn(options, SENTRY_DSN);
     sentry_options_set_release(options, SENTRY_RELEASE);
     sentry_options_set_environment(options, "playground");
-    sentry_options_set_handler_path(options, SENTRY_HANDLER_PATH);
     if (reporterEnabled && !reporterPath.isEmpty())
         sentry_options_set_external_crash_reporter_path(options, reporterPath.toUtf8().constData());
     sentry_options_set_attach_screenshot(options, true);
