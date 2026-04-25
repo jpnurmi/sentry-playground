@@ -1,0 +1,8 @@
+<!DOCTYPE RCC><RCC version="1.0">
+    <qresource prefix="/assets">
+        <file>sentry-glyph-dark.png</file>
+        <file>sentry-glyph-dark@2x.png</file>
+        <file>sentry-glyph-light.png</file>
+        <file>sentry-glyph-light@2x.png</file>
+    </qresource>
+</RCC>

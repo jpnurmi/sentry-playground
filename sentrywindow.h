@@ -12,7 +12,12 @@ class SentryWindow : public QMainWindow
 public:
     explicit SentryWindow(QWidget *parent = nullptr);
 
+protected:
+    void changeEvent(QEvent *event) override;
+
 private:
+    void updateLogo();
+
     Ui::SentryWindow ui;
 };
 

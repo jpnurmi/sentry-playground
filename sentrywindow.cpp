@@ -23,6 +23,7 @@
 #include <QtWidgets/qmenu.h>
 #include <QtWidgets/qpushbutton.h>
 #include <QtGui/qpainter.h>
+#include <QtGui/qpalette.h>
 #include <QtGui/qpixmap.h>
 #include <QtWidgets/qstackedwidget.h>
 #include <QtWidgets/qstatusbar.h>
@@ -35,6 +36,8 @@ SentryWindow::SentryWindow(QWidget *parent)
     TRACE_FUNCTION();
     ui.setupUi(this);
     setWindowTitle(windowTitle() + " (" + SentryPlayground::backend() + ")");
+    updateLogo();
+
 #ifndef Q_OS_WINDOWS
     ui.fastfailButton->setEnabled(false);
 #endif
@@ -521,4 +524,18 @@ SentryWindow::SentryWindow(QWidget *parent)
     QObject::connect(playground, &SentryPlayground::consentChanged, this, updateConsentStatus);
 
     setFocus();
+}
+
+void SentryWindow::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::PaletteChange)
+        updateLogo();
+    QMainWindow::changeEvent(event);
+}
+
+void SentryWindow::updateLogo()
+{
+    bool isDark = qApp->palette().window().color().lightness() < 128;
+    QPixmap logo(isDark ? ":/assets/sentry-glyph-light.png" : ":/assets/sentry-glyph-dark.png");
+    ui.sentryLogo->setPixmap(logo);
 }

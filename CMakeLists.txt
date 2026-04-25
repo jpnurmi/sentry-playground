@@ -31,6 +31,7 @@ qt_add_executable(sentry-playground
     sentrywindow.h
     sentrywindow.cpp
     sentrywindow.ui
+    assets/assets.qrc
 )
 
 target_link_libraries(sentry-playground PRIVATE Qt6::Gui Qt6::CorePrivate Qt6::Widgets)
