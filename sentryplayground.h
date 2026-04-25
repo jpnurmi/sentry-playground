@@ -32,7 +32,6 @@ public:
 
     static SentryPlayground* instance();
     static QString backend();
-    static QDebug debug();
 
     bool worker() const;
     void setWorker(bool worker);
