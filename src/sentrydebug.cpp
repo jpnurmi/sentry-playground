@@ -1,5 +1,7 @@
 #include "sentrydebug.h"
 
+#include <unistd.h>
+
 #ifdef Q_OS_WINDOWS
 #include <windows.h>
 static int gettid()
