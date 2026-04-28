@@ -1,16 +1,12 @@
 #include "sentrydebug.h"
 
-#include <unistd.h>
-
-#ifdef Q_OS_WINDOWS
+#if defined(Q_OS_WINDOWS)
 #include <windows.h>
 static int gettid()
 {
     return GetCurrentProcessId();
 }
-#endif
-
-#ifdef Q_OS_MACOS
+#elif defined(Q_OS_MACOS)
 #include <pthread.h>
 static int gettid()
 {
@@ -18,6 +14,8 @@ static int gettid()
     pthread_threadid_np(pthread_self(), &tid);
     return tid;
 }
+#else
+#include <unistd.h>
 #endif
 
 QDebug sentryDebug()
