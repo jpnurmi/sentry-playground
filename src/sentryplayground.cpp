@@ -53,10 +53,13 @@ void SentryPlayground::open()
     sentry_options_set_environment(options, "playground");
     if (reporterEnabled && !reporterPath.isEmpty())
         sentry_options_set_external_crash_reporter_path(options, reporterPath.toUtf8().constData());
-    sentry_options_set_attach_screenshot(options, true);;
+    sentry_options_set_attach_screenshot(options, true);
     sentry_options_set_traces_sample_rate(options, 1.0);
-    sentry_options_set_require_user_consent(options, 1);
-    sentry_options_set_debug(options, 1);
+    sentry_options_set_require_user_consent(options, true);
+    sentry_options_set_crashpad_wait_for_upload(options, true);
+    sentry_options_set_http_retry(options, true);
+    sentry_options_set_cache_keep(options, true);
+    sentry_options_set_debug(options, true);
 
     sentry_options_set_before_send(options, [](sentry_value_t event, void *hint, void *userdata) {
         if (SentryPlayground::instance()->filter()) {
