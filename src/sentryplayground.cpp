@@ -9,18 +9,6 @@
 #include <QtCore/qsettings.h>
 #include <QtCore/qthread.h>
 
-static sentry_value_t ensureFingerprint(sentry_value_t event)
-{
-    sentry_value_t fp = sentry_value_new_list();
-    sentry_uuid_t uuid = sentry_uuid_new_v4();
-    char buf[37];
-    sentry_uuid_as_string(&uuid, buf);
-    buf[36] = '\0';
-    sentry_value_append(fp, sentry_value_new_string(buf));
-    sentry_value_set_by_key(event, "fingerprint", fp);
-    return event;
-}
-
 SentryPlayground::SentryPlayground(QObject *parent) : QObject{parent}
 {
     setTag("backend", SENTRY_BACKEND);
@@ -68,7 +56,7 @@ void SentryPlayground::open()
             sentry_value_decref(event);
             return sentry_value_new_null();
         }
-        return ensureFingerprint(event);
+        return event;
     }, NULL);
 
     sentry_options_set_on_crash(options, [](const sentry_ucontext_t *uctx, sentry_value_t event, void *userdata) {
@@ -76,10 +64,16 @@ void SentryPlayground::open()
             sentry_value_decref(event);
             return sentry_value_new_null();
         }
-        return ensureFingerprint(event);
+        return event;
     }, NULL);
 
     sentry_init(options);
+
+    sentry_uuid_t uuid = sentry_uuid_new_v4();
+    char buf[37];
+    sentry_uuid_as_string(&uuid, buf);
+    buf[36] = '\0';
+    sentry_set_fingerprint(buf, NULL);
 }
 
 void SentryPlayground::close()
