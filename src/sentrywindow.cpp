@@ -35,7 +35,7 @@ SentryWindow::SentryWindow(QWidget *parent)
 {
     TRACE_FUNCTION();
     ui.setupUi(this);
-    setWindowTitle(windowTitle() + " (" + SentryPlayground::backend() + ")");
+    ui.backendLabel->setText(SentryPlayground::backend());
     updateLogo();
 
 #ifndef Q_OS_WINDOWS
