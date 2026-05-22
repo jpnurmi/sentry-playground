@@ -7,6 +7,8 @@
 class SentryTrace
 {
 public:
+    static bool enabled();
+    static void setEnabled(bool enabled);
     static void begin(const char *op, const char *description);
     static void end();
     static void flush();
@@ -22,6 +24,7 @@ public:
     };
 
 private:
+    static bool s_enabled;
     static sentry_transaction_t *s_tx;
     static thread_local std::vector<sentry_span_t *> t_spans;
 };

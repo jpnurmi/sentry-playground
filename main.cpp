@@ -1,13 +1,19 @@
 #include "sentryapp.h"
+#include "sentrydebug.h"
 #include "sentryplayground.h"
 #include "sentrywindow.h"
 
+#include <QtCore/qcoreapplication.h>
+
 int main(int argc, char *argv[])
 {
-    SentryPlayground::init();
+    SentryApp app(argc, argv);
+    sentryDebug().nospace() << "backend=" << SENTRY_BACKEND;
+    QCoreApplication::setOrganizationName("Sentry");
+    QCoreApplication::setOrganizationDomain("sentry.io");
+    QCoreApplication::setApplicationName("Playground");
     auto _ = qScopeGuard(SentryPlayground::close);
 
-    SentryApp app(argc, argv);
     SentryWindow window;
     window.show();
     return app.exec();

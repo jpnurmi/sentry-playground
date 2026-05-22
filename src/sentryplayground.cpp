@@ -5,51 +5,103 @@
 
 #include <sentry.h>
 
-#include <QtCore/qcoreapplication.h>
 #include <QtCore/qsettings.h>
 #include <QtCore/qthread.h>
 
 SentryPlayground::SentryPlayground(QObject *parent) : QObject{parent}
 {
-    setTag("backend", SENTRY_BACKEND);
-    updateUser("name", "nobody");
-    updateUser("email", "nobody@example.com");
-    m_release = SENTRY_RELEASE;
-    m_environment = "playground";
+    m_initOptions = loadInitOptions();
+    m_tags.insert("backend", SENTRY_BACKEND);
+    m_user.insert("name", "nobody");
+    m_user.insert("email", "nobody@example.com");
+    m_release = m_initOptions.release;
+    m_environment = m_initOptions.environment;
 }
 
-void SentryPlayground::init()
-{
-    sentryDebug().nospace() << "backend=" << SENTRY_BACKEND;
-
-    QCoreApplication::setOrganizationName("Sentry");
-    QCoreApplication::setOrganizationDomain("sentry.io");
-    QCoreApplication::setApplicationName("Playground");
-
-    open();
-}
-
-void SentryPlayground::open()
+SentryPlayground::InitOptions SentryPlayground::loadInitOptions()
 {
     QSettings settings;
-    bool reporterEnabled = settings.value("externalCrashReporter/enabled", false).toBool();
-    QString reporterPath = settings.value("externalCrashReporter/path").toString();
+
+    InitOptions options;
+    options.dsn = QString::fromUtf8(SENTRY_DSN);
+    options.release = QString::fromUtf8(SENTRY_RELEASE);
+    options.environment = "playground";
+    options.dsn = settings.value("init/dsn", options.dsn).toString();
+    options.release = settings.value("init/release", options.release).toString();
+    options.environment = settings.value("init/environment", options.environment).toString();
+    options.attachScreenshot = settings.value("init/attachScreenshot", options.attachScreenshot).toBool();
+    options.tracesSampleRate = settings.value("init/tracesSampleRate", options.tracesSampleRate).toDouble();
+    options.requireUserConsent = settings.value("init/requireUserConsent", options.requireUserConsent).toBool();
+    options.systemCrashReporterEnabled = settings.value(
+        "init/systemCrashReporterEnabled", options.systemCrashReporterEnabled).toBool();
+    options.enableLargeAttachments = settings.value(
+        "init/enableLargeAttachments", options.enableLargeAttachments).toBool();
+    options.httpRetry = settings.value("init/httpRetry", options.httpRetry).toBool();
+    options.cacheKeep = settings.value("init/cacheKeep", options.cacheKeep).toBool();
+    options.debug = settings.value("init/debug", options.debug).toBool();
+    options.externalCrashReporterEnabled = settings.value(
+        "init/externalCrashReporter/enabled",
+        settings.value("externalCrashReporter/enabled", options.externalCrashReporterEnabled)).toBool();
+    options.externalCrashReporterPath = settings.value(
+        "init/externalCrashReporter/path",
+        settings.value("externalCrashReporter/path", options.externalCrashReporterPath)).toString();
+    return options;
+}
+
+void SentryPlayground::saveInitOptions(const InitOptions& options)
+{
+    QSettings settings;
+    settings.setValue("init/dsn", options.dsn);
+    settings.setValue("init/release", options.release);
+    settings.setValue("init/environment", options.environment);
+    settings.setValue("init/attachScreenshot", options.attachScreenshot);
+    settings.setValue("init/tracesSampleRate", options.tracesSampleRate);
+    settings.setValue("init/requireUserConsent", options.requireUserConsent);
+    settings.setValue("init/systemCrashReporterEnabled", options.systemCrashReporterEnabled);
+    settings.setValue("init/enableLargeAttachments", options.enableLargeAttachments);
+    settings.setValue("init/httpRetry", options.httpRetry);
+    settings.setValue("init/cacheKeep", options.cacheKeep);
+    settings.setValue("init/debug", options.debug);
+    settings.setValue("init/externalCrashReporter/enabled", options.externalCrashReporterEnabled);
+    settings.setValue("init/externalCrashReporter/path", options.externalCrashReporterPath);
+    settings.setValue("externalCrashReporter/enabled", options.externalCrashReporterEnabled);
+    settings.setValue("externalCrashReporter/path", options.externalCrashReporterPath);
+}
+
+void SentryPlayground::open(const InitOptions& initOptions)
+{
+    if (instance()->m_initialized)
+        close();
+
+    SentryPlayground* playground = instance();
+    playground->m_initOptions = initOptions;
+    playground->m_release = initOptions.release;
+    playground->m_environment = initOptions.environment;
+    saveInitOptions(initOptions);
 
     sentry_options_t *options = sentry_options_new();
-    sentry_options_set_dsn(options, SENTRY_DSN);
-    sentry_options_set_release(options, SENTRY_RELEASE);
-    sentry_options_set_environment(options, "playground");
-    if (reporterEnabled && !reporterPath.isEmpty())
-        sentry_options_set_external_crash_reporter_path(options, reporterPath.toUtf8().constData());
-    sentry_options_set_attach_screenshot(options, true);
-    sentry_options_set_traces_sample_rate(options, 1.0);
-    sentry_options_set_require_user_consent(options, true);
-    sentry_options_set_system_crash_reporter_enabled(options, false);
+    QByteArray dsn = playground->m_initOptions.dsn.toUtf8();
+    QByteArray release = playground->m_initOptions.release.toUtf8();
+    QByteArray environment = playground->m_initOptions.environment.toUtf8();
+    QByteArray reporterPath = playground->m_initOptions.externalCrashReporterPath.toUtf8();
+    if (!dsn.isEmpty())
+        sentry_options_set_dsn(options, dsn.constData());
+    if (!release.isEmpty())
+        sentry_options_set_release(options, release.constData());
+    if (!environment.isEmpty())
+        sentry_options_set_environment(options, environment.constData());
+    if (playground->m_initOptions.externalCrashReporterEnabled && !reporterPath.isEmpty())
+        sentry_options_set_external_crash_reporter_path(options, reporterPath.constData());
+    sentry_options_set_attach_screenshot(options, playground->m_initOptions.attachScreenshot);
+    sentry_options_set_traces_sample_rate(options, playground->m_initOptions.tracesSampleRate);
+    sentry_options_set_require_user_consent(options, playground->m_initOptions.requireUserConsent);
+    sentry_options_set_system_crash_reporter_enabled(
+        options, playground->m_initOptions.systemCrashReporterEnabled);
     sentry_options_set_crashpad_wait_for_upload(options, true);
-    sentry_options_set_enable_large_attachments(options, true);
-    sentry_options_set_http_retry(options, true);
-    sentry_options_set_cache_keep(options, true);
-    sentry_options_set_debug(options, true);
+    sentry_options_set_enable_large_attachments(options, playground->m_initOptions.enableLargeAttachments);
+    sentry_options_set_http_retry(options, playground->m_initOptions.httpRetry);
+    sentry_options_set_cache_keep(options, playground->m_initOptions.cacheKeep);
+    sentry_options_set_debug(options, playground->m_initOptions.debug);
 
     sentry_options_set_before_send(options, [](sentry_value_t event, void *hint, void *userdata) {
         if (SentryPlayground::instance()->filter()) {
@@ -68,27 +120,42 @@ void SentryPlayground::open()
     }, NULL);
 
     sentry_init(options);
+    playground->m_initialized = true;
+    playground->m_hasInitialized = true;
+    SentryTrace::setEnabled(true);
 
     sentry_uuid_t uuid = sentry_uuid_new_v4();
     char buf[37];
     sentry_uuid_as_string(&uuid, buf);
     buf[36] = '\0';
     sentry_set_fingerprint(buf, NULL);
+
+    playground->reapplyScope();
+    emit playground->initOptionsChanged(playground->m_initOptions);
+    emit playground->releaseChanged(playground->m_release);
+    emit playground->environmentChanged(playground->m_environment);
+    emit playground->initializedChanged(true);
 }
 
 void SentryPlayground::close()
 {
+    SentryPlayground* playground = instance();
+    if (!playground->m_initialized)
+        return;
+
     SentryTrace::flush();
+    SentryTrace::setEnabled(false);
     sentry_close();
+    playground->m_initialized = false;
+    emit playground->initializedChanged(false);
 }
 
-void SentryPlayground::reinit()
+void SentryPlayground::reinit(const InitOptions& options)
 {
     TRACE_FUNCTION();
 
     close();
-    open();
-    instance()->reapplyScope();
+    open(options);
 }
 
 SentryPlayground* SentryPlayground::instance()
@@ -100,6 +167,21 @@ SentryPlayground* SentryPlayground::instance()
 QString SentryPlayground::backend()
 {
     return SENTRY_BACKEND;
+}
+
+bool SentryPlayground::initialized() const
+{
+    return m_initialized;
+}
+
+bool SentryPlayground::hasInitialized() const
+{
+    return m_hasInitialized;
+}
+
+SentryPlayground::InitOptions SentryPlayground::initOptions() const
+{
+    return m_initOptions;
 }
 
 bool SentryPlayground::worker() const
@@ -136,6 +218,9 @@ void SentryPlayground::setFilter(bool filter)
 
 Qt::CheckState SentryPlayground::consent() const
 {
+    if (!m_initialized)
+        return m_consent;
+
     switch (sentry_user_consent_get()) {
     case SENTRY_USER_CONSENT_GIVEN: return Qt::Checked;
     case SENTRY_USER_CONSENT_REVOKED: return Qt::Unchecked;
@@ -151,12 +236,23 @@ void SentryPlayground::setConsent(Qt::CheckState consent)
     if (this->consent() == consent)
         return;
 
-    switch (consent) {
+    m_consent = consent;
+    if (!m_initialized) {
+        emit consentChanged(consent);
+        return;
+    }
+
+    applyConsent();
+    emit consentChanged(consent);
+}
+
+void SentryPlayground::applyConsent()
+{
+    switch (m_consent) {
     case Qt::Checked: sentry_user_consent_give(); break;
     case Qt::Unchecked: sentry_user_consent_revoke(); break;
     case Qt::PartiallyChecked: sentry_user_consent_reset(); break;
     }
-    emit consentChanged(consent);
 }
 
 void SentryPlayground::triggerCrash()
@@ -237,7 +333,9 @@ void SentryPlayground::addAttachment(const QString& path)
 
     if (path.isEmpty() || m_attachments.contains(path))
         return;
-    sentry_attachment_t *handle = sentry_attach_file(path.toUtf8().constData());
+    sentry_attachment_t *handle = nullptr;
+    if (m_initialized)
+        handle = sentry_attach_file(path.toUtf8().constData());
     m_attachments.insert(path, handle);
     emit attachmentsChanged(attachments());
 }
@@ -249,7 +347,8 @@ void SentryPlayground::removeAttachment(const QString& path)
     auto it = m_attachments.find(path);
     if (it == m_attachments.end())
         return;
-    sentry_remove_attachment(static_cast<sentry_attachment_t *>(it.value()));
+    if (m_initialized && it.value())
+        sentry_remove_attachment(static_cast<sentry_attachment_t *>(it.value()));
     m_attachments.erase(it);
     emit attachmentsChanged(attachments());
 }
@@ -266,7 +365,8 @@ void SentryPlayground::setTag(const QString& key, const QString& value)
     if (m_tags.value(key).toString() == value && m_tags.contains(key))
         return;
     m_tags.insert(key, value);
-    sentry_set_tag(key.toUtf8().constData(), value.toUtf8().constData());
+    if (m_initialized)
+        sentry_set_tag(key.toUtf8().constData(), value.toUtf8().constData());
     emit tagsChanged(m_tags);
 }
 
@@ -276,7 +376,8 @@ void SentryPlayground::removeTag(const QString& key)
 
     if (m_tags.remove(key) == 0)
         return;
-    sentry_remove_tag(key.toUtf8().constData());
+    if (m_initialized)
+        sentry_remove_tag(key.toUtf8().constData());
     emit tagsChanged(m_tags);
 }
 
@@ -292,10 +393,12 @@ void SentryPlayground::setContext(const QString& name, const QString& value)
     if (m_contexts.value(name).toString() == value && m_contexts.contains(name))
         return;
     m_contexts.insert(name, value);
-    sentry_value_t object = sentry_value_new_object();
-    sentry_value_set_by_key(object, "value",
-        sentry_value_new_string(value.toUtf8().constData()));
-    sentry_set_context(name.toUtf8().constData(), object);
+    if (m_initialized) {
+        sentry_value_t object = sentry_value_new_object();
+        sentry_value_set_by_key(object, "value",
+            sentry_value_new_string(value.toUtf8().constData()));
+        sentry_set_context(name.toUtf8().constData(), object);
+    }
     emit contextsChanged(m_contexts);
 }
 
@@ -305,7 +408,8 @@ void SentryPlayground::removeContext(const QString& name)
 
     if (m_contexts.remove(name) == 0)
         return;
-    sentry_remove_context(name.toUtf8().constData());
+    if (m_initialized)
+        sentry_remove_context(name.toUtf8().constData());
     emit contextsChanged(m_contexts);
 }
 
@@ -322,15 +426,17 @@ void SentryPlayground::updateUser(const QString& field, const QString& value)
         return;
     m_user.insert(field, value);
 
-    QByteArray id = m_user.value("id").toString().toUtf8();
-    QByteArray name = m_user.value("name").toString().toUtf8();
-    QByteArray email = m_user.value("email").toString().toUtf8();
-    QByteArray ip = m_user.value("ip_address").toString().toUtf8();
-    sentry_set_user(sentry_value_new_user(
-        id.isEmpty() ? nullptr : id.constData(),
-        name.isEmpty() ? nullptr : name.constData(),
-        email.isEmpty() ? nullptr : email.constData(),
-        ip.isEmpty() ? nullptr : ip.constData()));
+    if (m_initialized) {
+        QByteArray id = m_user.value("id").toString().toUtf8();
+        QByteArray name = m_user.value("name").toString().toUtf8();
+        QByteArray email = m_user.value("email").toString().toUtf8();
+        QByteArray ip = m_user.value("ip_address").toString().toUtf8();
+        sentry_set_user(sentry_value_new_user(
+            id.isEmpty() ? nullptr : id.constData(),
+            name.isEmpty() ? nullptr : name.constData(),
+            email.isEmpty() ? nullptr : email.constData(),
+            ip.isEmpty() ? nullptr : ip.constData()));
+    }
 
     emit userChanged(m_user);
 }
@@ -347,8 +453,11 @@ void SentryPlayground::setRelease(const QString& release)
     if (m_release == release)
         return;
     m_release = release;
-    sentry_set_release(release.toUtf8().constData());
+    m_initOptions.release = release;
+    if (m_initialized)
+        sentry_set_release(release.toUtf8().constData());
     emit releaseChanged(release);
+    emit initOptionsChanged(m_initOptions);
 }
 
 QString SentryPlayground::environment() const
@@ -363,8 +472,11 @@ void SentryPlayground::setEnvironment(const QString& environment)
     if (m_environment == environment)
         return;
     m_environment = environment;
-    sentry_set_environment(environment.toUtf8().constData());
+    m_initOptions.environment = environment;
+    if (m_initialized)
+        sentry_set_environment(environment.toUtf8().constData());
     emit environmentChanged(environment);
+    emit initOptionsChanged(m_initOptions);
 }
 
 bool SentryPlayground::session() const
@@ -379,6 +491,10 @@ void SentryPlayground::setSession(bool session)
     if (m_session == session)
         return;
     m_session = session;
+    if (!m_initialized) {
+        emit sessionChanged(session);
+        return;
+    }
     if (session)
         sentry_start_session();
     else
@@ -389,6 +505,8 @@ void SentryPlayground::setSession(bool session)
 void SentryPlayground::captureMessage(int level, const QString& message)
 {
     TRACE_FUNCTION();
+    if (!m_initialized)
+        return;
     sentryDebug() << "captureMessage" << level << message;
 
     sentry_value_t event = sentry_value_new_message_event(
@@ -401,6 +519,8 @@ void SentryPlayground::captureMessage(int level, const QString& message)
 void SentryPlayground::captureException(int level, const QString& type, const QString& value)
 {
     TRACE_FUNCTION();
+    if (!m_initialized)
+        return;
     sentryDebug() << "captureException" << level << type << value;
 
     const char* levelStr = nullptr;
@@ -426,6 +546,8 @@ void SentryPlayground::captureException(int level, const QString& type, const QS
 void SentryPlayground::captureFeedback(const QString& message, const QString& name, const QString& email)
 {
     TRACE_FUNCTION();
+    if (!m_initialized)
+        return;
     sentryDebug() << "captureFeedback" << name << email << message;
 
     QByteArray msg = message.toUtf8();
@@ -442,6 +564,9 @@ void SentryPlayground::captureFeedback(const QString& message, const QString& na
 void SentryPlayground::reapplyScope()
 {
     TRACE_FUNCTION();
+
+    if (!m_initialized)
+        return;
 
     for (auto it = m_tags.constBegin(); it != m_tags.constEnd(); ++it)
         sentry_set_tag(it.key().toUtf8().constData(), it.value().toString().toUtf8().constData());
@@ -464,6 +589,7 @@ void SentryPlayground::reapplyScope()
         sentry_set_release(m_release.toUtf8().constData());
     if (!m_environment.isEmpty())
         sentry_set_environment(m_environment.toUtf8().constData());
+    applyConsent();
     QMap<QString, void*> previous = m_attachments;
     m_attachments.clear();
     for (auto it = previous.constBegin(); it != previous.constEnd(); ++it) {
@@ -477,6 +603,8 @@ void SentryPlayground::reapplyScope()
 void SentryPlayground::addBreadcrumb(const QString& type, int level, const QString& message)
 {
     TRACE_FUNCTION();
+    if (!m_initialized)
+        return;
     sentryDebug() << "addBreadcrumb" << type << level << message;
 
     const char* levelStr = nullptr;

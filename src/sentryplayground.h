@@ -23,15 +23,38 @@ class SentryPlayground : public QObject
     Q_PROPERTY(bool session READ session WRITE setSession NOTIFY sessionChanged)
 
 public:
+    struct InitOptions
+    {
+        QString dsn;
+        QString release;
+        QString environment;
+        bool attachScreenshot = true;
+        double tracesSampleRate = 1.0;
+        bool requireUserConsent = true;
+        bool systemCrashReporterEnabled = false;
+        bool enableLargeAttachments = true;
+        bool httpRetry = true;
+        bool cacheKeep = true;
+        bool debug = true;
+        bool externalCrashReporterEnabled = false;
+        QString externalCrashReporterPath;
+    };
+
     explicit SentryPlayground(QObject *parent = nullptr);
 
-    static void open();
+    static void open(const InitOptions& options);
     static void close();
-    static void init();
-    static void reinit();
+    static void reinit(const InitOptions& options);
 
     static SentryPlayground* instance();
     static QString backend();
+
+    static InitOptions loadInitOptions();
+    static void saveInitOptions(const InitOptions& options);
+
+    bool initialized() const;
+    bool hasInitialized() const;
+    InitOptions initOptions() const;
 
     bool worker() const;
     void setWorker(bool worker);
@@ -68,6 +91,8 @@ signals:
     void releaseChanged(const QString& release);
     void environmentChanged(const QString& environment);
     void sessionChanged(bool session);
+    void initializedChanged(bool initialized);
+    void initOptionsChanged(const SentryPlayground::InitOptions& options);
 
 public slots:
     void triggerCrash();
@@ -96,8 +121,13 @@ public slots:
 
 private:
     void reapplyScope();
+    void applyConsent();
     bool m_worker = false;
     bool m_filter = false;
+    bool m_initialized = false;
+    bool m_hasInitialized = false;
+    InitOptions m_initOptions;
+    Qt::CheckState m_consent = Qt::PartiallyChecked;
     QMap<QString, void*> m_attachments;
     QVariantMap m_tags;
     QVariantMap m_contexts;

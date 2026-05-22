@@ -14,44 +14,147 @@
    <string>Sentry Playground</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="rootLayout">
+   <layout class="QVBoxLayout" name="windowLayout">
+    <property name="spacing">
+     <number>0</number>
+    </property>
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
     <item>
-     <layout class="QHBoxLayout" name="columnsLayout">
-      <property name="spacing">
-       <number>16</number>
-      </property>
-      <item>
-       <layout class="QVBoxLayout" name="leftColumn">
+     <widget class="QStackedWidget" name="pages">
+      <widget class="QWidget" name="initPage">
+       <layout class="QHBoxLayout" name="initColumnsLayout">
+        <property name="spacing">
+         <number>16</number>
+        </property>
+        <property name="leftMargin">
+         <number>22</number>
+        </property>
+        <property name="topMargin">
+         <number>22</number>
+        </property>
+        <property name="rightMargin">
+         <number>22</number>
+        </property>
+        <property name="bottomMargin">
+         <number>16</number>
+        </property>
         <item>
-         <layout class="QVBoxLayout" name="brandLayout">
+         <widget class="QWidget" name="initLeftPanel" native="true">
+          <layout class="QVBoxLayout" name="initLeftColumn">
+           <property name="spacing">
+            <number>0</number>
+           </property>
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <spacer name="initLogoTopSpacer">
+             <property name="orientation">
+              <enum>Qt::Orientation::Vertical</enum>
+             </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::Policy::Fixed</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>0</width>
+               <height>4</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QLabel" name="initLogo">
+             <property name="pixmap">
+              <pixmap resource="../assets/assets.qrc">:/assets/sentry-glyph-light@2x.png</pixmap>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignmentFlag::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="initLogoBackendSpacer">
+             <property name="orientation">
+              <enum>Qt::Orientation::Vertical</enum>
+             </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::Policy::Fixed</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>0</width>
+               <height>16</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item alignment="Qt::AlignmentFlag::AlignHCenter">
+            <widget class="QLabel" name="initBackendLabel">
+             <property name="styleSheet">
+              <string notr="true">color: #9a9a9a; font-weight: bold; background-color: rgba(136, 136, 136, 28); border: none; border-radius: 5px; padding: 1px 7px;</string>
+             </property>
+             <property name="text">
+              <string>Backend</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignmentFlag::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="initLeftBottomSpacer">
+             <property name="orientation">
+              <enum>Qt::Orientation::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <layout class="QVBoxLayout" name="initRightColumn">
           <property name="spacing">
            <number>0</number>
           </property>
           <item>
-           <spacer name="verticalSpacer">
-            <property name="orientation">
-             <enum>Qt::Orientation::Vertical</enum>
+           <widget class="QLabel" name="initOptionsHeader">
+            <property name="styleSheet">
+             <string notr="true">color: #888; font-weight: bold;</string>
             </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>0</width>
-              <height>4</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item>
-           <widget class="QLabel" name="sentryLogo">
-            <property name="pixmap">
-             <pixmap resource="../assets/assets.qrc">:/assets/sentry-glyph-light@2x.png</pixmap>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignmentFlag::AlignCenter</set>
+            <property name="text">
+             <string>OPTIONS</string>
             </property>
            </widget>
           </item>
           <item>
-           <spacer name="logoBackendSpacer">
+           <spacer name="initOptionsHeaderSpacer">
             <property name="orientation">
              <enum>Qt::Orientation::Vertical</enum>
             </property>
@@ -61,613 +164,329 @@
             <property name="sizeHint" stdset="0">
              <size>
               <width>0</width>
-              <height>16</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item alignment="Qt::AlignmentFlag::AlignHCenter">
-           <widget class="QLabel" name="backendLabel">
-            <property name="styleSheet">
-             <string notr="true">color: #9a9a9a; font-weight: bold; background-color: rgba(136, 136, 136, 28); border: none; border-radius: 5px; padding: 1px 7px;</string>
-            </property>
-            <property name="text">
-             <string>Backend</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignmentFlag::AlignCenter</set>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <spacer name="leftTopSpacer">
-          <property name="orientation">
-           <enum>Qt::Orientation::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QLabel" name="crashesHeader">
-          <property name="styleSheet">
-           <string notr="true">color: #888; font-weight: bold;</string>
-          </property>
-          <property name="text">
-           <string>CRASH</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="crashButton">
-          <property name="text">
-           <string>Segfault</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="stackOverflowButton">
-          <property name="text">
-           <string>Stack overflow</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="throwButton">
-          <property name="text">
-           <string>Exception</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="fastfailButton">
-          <property name="text">
-           <string>Fast-fail</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="assertButton">
-          <property name="text">
-           <string>Assert</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="abortButton">
-          <property name="text">
-           <string>Abort</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="leftBottomSpacer">
-          <property name="orientation">
-           <enum>Qt::Orientation::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="togglesLayout">
-          <item>
-           <spacer name="togglesSpacer">
-            <property name="orientation">
-             <enum>Qt::Orientation::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>0</width>
-              <height>0</height>
+              <height>14</height>
              </size>
             </property>
            </spacer>
           </item>
           <item>
-           <widget class="QCheckBox" name="filterBox">
-            <property name="text">
-             <string>Filter</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="workerBox">
-            <property name="text">
-             <string>Worker</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <layout class="QVBoxLayout" name="rightColumn">
-        <property name="spacing">
-         <number>4</number>
-        </property>
-        <item>
-         <layout class="QHBoxLayout" name="messageHeaderLayout">
-          <property name="spacing">
-           <number>0</number>
-          </property>
-          <item>
-           <widget class="QPushButton" name="messageButton">
-            <property name="text">
-             <string>MESSAGE</string>
-            </property>
-            <property name="checkable">
-             <bool>true</bool>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="exceptionButton">
-            <property name="text">
-             <string>EXCEPTION</string>
-            </property>
-            <property name="checkable">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="breadcrumbButton">
-            <property name="text">
-             <string>BREADCRUMB</string>
-            </property>
-            <property name="checkable">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <spacer name="messageHeaderSpacer">
-            <property name="orientation">
-             <enum>Qt::Orientation::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>0</width>
-              <height>0</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item>
-           <spacer name="horizontalSpacer">
-            <property name="orientation">
-             <enum>Qt::Orientation::Horizontal</enum>
-            </property>
-            <property name="sizeType">
-             <enum>QSizePolicy::Policy::MinimumExpanding</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>12</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item>
-           <widget class="QComboBox" name="messageLevelBox">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="sizeAdjustPolicy">
-             <enum>QComboBox::SizeAdjustPolicy::AdjustToContents</enum>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="messageLayout">
-          <property name="spacing">
-           <number>8</number>
-          </property>
-          <item>
-           <widget class="QComboBox" name="exceptionTypeBox">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="editable">
-             <bool>true</bool>
-            </property>
-            <property name="sizeAdjustPolicy">
-             <enum>QComboBox::SizeAdjustPolicy::AdjustToContents</enum>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QComboBox" name="breadcrumbTypeBox">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="editable">
-             <bool>true</bool>
-            </property>
-            <property name="sizeAdjustPolicy">
-             <enum>QComboBox::SizeAdjustPolicy::AdjustToContents</enum>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="messageText">
-            <property name="placeholderText">
-             <string>Message</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <spacer name="sectionSpacer">
-          <property name="orientation">
-           <enum>Qt::Orientation::Vertical</enum>
-          </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::Policy::Fixed</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>16</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <layout class="QVBoxLayout" name="categorySection">
-          <property name="spacing">
-           <number>12</number>
-          </property>
-          <item>
-           <layout class="QHBoxLayout" name="categoryHeaderLayout">
+           <layout class="QVBoxLayout" name="dsnFieldLayout">
             <property name="spacing">
-             <number>0</number>
+             <number>3</number>
             </property>
             <item>
-             <widget class="QPushButton" name="tagsButton">
-              <property name="text">
-               <string>TAGS</string>
+             <widget class="QLineEdit" name="dsnEdit">
+              <property name="placeholderText">
+               <string>https://public@example.ingest.sentry.io/project-id</string>
               </property>
-              <property name="checkable">
-               <bool>true</bool>
-              </property>
-              <property name="checked">
+              <property name="clearButtonEnabled">
                <bool>true</bool>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="contextsButton">
+             <widget class="QLabel" name="dsnLabel">
+              <property name="styleSheet">
+               <string notr="true">color: #888; font-size: 10px;</string>
+              </property>
               <property name="text">
-               <string>CONTEXTS</string>
-              </property>
-              <property name="checkable">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="attachmentsButton">
-              <property name="text">
-               <string>ATTACHMENTS</string>
-              </property>
-              <property name="checkable">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <spacer name="categoryHeaderSpacer">
-              <property name="orientation">
-               <enum>Qt::Orientation::Horizontal</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>0</width>
-                <height>0</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item>
-             <widget class="QToolButton" name="addButton">
-              <property name="text">
-               <string>+</string>
+               <string>DSN</string>
               </property>
              </widget>
             </item>
            </layout>
           </item>
           <item>
-           <widget class="QStackedWidget" name="categoryStack">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
+           <spacer name="dsnFieldsSpacer">
+            <property name="orientation">
+             <enum>Qt::Orientation::Vertical</enum>
             </property>
-            <widget class="QTreeWidget" name="tagsTable">
-             <property name="contextMenuPolicy">
-              <enum>Qt::ContextMenuPolicy::CustomContextMenu</enum>
-             </property>
-             <column>
-              <property name="text">
-               <string>Key</string>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string>Value</string>
-              </property>
-             </column>
-            </widget>
-            <widget class="QTreeWidget" name="contextsTable">
-             <property name="contextMenuPolicy">
-              <enum>Qt::ContextMenuPolicy::CustomContextMenu</enum>
-             </property>
-             <column>
-              <property name="text">
-               <string>Name</string>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string>Value</string>
-              </property>
-             </column>
-            </widget>
-            <widget class="QTreeWidget" name="attachmentTable">
-             <property name="contextMenuPolicy">
-              <enum>Qt::ContextMenuPolicy::CustomContextMenu</enum>
-             </property>
-             <column>
-              <property name="text">
-               <string>File</string>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string>Size</string>
-              </property>
-             </column>
-            </widget>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <spacer name="userSectionSpacer">
-          <property name="orientation">
-           <enum>Qt::Orientation::Vertical</enum>
-          </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::Policy::Fixed</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>16</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <layout class="QVBoxLayout" name="userSection">
-          <property name="spacing">
-           <number>8</number>
-          </property>
-          <item>
-           <widget class="QLabel" name="userHeader">
-            <property name="styleSheet">
-             <string notr="true">color: #888; font-weight: bold;</string>
+            <property name="sizeType">
+             <enum>QSizePolicy::Policy::Fixed</enum>
             </property>
-            <property name="text">
-             <string>USER</string>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>8</height>
+             </size>
             </property>
-           </widget>
+           </spacer>
           </item>
           <item>
-           <layout class="QGridLayout" name="userGrid">
+           <layout class="QGridLayout" name="initFieldsGrid">
             <property name="horizontalSpacing">
              <number>8</number>
             </property>
             <property name="verticalSpacing">
-             <number>4</number>
+             <number>3</number>
             </property>
             <item row="0" column="0">
-             <widget class="QLineEdit" name="userIdEdit">
+             <widget class="QLineEdit" name="initReleaseEdit">
               <property name="placeholderText">
-               <string>ID</string>
+               <string>my-app@1.0.0</string>
               </property>
              </widget>
             </item>
             <item row="0" column="1">
-             <widget class="QLineEdit" name="userNameEdit">
+             <widget class="QLineEdit" name="initEnvironmentEdit">
               <property name="placeholderText">
-               <string>Name</string>
+               <string>production</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="2">
+             <widget class="QDoubleSpinBox" name="tracesSampleRateBox">
+              <property name="minimumSize">
+               <size>
+                <width>112</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="decimals">
+               <number>2</number>
+              </property>
+              <property name="maximum">
+               <double>1.000000000000000</double>
+              </property>
+              <property name="singleStep">
+               <double>0.100000000000000</double>
               </property>
              </widget>
             </item>
             <item row="1" column="0">
-             <widget class="QLineEdit" name="userEmailEdit">
-              <property name="placeholderText">
-               <string>Email</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="1">
-             <widget class="QLineEdit" name="userIpEdit">
-              <property name="placeholderText">
-               <string>IP address</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <spacer name="sessionSectionSpacer">
-          <property name="orientation">
-           <enum>Qt::Orientation::Vertical</enum>
-          </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::Policy::Fixed</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>16</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <layout class="QVBoxLayout" name="sessionSection">
-          <property name="spacing">
-           <number>8</number>
-          </property>
-          <item>
-           <layout class="QHBoxLayout" name="sessionHeaderLayout">
-            <property name="spacing">
-             <number>0</number>
-            </property>
-            <item>
-             <widget class="QLabel" name="sessionHeader">
+             <widget class="QLabel" name="initReleaseLabel">
               <property name="styleSheet">
-               <string notr="true">color: #888; font-weight: bold;</string>
+               <string notr="true">color: #888; font-size: 10px;</string>
               </property>
               <property name="text">
-               <string>SESSION</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <spacer name="sessionHeaderSpacer">
-              <property name="orientation">
-               <enum>Qt::Orientation::Horizontal</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>0</width>
-                <height>0</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item>
-             <widget class="QToolButton" name="sessionButton"/>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="sessionFieldsLayout">
-            <property name="spacing">
-             <number>8</number>
-            </property>
-            <item>
-             <widget class="QLineEdit" name="releaseEdit">
-              <property name="placeholderText">
                <string>Release</string>
               </property>
              </widget>
             </item>
-            <item>
-             <widget class="QLineEdit" name="environmentEdit">
-              <property name="placeholderText">
+            <item row="1" column="1">
+             <widget class="QLabel" name="initEnvironmentLabel">
+              <property name="styleSheet">
+               <string notr="true">color: #888; font-size: 10px;</string>
+              </property>
+              <property name="text">
                <string>Environment</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="2">
+             <widget class="QLabel" name="tracesSampleRateLabel">
+              <property name="styleSheet">
+               <string notr="true">color: #888; font-size: 10px;</string>
+              </property>
+              <property name="text">
+               <string>Sample rate</string>
               </property>
              </widget>
             </item>
            </layout>
           </item>
-         </layout>
-        </item>
-        <item>
-         <spacer name="reporterSectionSpacer">
-          <property name="orientation">
-           <enum>Qt::Orientation::Vertical</enum>
-          </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::Policy::Fixed</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>16</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <layout class="QVBoxLayout" name="reporterSection">
-          <property name="spacing">
-           <number>0</number>
-          </property>
           <item>
-           <layout class="QHBoxLayout" name="reporterHeaderLayout">
-            <property name="spacing">
+           <spacer name="featuresTopSpacer">
+            <property name="orientation">
+             <enum>Qt::Orientation::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Policy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>28</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QLabel" name="featuresHeader">
+            <property name="styleSheet">
+             <string notr="true">color: #888; font-weight: bold;</string>
+            </property>
+            <property name="text">
+             <string>FEATURES</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="featuresHeaderSpacer">
+            <property name="orientation">
+             <enum>Qt::Orientation::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Policy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>10</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <layout class="QGridLayout" name="optionsLayout">
+            <property name="horizontalSpacing">
+             <number>32</number>
+            </property>
+            <property name="verticalSpacing">
              <number>8</number>
             </property>
-            <item>
-             <widget class="QCheckBox" name="reporterEnabledBox">
-              <property name="styleSheet">
-               <string notr="true">QCheckBox { color: #888; font-weight: bold; }</string>
+            <item row="1" column="0">
+             <widget class="QCheckBox" name="requireUserConsentBox">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>24</height>
+               </size>
               </property>
               <property name="text">
-               <string>EXTERNAL CRASH REPORTER</string>
+               <string>Require consent</string>
               </property>
              </widget>
             </item>
-            <item>
-             <spacer name="reporterHeaderSpacer">
-              <property name="orientation">
-               <enum>Qt::Orientation::Horizontal</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
+            <item row="2" column="0">
+             <widget class="QCheckBox" name="attachScreenshotBox">
+              <property name="minimumSize">
                <size>
                 <width>0</width>
-                <height>0</height>
+                <height>24</height>
                </size>
               </property>
-             </spacer>
-            </item>
-            <item>
-             <widget class="QPushButton" name="reporterApplyButton">
               <property name="text">
-               <string>Apply</string>
+               <string>Attach screenshot</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0">
+             <widget class="QCheckBox" name="debugBox">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                <horstretch>1</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>24</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Debug</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QCheckBox" name="cacheKeepBox">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                <horstretch>1</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>24</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Cache</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="2">
+             <widget class="QCheckBox" name="enableLargeAttachmentsBox">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                <horstretch>1</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>24</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Large attachments</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QCheckBox" name="httpRetryBox">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>24</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>HTTP retry</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="2">
+             <widget class="QCheckBox" name="systemCrashReporterBox">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>24</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>System crash reporter</string>
               </property>
              </widget>
             </item>
            </layout>
+          </item>
+          <item>
+           <spacer name="externalReporterTopSpacer">
+            <property name="orientation">
+             <enum>Qt::Orientation::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Policy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>28</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="externalReporterBox">
+            <property name="styleSheet">
+             <string notr="true">QCheckBox { color: #888; font-weight: bold; }</string>
+            </property>
+            <property name="text">
+             <string>EXTERNAL CRASH REPORTER</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="externalReporterFieldsTopSpacer">
+            <property name="orientation">
+             <enum>Qt::Orientation::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Policy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>8</height>
+             </size>
+            </property>
+           </spacer>
           </item>
           <item>
            <layout class="QHBoxLayout" name="reporterFieldsLayout">
@@ -675,16 +494,58 @@
              <number>8</number>
             </property>
             <item>
-             <widget class="QPushButton" name="reporterBrowseButton">
-              <property name="text">
-               <string>Browse…</string>
+	             <widget class="QLineEdit" name="externalReporterPathEdit">
+	              <property name="placeholderText">
+	               <string>/path/to/Sentry Crash Reporter.app</string>
+	              </property>
+	             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="initFormBottomSpacer">
+            <property name="orientation">
+             <enum>Qt::Orientation::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="initFooterLayout">
+            <property name="topMargin">
+             <number>16</number>
+            </property>
+            <item>
+             <spacer name="initFooterSpacer">
+              <property name="orientation">
+               <enum>Qt::Orientation::Horizontal</enum>
               </property>
-             </widget>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+             </spacer>
             </item>
             <item>
-             <widget class="QLineEdit" name="reporterPathEdit">
-              <property name="placeholderText">
-               <string>/path/to/crash-reporter</string>
+             <widget class="QPushButton" name="initializeButton">
+              <property name="minimumSize">
+               <size>
+                <width>112</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Initialize</string>
+              </property>
+              <property name="default">
+               <bool>true</bool>
               </property>
              </widget>
             </item>
@@ -693,8 +554,612 @@
          </layout>
         </item>
        </layout>
-      </item>
-     </layout>
+      </widget>
+      <widget class="QWidget" name="runtimePage">
+       <layout class="QVBoxLayout" name="rootLayout">
+        <item>
+         <layout class="QHBoxLayout" name="columnsLayout">
+          <property name="spacing">
+           <number>16</number>
+          </property>
+          <item>
+           <layout class="QVBoxLayout" name="leftColumn">
+            <item>
+             <layout class="QVBoxLayout" name="brandLayout">
+              <property name="spacing">
+               <number>0</number>
+              </property>
+              <item>
+               <spacer name="verticalSpacer">
+                <property name="orientation">
+                 <enum>Qt::Orientation::Vertical</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>0</width>
+                  <height>4</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QLabel" name="sentryLogo">
+                <property name="pixmap">
+                 <pixmap resource="../assets/assets.qrc">:/assets/sentry-glyph-light@2x.png</pixmap>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignmentFlag::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="logoBackendSpacer">
+                <property name="orientation">
+                 <enum>Qt::Orientation::Vertical</enum>
+                </property>
+                <property name="sizeType">
+                 <enum>QSizePolicy::Policy::Fixed</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>0</width>
+                  <height>16</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item alignment="Qt::AlignmentFlag::AlignHCenter">
+               <widget class="QLabel" name="backendLabel">
+                <property name="styleSheet">
+                 <string notr="true">color: #9a9a9a; font-weight: bold; background-color: rgba(136, 136, 136, 28); border: none; border-radius: 5px; padding: 1px 7px;</string>
+                </property>
+                <property name="text">
+                 <string>Backend</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignmentFlag::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <spacer name="leftTopSpacer">
+              <property name="orientation">
+               <enum>Qt::Orientation::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QLabel" name="crashesHeader">
+              <property name="styleSheet">
+               <string notr="true">color: #888; font-weight: bold;</string>
+              </property>
+              <property name="text">
+               <string>CRASH</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="crashButton">
+              <property name="text">
+               <string>Segfault</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="stackOverflowButton">
+              <property name="text">
+               <string>Stack overflow</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="throwButton">
+              <property name="text">
+               <string>Exception</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="fastfailButton">
+              <property name="text">
+               <string>Fast-fail</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="assertButton">
+              <property name="text">
+               <string>Assert</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="abortButton">
+              <property name="text">
+               <string>Abort</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="leftBottomSpacer">
+              <property name="orientation">
+               <enum>Qt::Orientation::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="togglesLayout">
+              <item>
+               <spacer name="togglesSpacer">
+                <property name="orientation">
+                 <enum>Qt::Orientation::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="filterBox">
+                <property name="text">
+                 <string>Filter</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="workerBox">
+                <property name="text">
+                 <string>Worker</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="rightColumn">
+            <property name="spacing">
+             <number>4</number>
+            </property>
+            <item>
+             <layout class="QHBoxLayout" name="messageHeaderLayout">
+              <property name="spacing">
+               <number>0</number>
+              </property>
+              <item>
+               <widget class="QPushButton" name="messageButton">
+                <property name="text">
+                 <string>MESSAGE</string>
+                </property>
+                <property name="checkable">
+                 <bool>true</bool>
+                </property>
+                <property name="checked">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="exceptionButton">
+                <property name="text">
+                 <string>EXCEPTION</string>
+                </property>
+                <property name="checkable">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="breadcrumbButton">
+                <property name="text">
+                 <string>BREADCRUMB</string>
+                </property>
+                <property name="checkable">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="messageHeaderSpacer">
+                <property name="orientation">
+                 <enum>Qt::Orientation::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer">
+                <property name="orientation">
+                 <enum>Qt::Orientation::Horizontal</enum>
+                </property>
+                <property name="sizeType">
+                 <enum>QSizePolicy::Policy::MinimumExpanding</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>12</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QComboBox" name="messageLevelBox">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="sizeAdjustPolicy">
+                 <enum>QComboBox::SizeAdjustPolicy::AdjustToContents</enum>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="messageLayout">
+              <property name="spacing">
+               <number>8</number>
+              </property>
+              <item>
+               <widget class="QComboBox" name="exceptionTypeBox">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="editable">
+                 <bool>true</bool>
+                </property>
+                <property name="sizeAdjustPolicy">
+                 <enum>QComboBox::SizeAdjustPolicy::AdjustToContents</enum>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="breadcrumbTypeBox">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="editable">
+                 <bool>true</bool>
+                </property>
+                <property name="sizeAdjustPolicy">
+                 <enum>QComboBox::SizeAdjustPolicy::AdjustToContents</enum>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="messageText">
+                <property name="placeholderText">
+                 <string>Message</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <spacer name="sectionSpacer">
+              <property name="orientation">
+               <enum>Qt::Orientation::Vertical</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Policy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>0</width>
+                <height>16</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <layout class="QVBoxLayout" name="categorySection">
+              <property name="spacing">
+               <number>12</number>
+              </property>
+              <item>
+               <layout class="QHBoxLayout" name="categoryHeaderLayout">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QPushButton" name="tagsButton">
+                  <property name="text">
+                   <string>TAGS</string>
+                  </property>
+                  <property name="checkable">
+                   <bool>true</bool>
+                  </property>
+                  <property name="checked">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="contextsButton">
+                  <property name="text">
+                   <string>CONTEXTS</string>
+                  </property>
+                  <property name="checkable">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="attachmentsButton">
+                  <property name="text">
+                   <string>ATTACHMENTS</string>
+                  </property>
+                  <property name="checkable">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="categoryHeaderSpacer">
+                  <property name="orientation">
+                   <enum>Qt::Orientation::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>0</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+                <item>
+                 <widget class="QToolButton" name="addButton">
+                  <property name="text">
+                   <string>+</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <widget class="QStackedWidget" name="categoryStack">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <widget class="QTreeWidget" name="tagsTable">
+                 <property name="contextMenuPolicy">
+                  <enum>Qt::ContextMenuPolicy::CustomContextMenu</enum>
+                 </property>
+                 <column>
+                  <property name="text">
+                   <string>Key</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>Value</string>
+                  </property>
+                 </column>
+                </widget>
+                <widget class="QTreeWidget" name="contextsTable">
+                 <property name="contextMenuPolicy">
+                  <enum>Qt::ContextMenuPolicy::CustomContextMenu</enum>
+                 </property>
+                 <column>
+                  <property name="text">
+                   <string>Name</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>Value</string>
+                  </property>
+                 </column>
+                </widget>
+                <widget class="QTreeWidget" name="attachmentTable">
+                 <property name="contextMenuPolicy">
+                  <enum>Qt::ContextMenuPolicy::CustomContextMenu</enum>
+                 </property>
+                 <column>
+                  <property name="text">
+                   <string>File</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>Size</string>
+                  </property>
+                 </column>
+                </widget>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <spacer name="userSectionSpacer">
+              <property name="orientation">
+               <enum>Qt::Orientation::Vertical</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Policy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>0</width>
+                <height>16</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <layout class="QVBoxLayout" name="userSection">
+              <property name="spacing">
+               <number>8</number>
+              </property>
+              <item>
+               <widget class="QLabel" name="userHeader">
+                <property name="styleSheet">
+                 <string notr="true">color: #888; font-weight: bold;</string>
+                </property>
+                <property name="text">
+                 <string>USER</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <layout class="QGridLayout" name="userGrid">
+                <property name="horizontalSpacing">
+                 <number>8</number>
+                </property>
+                <property name="verticalSpacing">
+                 <number>4</number>
+                </property>
+                <item row="0" column="0">
+                 <widget class="QLineEdit" name="userIdEdit">
+                  <property name="placeholderText">
+                   <string>ID</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="1">
+                 <widget class="QLineEdit" name="userNameEdit">
+                  <property name="placeholderText">
+                   <string>Name</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="0">
+                 <widget class="QLineEdit" name="userEmailEdit">
+                  <property name="placeholderText">
+                   <string>Email</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="1">
+                 <widget class="QLineEdit" name="userIpEdit">
+                  <property name="placeholderText">
+                   <string>IP address</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <spacer name="sessionSectionSpacer">
+              <property name="orientation">
+               <enum>Qt::Orientation::Vertical</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Policy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>0</width>
+                <height>16</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <layout class="QVBoxLayout" name="sessionSection">
+              <property name="spacing">
+               <number>8</number>
+              </property>
+              <item>
+               <layout class="QHBoxLayout" name="sessionHeaderLayout">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QLabel" name="sessionHeader">
+                  <property name="styleSheet">
+                   <string notr="true">color: #888; font-weight: bold;</string>
+                  </property>
+                  <property name="text">
+                   <string>SESSION</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="sessionHeaderSpacer">
+                  <property name="orientation">
+                   <enum>Qt::Orientation::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>0</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+                <item>
+                 <widget class="QToolButton" name="sessionButton"/>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="sessionFieldsLayout">
+                <property name="spacing">
+                 <number>8</number>
+                </property>
+                <item>
+                 <widget class="QLineEdit" name="releaseEdit">
+                  <property name="placeholderText">
+                   <string>Release</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLineEdit" name="environmentEdit">
+                  <property name="placeholderText">
+                   <string>Environment</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </widget>
     </item>
    </layout>
   </widget>
@@ -704,7 +1169,7 @@
      <x>0</x>
      <y>0</y>
      <width>606</width>
-     <height>30</height>
+     <height>33</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

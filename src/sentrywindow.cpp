@@ -9,19 +9,24 @@
 
 #include <QtCore/qfileinfo.h>
 #include <QtCore/qlocale.h>
+#include <QtCore/qobject.h>
 #include <QtCore/qsettings.h>
 #include <QtCore/qstandardpaths.h>
+#include <QtGui/qaction.h>
 #include <QtWidgets/qboxlayout.h>
 #include <QtWidgets/qbuttongroup.h>
 #include <QtWidgets/qcheckbox.h>
 #include <QtWidgets/qcombobox.h>
 #include <QtWidgets/qdialog.h>
 #include <QtWidgets/qfiledialog.h>
+#include <QtWidgets/qgridlayout.h>
 #include <QtWidgets/qheaderview.h>
 #include <QtWidgets/qlabel.h>
 #include <QtWidgets/qlineedit.h>
 #include <QtWidgets/qmenu.h>
 #include <QtWidgets/qpushbutton.h>
+#include <QtWidgets/qspinbox.h>
+#include <QtGui/qcolor.h>
 #include <QtGui/qpainter.h>
 #include <QtGui/qpalette.h>
 #include <QtGui/qpixmap.h>
@@ -30,11 +35,20 @@
 #include <QtWidgets/qtoolbutton.h>
 #include <QtWidgets/qtreewidget.h>
 
+static constexpr int kPageLeftMargin = 22;
+static constexpr int kPageTopMargin = 22;
+static constexpr int kPageRightMargin = 22;
+static constexpr int kPageBottomMargin = 16;
+static constexpr int kPageColumnSpacing = 16;
+
 SentryWindow::SentryWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     TRACE_FUNCTION();
     ui.setupUi(this);
+    ui.rootLayout->setContentsMargins(kPageLeftMargin, kPageTopMargin, kPageRightMargin, kPageBottomMargin);
+    ui.columnsLayout->setSpacing(kPageColumnSpacing);
+    setupPages();
     ui.backendLabel->setText(SentryPlayground::backend());
     updateLogo();
 
@@ -97,10 +111,12 @@ SentryWindow::SentryWindow(QWidget *parent)
 #ifdef Q_OS_MACOS
     for (QLineEdit* edit : { ui.messageText, ui.userIdEdit, ui.userNameEdit,
              ui.userEmailEdit, ui.userIpEdit, ui.releaseEdit, ui.environmentEdit,
-             ui.reporterPathEdit }) {
+             ui.dsnEdit, ui.initReleaseEdit, ui.initEnvironmentEdit,
+             ui.externalReporterPathEdit }) {
         edit->setFixedHeight(28);
         edit->setContentsMargins(0, 4, 0, 0);
     }
+    ui.tracesSampleRateBox->setFixedHeight(28);
     ui.messageText->setContentsMargins(0, 2, 0, 0);
 #endif
 
@@ -272,6 +288,33 @@ SentryWindow::SentryWindow(QWidget *parent)
         " background: #3a3a3a; padding: 0; %1 }"
         "QToolButton:hover { background: #4a4a4a; }"
         "QToolButton:pressed { background: #555; }";
+
+    auto makeBackIcon = [](qreal dpr) {
+        const int size = 16;
+        QPixmap pixmap(size * dpr, size * dpr);
+        pixmap.setDevicePixelRatio(dpr);
+        pixmap.fill(Qt::transparent);
+        QPainter p(&pixmap);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setPen(QPen(QColor("#f2f2f2"), 1.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+        p.drawLine(QPointF(4.5, 8), QPointF(11.5, 8));
+        p.drawLine(QPointF(7.5, 4.5), QPointF(4.5, 8));
+        p.drawLine(QPointF(4.5, 8), QPointF(7.5, 11.5));
+        return QIcon(pixmap);
+    };
+
+    auto* optionsButton = new QToolButton(ui.runtimePage);
+    optionsButton->setFixedSize(22, 22);
+    optionsButton->setIconSize(QSize(14, 14));
+    optionsButton->setIcon(makeBackIcon(devicePixelRatioF()));
+    optionsButton->setStyleSheet(QString(kCircularButton).arg(""));
+    optionsButton->setToolTip("Back");
+    optionsButton->move(kPageLeftMargin, kPageTopMargin);
+    optionsButton->raise();
+    QObject::connect(optionsButton, &QAbstractButton::clicked, this, [this]() {
+        SentryPlayground::close();
+    });
+
     ui.addButton->setFixedSize(22, 22);
     ui.addButton->setStyleSheet(QString(kCircularButton).arg(""));
 
@@ -400,42 +443,6 @@ SentryWindow::SentryWindow(QWidget *parent)
             menu.exec(ui.attachmentTable->viewport()->mapToGlobal(pos));
         });
 
-    ui.reporterEnabledBox->setChecked(QSettings().value("externalCrashReporter/enabled", false).toBool());
-    ui.reporterPathEdit->setText(QSettings().value("externalCrashReporter/path").toString());
-    auto updateReporterApply = [this]() {
-        QSettings settings;
-        bool savedEnabled = settings.value("externalCrashReporter/enabled", false).toBool();
-        QString savedPath = settings.value("externalCrashReporter/path").toString();
-        bool pending = ui.reporterEnabledBox->isChecked() != savedEnabled
-            || ui.reporterPathEdit->text() != savedPath;
-        bool valid = !ui.reporterEnabledBox->isChecked() || !ui.reporterPathEdit->text().isEmpty();
-        ui.reporterApplyButton->setEnabled(pending && valid);
-    };
-    updateReporterApply();
-    QObject::connect(ui.reporterEnabledBox, &QAbstractButton::toggled, this,
-        [updateReporterApply](bool) { updateReporterApply(); });
-    QObject::connect(ui.reporterPathEdit, &QLineEdit::textChanged, this,
-        [updateReporterApply](const QString&) { updateReporterApply(); });
-    QObject::connect(ui.reporterBrowseButton, &QAbstractButton::clicked, this, [this]() {
-        QString seed = ui.reporterPathEdit->text();
-        if (seed.isEmpty())
-            seed = QSettings().value("externalCrashReporter/lastDir",
-                QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation)).toString();
-        QString path = QFileDialog::getOpenFileName(this, "Select external crash reporter", seed);
-        if (path.isEmpty())
-            return;
-        QSettings().setValue("externalCrashReporter/lastDir", QFileInfo(path).absolutePath());
-        ui.reporterPathEdit->setText(path);
-    });
-    QObject::connect(ui.reporterApplyButton, &QAbstractButton::clicked, this,
-        [updateReporterApply, this]() {
-            QSettings settings;
-            settings.setValue("externalCrashReporter/enabled", ui.reporterEnabledBox->isChecked());
-            settings.setValue("externalCrashReporter/path", ui.reporterPathEdit->text());
-            SentryPlayground::reinit();
-            updateReporterApply();
-        });
-
     QObject::connect(ui.actionQuit, &QAction::triggered, qApp, &QCoreApplication::quit);
     QObject::connect(ui.actionWindow, &QAction::triggered, this, [this] {
         SentryWindow* subwindow = new SentryWindow(this);
@@ -522,8 +529,180 @@ SentryWindow::SentryWindow(QWidget *parent)
     consentIcon->setObjectName("consentIcon");
     updateConsentStatus(playground->consent());
     QObject::connect(playground, &SentryPlayground::consentChanged, this, updateConsentStatus);
+    QObject::connect(playground, &SentryPlayground::initializedChanged, this,
+        [this](bool initialized) {
+            if (initialized)
+                showRuntimePage();
+            else
+                showInitPage();
+        });
 
+    if (playground->initialized())
+        showRuntimePage();
+    else
+        showInitPage();
     setFocus();
+}
+
+void SentryWindow::setupPages()
+{
+    ui.initLeftPanel->setFixedWidth(ui.leftColumn->sizeHint().width());
+    ui.initBackendLabel->setText(SentryPlayground::backend());
+    ui.initFieldsGrid->setColumnStretch(0, 1);
+    ui.initFieldsGrid->setColumnStretch(1, 1);
+    ui.initFieldsGrid->setColumnStretch(2, 0);
+    ui.reporterFieldsLayout->setStretch(0, 1);
+
+    auto makeEllipsisIcon = [](qreal dpr) {
+        const int size = 16;
+        QPixmap pixmap(size * dpr, size * dpr);
+        pixmap.setDevicePixelRatio(dpr);
+        pixmap.fill(Qt::transparent);
+        QPainter p(&pixmap);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setBrush(QColor("#b0b0b0"));
+        p.setPen(Qt::NoPen);
+        for (int x : { 5, 8, 11 })
+            p.drawEllipse(QPointF(x, size / 2.0), 1.2, 1.2);
+        return QIcon(pixmap);
+    };
+    auto makeClearIcon = [](qreal dpr) {
+        const int size = 16;
+        QPixmap pixmap(size * dpr, size * dpr);
+        pixmap.setDevicePixelRatio(dpr);
+        pixmap.fill(Qt::transparent);
+        QPainter p(&pixmap);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setPen(QPen(QColor("#b0b0b0"), 1.6, Qt::SolidLine, Qt::RoundCap));
+        p.drawLine(QPointF(5, 5), QPointF(11, 11));
+        p.drawLine(QPointF(11, 5), QPointF(5, 11));
+        return QIcon(pixmap);
+    };
+
+    QAction* browseAction = ui.externalReporterPathEdit->addAction(
+        makeEllipsisIcon(devicePixelRatioF()), QLineEdit::LeadingPosition);
+    browseAction->setToolTip("Browse");
+    QAction* clearReporterAction = ui.externalReporterPathEdit->addAction(
+        makeClearIcon(devicePixelRatioF()), QLineEdit::TrailingPosition);
+    clearReporterAction->setObjectName("externalReporterClearAction");
+    clearReporterAction->setToolTip("Clear");
+    auto updateReporterClearAction = [this, clearReporterAction]() {
+        clearReporterAction->setVisible(!ui.externalReporterPathEdit->text().isEmpty());
+    };
+    QObject::connect(ui.externalReporterPathEdit, &QLineEdit::textChanged, this,
+        [updateReporterClearAction](const QString&) { updateReporterClearAction(); });
+    QObject::connect(clearReporterAction, &QAction::triggered, ui.externalReporterPathEdit, &QLineEdit::clear);
+    updateReporterClearAction();
+
+    auto updateReporterControls = [this, browseAction, clearReporterAction](bool enabled) {
+        ui.externalReporterPathEdit->setEnabled(enabled);
+        browseAction->setEnabled(enabled);
+        clearReporterAction->setEnabled(enabled);
+    };
+    QObject::connect(ui.externalReporterBox, &QAbstractButton::toggled, this, updateReporterControls);
+
+    QObject::connect(browseAction, &QAction::triggered, this, [this]() {
+        QString seed = ui.externalReporterPathEdit->text();
+        if (seed.isEmpty())
+            seed = QSettings().value("externalCrashReporter/lastDir",
+                QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation)).toString();
+        QString path = QFileDialog::getOpenFileName(this, "Select external crash reporter", seed);
+        if (path.isEmpty())
+            return;
+        QSettings().setValue("externalCrashReporter/lastDir", QFileInfo(path).absolutePath());
+        ui.externalReporterPathEdit->setText(path);
+    });
+
+    QObject::connect(ui.initializeButton, &QAbstractButton::clicked, this, [this]() {
+        SentryPlayground::open(initOptionsFromPage());
+    });
+
+    populateInitPage();
+}
+
+void SentryWindow::populateInitPage()
+{
+    if (!ui.dsnEdit)
+        return;
+
+    const SentryPlayground::InitOptions options = SentryPlayground::instance()->initOptions();
+    const QList<QWidget*> widgets = {
+        ui.dsnEdit,
+        ui.initReleaseEdit,
+        ui.initEnvironmentEdit,
+        ui.tracesSampleRateBox,
+        ui.attachScreenshotBox,
+        ui.requireUserConsentBox,
+        ui.systemCrashReporterBox,
+        ui.enableLargeAttachmentsBox,
+        ui.httpRetryBox,
+        ui.cacheKeepBox,
+        ui.debugBox,
+        ui.externalReporterBox,
+        ui.externalReporterPathEdit,
+    };
+    QList<QSignalBlocker*> blockers;
+    blockers.reserve(widgets.size());
+    for (QWidget* widget : widgets)
+        blockers.append(new QSignalBlocker(widget));
+
+    ui.dsnEdit->setText(options.dsn);
+    ui.dsnEdit->setCursorPosition(0);
+    ui.initReleaseEdit->setText(options.release);
+    ui.initEnvironmentEdit->setText(options.environment);
+    ui.tracesSampleRateBox->setValue(options.tracesSampleRate);
+    ui.attachScreenshotBox->setChecked(options.attachScreenshot);
+    ui.requireUserConsentBox->setChecked(options.requireUserConsent);
+    ui.systemCrashReporterBox->setChecked(options.systemCrashReporterEnabled);
+    ui.enableLargeAttachmentsBox->setChecked(options.enableLargeAttachments);
+    ui.httpRetryBox->setChecked(options.httpRetry);
+    ui.cacheKeepBox->setChecked(options.cacheKeep);
+    ui.debugBox->setChecked(options.debug);
+    ui.externalReporterBox->setChecked(options.externalCrashReporterEnabled);
+    ui.externalReporterPathEdit->setText(options.externalCrashReporterPath);
+    for (QAction* action : ui.externalReporterPathEdit->actions()) {
+        action->setEnabled(options.externalCrashReporterEnabled);
+        if (action->objectName() == "externalReporterClearAction")
+            action->setVisible(!ui.externalReporterPathEdit->text().isEmpty());
+    }
+    ui.externalReporterPathEdit->setEnabled(options.externalCrashReporterEnabled);
+    ui.initializeButton->setText(SentryPlayground::instance()->hasInitialized()
+        ? "Re-initialize"
+        : "Initialize");
+
+    qDeleteAll(blockers);
+}
+
+SentryPlayground::InitOptions SentryWindow::initOptionsFromPage() const
+{
+    SentryPlayground::InitOptions options = SentryPlayground::instance()->initOptions();
+    options.dsn = ui.dsnEdit->text().trimmed();
+    options.release = ui.initReleaseEdit->text().trimmed();
+    options.environment = ui.initEnvironmentEdit->text().trimmed();
+    options.tracesSampleRate = ui.tracesSampleRateBox->value();
+    options.attachScreenshot = ui.attachScreenshotBox->isChecked();
+    options.requireUserConsent = ui.requireUserConsentBox->isChecked();
+    options.systemCrashReporterEnabled = ui.systemCrashReporterBox->isChecked();
+    options.enableLargeAttachments = ui.enableLargeAttachmentsBox->isChecked();
+    options.httpRetry = ui.httpRetryBox->isChecked();
+    options.cacheKeep = ui.cacheKeepBox->isChecked();
+    options.debug = ui.debugBox->isChecked();
+    options.externalCrashReporterEnabled = ui.externalReporterBox->isChecked();
+    options.externalCrashReporterPath = ui.externalReporterPathEdit->text();
+    return options;
+}
+
+void SentryWindow::showInitPage()
+{
+    populateInitPage();
+    ui.pages->setCurrentWidget(ui.initPage);
+    statusBar()->hide();
+}
+
+void SentryWindow::showRuntimePage()
+{
+    ui.pages->setCurrentWidget(ui.runtimePage);
+    statusBar()->show();
 }
 
 void SentryWindow::changeEvent(QEvent *event)
@@ -538,4 +717,6 @@ void SentryWindow::updateLogo()
     bool isDark = qApp->palette().window().color().lightness() < 128;
     QPixmap logo(isDark ? ":/assets/sentry-glyph-light.png" : ":/assets/sentry-glyph-dark.png");
     ui.sentryLogo->setPixmap(logo);
+    if (ui.initLogo)
+        ui.initLogo->setPixmap(logo);
 }

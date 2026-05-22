@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 
+#include "sentryplayground.h"
 #include "ui_sentrywindow.h"
 
 class SentryWindow : public QMainWindow
@@ -16,6 +17,11 @@ protected:
     void changeEvent(QEvent *event) override;
 
 private:
+    void setupPages();
+    void populateInitPage();
+    SentryPlayground::InitOptions initOptionsFromPage() const;
+    void showInitPage();
+    void showRuntimePage();
     void updateLogo();
 
     Ui::SentryWindow ui;

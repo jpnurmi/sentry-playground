@@ -1,10 +1,24 @@
 #include "sentrytrace.h"
 
+bool SentryTrace::s_enabled = false;
 sentry_transaction_t *SentryTrace::s_tx = nullptr;
 thread_local std::vector<sentry_span_t *> SentryTrace::t_spans;
 
+bool SentryTrace::enabled()
+{
+    return s_enabled;
+}
+
+void SentryTrace::setEnabled(bool enabled)
+{
+    s_enabled = enabled;
+}
+
 void SentryTrace::begin(const char *op, const char *description)
 {
+    if (!s_enabled)
+        return;
+
     if (!s_tx) {
         sentry_transaction_context_t *ctx
             = sentry_transaction_context_new("main", "function");
@@ -25,6 +39,9 @@ void SentryTrace::begin(const char *op, const char *description)
 
 void SentryTrace::end()
 {
+    if (!s_enabled)
+        return;
+
     if (t_spans.empty())
         return;
     sentry_span_t *span = t_spans.back();
@@ -39,6 +56,9 @@ void SentryTrace::end()
 
 void SentryTrace::flush()
 {
+    if (!s_enabled)
+        return;
+
     while (!t_spans.empty()) {
         sentry_span_t *span = t_spans.back();
         t_spans.pop_back();
