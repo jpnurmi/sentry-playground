@@ -56,7 +56,9 @@ void SentryPlayground::open()
     sentry_options_set_attach_screenshot(options, true);
     sentry_options_set_traces_sample_rate(options, 1.0);
     sentry_options_set_require_user_consent(options, true);
+    sentry_options_set_system_crash_reporter_enabled(options, false);
     sentry_options_set_crashpad_wait_for_upload(options, true);
+    sentry_options_set_enable_large_attachments(options, true);
     sentry_options_set_http_retry(options, true);
     sentry_options_set_cache_keep(options, true);
     sentry_options_set_debug(options, true);
