@@ -111,12 +111,14 @@ SentryWindow::SentryWindow(QWidget *parent)
 #ifdef Q_OS_MACOS
     for (QLineEdit* edit : { ui.messageText, ui.userIdEdit, ui.userNameEdit,
              ui.userEmailEdit, ui.userIpEdit, ui.releaseEdit, ui.environmentEdit,
-             ui.dsnEdit, ui.initReleaseEdit, ui.initEnvironmentEdit,
-             ui.externalReporterPathEdit }) {
+             ui.dsnEdit, ui.databasePathEdit, ui.initReleaseEdit, ui.initEnvironmentEdit,
+             ui.initDistEdit, ui.externalReporterPathEdit }) {
         edit->setFixedHeight(28);
         edit->setContentsMargins(0, 4, 0, 0);
     }
     ui.tracesSampleRateBox->setFixedHeight(28);
+    ui.maxBreadcrumbsBox->setFixedHeight(28);
+    ui.shutdownTimeoutBox->setFixedHeight(28);
     ui.messageText->setContentsMargins(0, 2, 0, 0);
 #endif
 
@@ -548,9 +550,8 @@ void SentryWindow::setupPages()
 {
     ui.initLeftPanel->setFixedWidth(ui.leftColumn->sizeHint().width());
     ui.initBackendLabel->setText(SentryPlayground::backend());
-    ui.initFieldsGrid->setColumnStretch(0, 1);
-    ui.initFieldsGrid->setColumnStretch(1, 1);
-    ui.initFieldsGrid->setColumnStretch(2, 0);
+    for (int column = 0; column < 3; ++column)
+        ui.initFieldsGrid->setColumnStretch(column, 1);
     ui.reporterFieldsLayout->setStretch(0, 1);
 
     auto makeEllipsisIcon = [](qreal dpr) {
@@ -578,6 +579,21 @@ void SentryWindow::setupPages()
         p.drawLine(QPointF(11, 5), QPointF(5, 11));
         return QIcon(pixmap);
     };
+
+    QAction* databaseBrowseAction = ui.databasePathEdit->addAction(
+        makeEllipsisIcon(devicePixelRatioF()), QLineEdit::LeadingPosition);
+    databaseBrowseAction->setToolTip("Browse");
+    QObject::connect(databaseBrowseAction, &QAction::triggered, this, [this]() {
+        QString seed = ui.databasePathEdit->text();
+        if (seed.isEmpty())
+            seed = QSettings().value("databasePath/lastDir",
+                QStandardPaths::writableLocation(QStandardPaths::CacheLocation)).toString();
+        QString path = QFileDialog::getExistingDirectory(this, "Select database path", seed);
+        if (path.isEmpty())
+            return;
+        QSettings().setValue("databasePath/lastDir", path);
+        ui.databasePathEdit->setText(path);
+    });
 
     QAction* browseAction = ui.externalReporterPathEdit->addAction(
         makeEllipsisIcon(devicePixelRatioF()), QLineEdit::LeadingPosition);
@@ -628,9 +644,13 @@ void SentryWindow::populateInitPage()
     const SentryPlayground::InitOptions options = SentryPlayground::instance()->initOptions();
     const QList<QWidget*> widgets = {
         ui.dsnEdit,
+        ui.databasePathEdit,
         ui.initReleaseEdit,
         ui.initEnvironmentEdit,
+        ui.initDistEdit,
         ui.tracesSampleRateBox,
+        ui.maxBreadcrumbsBox,
+        ui.shutdownTimeoutBox,
         ui.attachScreenshotBox,
         ui.requireUserConsentBox,
         ui.systemCrashReporterBox,
@@ -648,9 +668,14 @@ void SentryWindow::populateInitPage()
 
     ui.dsnEdit->setText(options.dsn);
     ui.dsnEdit->setCursorPosition(0);
+    ui.databasePathEdit->setText(options.databasePath);
+    ui.databasePathEdit->setCursorPosition(0);
     ui.initReleaseEdit->setText(options.release);
     ui.initEnvironmentEdit->setText(options.environment);
+    ui.initDistEdit->setText(options.dist);
     ui.tracesSampleRateBox->setValue(options.tracesSampleRate);
+    ui.maxBreadcrumbsBox->setValue(options.maxBreadcrumbs);
+    ui.shutdownTimeoutBox->setValue(options.shutdownTimeout);
     ui.attachScreenshotBox->setChecked(options.attachScreenshot);
     ui.requireUserConsentBox->setChecked(options.requireUserConsent);
     ui.systemCrashReporterBox->setChecked(options.systemCrashReporterEnabled);
@@ -677,9 +702,13 @@ SentryPlayground::InitOptions SentryWindow::initOptionsFromPage() const
 {
     SentryPlayground::InitOptions options = SentryPlayground::instance()->initOptions();
     options.dsn = ui.dsnEdit->text().trimmed();
+    options.databasePath = ui.databasePathEdit->text();
     options.release = ui.initReleaseEdit->text().trimmed();
     options.environment = ui.initEnvironmentEdit->text().trimmed();
+    options.dist = ui.initDistEdit->text().trimmed();
     options.tracesSampleRate = ui.tracesSampleRateBox->value();
+    options.maxBreadcrumbs = ui.maxBreadcrumbsBox->value();
+    options.shutdownTimeout = ui.shutdownTimeoutBox->value();
     options.attachScreenshot = ui.attachScreenshotBox->isChecked();
     options.requireUserConsent = ui.requireUserConsentBox->isChecked();
     options.systemCrashReporterEnabled = ui.systemCrashReporterBox->isChecked();

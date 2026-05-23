@@ -5,6 +5,8 @@
 
 #include <sentry.h>
 
+#include <algorithm>
+
 #include <QtCore/qsettings.h>
 #include <QtCore/qthread.h>
 
@@ -27,10 +29,14 @@ SentryPlayground::InitOptions SentryPlayground::loadInitOptions()
     options.release = QString::fromUtf8(SENTRY_RELEASE);
     options.environment = "playground";
     options.dsn = settings.value("init/dsn", options.dsn).toString();
+    options.databasePath = settings.value("init/databasePath", options.databasePath).toString();
     options.release = settings.value("init/release", options.release).toString();
     options.environment = settings.value("init/environment", options.environment).toString();
+    options.dist = settings.value("init/dist", options.dist).toString();
     options.attachScreenshot = settings.value("init/attachScreenshot", options.attachScreenshot).toBool();
     options.tracesSampleRate = settings.value("init/tracesSampleRate", options.tracesSampleRate).toDouble();
+    options.maxBreadcrumbs = std::max(0, settings.value("init/maxBreadcrumbs", options.maxBreadcrumbs).toInt());
+    options.shutdownTimeout = std::max(0, settings.value("init/shutdownTimeout", options.shutdownTimeout).toInt());
     options.requireUserConsent = settings.value("init/requireUserConsent", options.requireUserConsent).toBool();
     options.systemCrashReporterEnabled = settings.value(
         "init/systemCrashReporterEnabled", options.systemCrashReporterEnabled).toBool();
@@ -52,10 +58,14 @@ void SentryPlayground::saveInitOptions(const InitOptions& options)
 {
     QSettings settings;
     settings.setValue("init/dsn", options.dsn);
+    settings.setValue("init/databasePath", options.databasePath);
     settings.setValue("init/release", options.release);
     settings.setValue("init/environment", options.environment);
+    settings.setValue("init/dist", options.dist);
     settings.setValue("init/attachScreenshot", options.attachScreenshot);
     settings.setValue("init/tracesSampleRate", options.tracesSampleRate);
+    settings.setValue("init/maxBreadcrumbs", options.maxBreadcrumbs);
+    settings.setValue("init/shutdownTimeout", options.shutdownTimeout);
     settings.setValue("init/requireUserConsent", options.requireUserConsent);
     settings.setValue("init/systemCrashReporterEnabled", options.systemCrashReporterEnabled);
     settings.setValue("init/enableLargeAttachments", options.enableLargeAttachments);
@@ -81,19 +91,29 @@ void SentryPlayground::open(const InitOptions& initOptions)
 
     sentry_options_t *options = sentry_options_new();
     QByteArray dsn = playground->m_initOptions.dsn.toUtf8();
+    QByteArray databasePath = playground->m_initOptions.databasePath.toUtf8();
     QByteArray release = playground->m_initOptions.release.toUtf8();
     QByteArray environment = playground->m_initOptions.environment.toUtf8();
+    QByteArray dist = playground->m_initOptions.dist.toUtf8();
     QByteArray reporterPath = playground->m_initOptions.externalCrashReporterPath.toUtf8();
     if (!dsn.isEmpty())
         sentry_options_set_dsn(options, dsn.constData());
+    if (!databasePath.isEmpty())
+        sentry_options_set_database_path(options, databasePath.constData());
     if (!release.isEmpty())
         sentry_options_set_release(options, release.constData());
     if (!environment.isEmpty())
         sentry_options_set_environment(options, environment.constData());
+    if (!dist.isEmpty())
+        sentry_options_set_dist(options, dist.constData());
     if (playground->m_initOptions.externalCrashReporterEnabled && !reporterPath.isEmpty())
         sentry_options_set_external_crash_reporter_path(options, reporterPath.constData());
     sentry_options_set_attach_screenshot(options, playground->m_initOptions.attachScreenshot);
     sentry_options_set_traces_sample_rate(options, playground->m_initOptions.tracesSampleRate);
+    sentry_options_set_max_breadcrumbs(
+        options, static_cast<size_t>(std::max(0, playground->m_initOptions.maxBreadcrumbs)));
+    sentry_options_set_shutdown_timeout(
+        options, static_cast<uint64_t>(std::max(0, playground->m_initOptions.shutdownTimeout)));
     sentry_options_set_require_user_consent(options, playground->m_initOptions.requireUserConsent);
     sentry_options_set_system_crash_reporter_enabled(
         options, playground->m_initOptions.systemCrashReporterEnabled);

@@ -26,10 +26,14 @@ public:
     struct InitOptions
     {
         QString dsn;
+        QString databasePath = ".sentry-native";
         QString release;
         QString environment;
+        QString dist;
         bool attachScreenshot = true;
         double tracesSampleRate = 1.0;
+        int maxBreadcrumbs = 100;
+        int shutdownTimeout = 2000;
         bool requireUserConsent = true;
         bool systemCrashReporterEnabled = false;
         bool enableLargeAttachments = true;
