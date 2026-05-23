@@ -6,6 +6,7 @@
 #include <sentry.h>
 
 #include <algorithm>
+#include <ctime>
 
 #include <QtCore/qsettings.h>
 #include <QtCore/qthread.h>
@@ -24,6 +25,18 @@ int normalizedLoggerLevel(int level)
         return level;
     default:
         return SENTRY_LEVEL_DEBUG;
+    }
+}
+
+int normalizedCacheKeepMode(int mode)
+{
+    switch (mode) {
+    case SENTRY_CACHE_KEEP_NONE:
+    case SENTRY_CACHE_KEEP_OFFLINE:
+    case SENTRY_CACHE_KEEP_ALWAYS:
+        return mode;
+    default:
+        return SENTRY_CACHE_KEEP_OFFLINE;
     }
 }
 
@@ -62,7 +75,11 @@ SentryPlayground::InitOptions SentryPlayground::loadInitOptions()
     options.enableLargeAttachments = settings.value(
         "init/enableLargeAttachments", options.enableLargeAttachments).toBool();
     options.httpRetry = settings.value("init/httpRetry", options.httpRetry).toBool();
-    options.cacheKeep = settings.value("init/cacheKeep", options.cacheKeep).toBool();
+    options.cacheKeepMode = normalizedCacheKeepMode(
+        settings.value("init/cacheKeep", options.cacheKeepMode).toInt());
+    options.cacheMaxItems = std::max(0, settings.value("init/cacheMaxItems", options.cacheMaxItems).toInt());
+    options.cacheMaxSize = std::max(0, settings.value("init/cacheMaxSize", options.cacheMaxSize).toInt());
+    options.cacheMaxAge = std::max(0, settings.value("init/cacheMaxAge", options.cacheMaxAge).toInt());
     options.debug = settings.value("init/debug", options.debug).toBool();
     options.loggerLevel = normalizedLoggerLevel(settings.value("init/loggerLevel", options.loggerLevel).toInt());
     options.externalCrashReporterEnabled = settings.value(
@@ -90,7 +107,10 @@ void SentryPlayground::saveInitOptions(const InitOptions& options)
     settings.setValue("init/systemCrashReporterEnabled", options.systemCrashReporterEnabled);
     settings.setValue("init/enableLargeAttachments", options.enableLargeAttachments);
     settings.setValue("init/httpRetry", options.httpRetry);
-    settings.setValue("init/cacheKeep", options.cacheKeep);
+    settings.setValue("init/cacheKeep", normalizedCacheKeepMode(options.cacheKeepMode));
+    settings.setValue("init/cacheMaxItems", options.cacheMaxItems);
+    settings.setValue("init/cacheMaxSize", options.cacheMaxSize);
+    settings.setValue("init/cacheMaxAge", options.cacheMaxAge);
     settings.setValue("init/debug", options.debug);
     settings.setValue("init/loggerLevel", normalizedLoggerLevel(options.loggerLevel));
     settings.setValue("init/externalCrashReporter/enabled", options.externalCrashReporterEnabled);
@@ -141,7 +161,13 @@ void SentryPlayground::open(const InitOptions& initOptions)
     sentry_options_set_crashpad_wait_for_upload(options, true);
     sentry_options_set_enable_large_attachments(options, playground->m_initOptions.enableLargeAttachments);
     sentry_options_set_http_retry(options, playground->m_initOptions.httpRetry);
-    sentry_options_set_cache_keep(options, playground->m_initOptions.cacheKeep);
+    sentry_options_set_cache_keep(options, normalizedCacheKeepMode(playground->m_initOptions.cacheKeepMode));
+    sentry_options_set_cache_max_items(
+        options, static_cast<size_t>(std::max(0, playground->m_initOptions.cacheMaxItems)));
+    sentry_options_set_cache_max_size(
+        options, static_cast<size_t>(std::max(0, playground->m_initOptions.cacheMaxSize)));
+    sentry_options_set_cache_max_age(
+        options, static_cast<time_t>(std::max(0, playground->m_initOptions.cacheMaxAge)));
     sentry_options_set_debug(options, playground->m_initOptions.debug);
     sentry_options_set_logger_level(
         options, static_cast<sentry_level_t>(normalizedLoggerLevel(playground->m_initOptions.loggerLevel)));

@@ -7,6 +7,7 @@
 
 #include <functional>
 
+#include <QtCore/qcoreevent.h>
 #include <QtCore/qfileinfo.h>
 #include <QtCore/qlocale.h>
 #include <QtCore/qobject.h>
@@ -119,6 +120,10 @@ SentryWindow::SentryWindow(QWidget *parent)
     ui.tracesSampleRateBox->setFixedHeight(28);
     ui.maxBreadcrumbsBox->setFixedHeight(28);
     ui.shutdownTimeoutBox->setFixedHeight(28);
+    ui.cacheKeepModeBox->setFixedHeight(28);
+    ui.cacheMaxItemsBox->setFixedHeight(28);
+    ui.cacheMaxSizeBox->setFixedHeight(28);
+    ui.cacheMaxAgeBox->setFixedHeight(28);
     ui.loggerLevelBox->setFixedHeight(28);
     ui.messageText->setContentsMargins(0, 2, 0, 0);
 #endif
@@ -553,7 +558,17 @@ void SentryWindow::setupPages()
     ui.initBackendLabel->setText(SentryPlayground::backend());
     for (int column = 0; column < 3; ++column)
         ui.initFieldsGrid->setColumnStretch(column, 1);
+    for (int column = 0; column < 3; ++column)
+        ui.cacheFieldsGrid->setColumnStretch(column, 1);
+    for (int column = 0; column < 3; ++column)
+        ui.cacheHeaderGrid->setColumnStretch(column, 1);
     ui.reporterFieldsLayout->setStretch(0, 1);
+    ui.cacheKeepModeBox->addItem("None", SENTRY_CACHE_KEEP_NONE);
+    ui.cacheKeepModeBox->addItem("Offline", SENTRY_CACHE_KEEP_OFFLINE);
+    ui.cacheKeepModeBox->addItem("Always", SENTRY_CACHE_KEEP_ALWAYS);
+    ui.cacheKeepModeBox->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+    ui.cacheKeepModeBox->setFixedWidth(ui.cacheKeepModeBox->sizeHint().width());
+    ui.cacheHeaderGrid->setAlignment(ui.cacheKeepModeBox, Qt::AlignRight);
     ui.loggerLevelBox->addItem("Trace", SENTRY_LEVEL_TRACE);
     ui.loggerLevelBox->addItem("Debug", SENTRY_LEVEL_DEBUG);
     ui.loggerLevelBox->addItem("Info", SENTRY_LEVEL_INFO);
@@ -624,6 +639,16 @@ void SentryWindow::setupPages()
     };
     QObject::connect(ui.externalReporterBox, &QAbstractButton::toggled, this, updateReporterControls);
     QObject::connect(ui.debugBox, &QAbstractButton::toggled, ui.loggerLevelBox, &QWidget::setEnabled);
+    const QList<QWidget*> sectionHeaders = {
+        ui.debugHeaderWidget,
+        ui.debugHeader,
+        ui.externalReporterHeaderWidget,
+        ui.externalReporterHeader,
+    };
+    for (QWidget* widget : sectionHeaders) {
+        widget->setCursor(Qt::PointingHandCursor);
+        widget->installEventFilter(this);
+    }
 
     QObject::connect(browseAction, &QAction::triggered, this, [this]() {
         QString seed = ui.externalReporterPathEdit->text();
@@ -664,7 +689,10 @@ void SentryWindow::populateInitPage()
         ui.systemCrashReporterBox,
         ui.enableLargeAttachmentsBox,
         ui.httpRetryBox,
-        ui.cacheKeepBox,
+        ui.cacheKeepModeBox,
+        ui.cacheMaxItemsBox,
+        ui.cacheMaxSizeBox,
+        ui.cacheMaxAgeBox,
         ui.debugBox,
         ui.loggerLevelBox,
         ui.externalReporterBox,
@@ -690,7 +718,13 @@ void SentryWindow::populateInitPage()
     ui.systemCrashReporterBox->setChecked(options.systemCrashReporterEnabled);
     ui.enableLargeAttachmentsBox->setChecked(options.enableLargeAttachments);
     ui.httpRetryBox->setChecked(options.httpRetry);
-    ui.cacheKeepBox->setChecked(options.cacheKeep);
+    const int cacheKeepModeIndex = ui.cacheKeepModeBox->findData(options.cacheKeepMode);
+    ui.cacheKeepModeBox->setCurrentIndex(cacheKeepModeIndex >= 0
+        ? cacheKeepModeIndex
+        : ui.cacheKeepModeBox->findData(SENTRY_CACHE_KEEP_OFFLINE));
+    ui.cacheMaxItemsBox->setValue(options.cacheMaxItems);
+    ui.cacheMaxSizeBox->setValue(options.cacheMaxSize);
+    ui.cacheMaxAgeBox->setValue(options.cacheMaxAge);
     ui.debugBox->setChecked(options.debug);
     const int loggerLevelIndex = ui.loggerLevelBox->findData(options.loggerLevel);
     ui.loggerLevelBox->setCurrentIndex(loggerLevelIndex >= 0
@@ -728,7 +762,10 @@ SentryPlayground::InitOptions SentryWindow::initOptionsFromPage() const
     options.systemCrashReporterEnabled = ui.systemCrashReporterBox->isChecked();
     options.enableLargeAttachments = ui.enableLargeAttachmentsBox->isChecked();
     options.httpRetry = ui.httpRetryBox->isChecked();
-    options.cacheKeep = ui.cacheKeepBox->isChecked();
+    options.cacheKeepMode = ui.cacheKeepModeBox->currentData().toInt();
+    options.cacheMaxItems = ui.cacheMaxItemsBox->value();
+    options.cacheMaxSize = ui.cacheMaxSizeBox->value();
+    options.cacheMaxAge = ui.cacheMaxAgeBox->value();
     options.debug = ui.debugBox->isChecked();
     options.loggerLevel = ui.loggerLevelBox->currentData().toInt();
     options.externalCrashReporterEnabled = ui.externalReporterBox->isChecked();
@@ -754,6 +791,21 @@ void SentryWindow::changeEvent(QEvent *event)
     if (event->type() == QEvent::PaletteChange)
         updateLogo();
     QMainWindow::changeEvent(event);
+}
+
+bool SentryWindow::eventFilter(QObject *watched, QEvent *event)
+{
+    if (event->type() == QEvent::MouseButtonRelease) {
+        if (watched == ui.debugHeaderWidget || watched == ui.debugHeader) {
+            ui.debugBox->toggle();
+            return true;
+        }
+        if (watched == ui.externalReporterHeaderWidget || watched == ui.externalReporterHeader) {
+            ui.externalReporterBox->toggle();
+            return true;
+        }
+    }
+    return QMainWindow::eventFilter(watched, event);
 }
 
 void SentryWindow::updateLogo()

@@ -38,7 +38,10 @@ public:
         bool systemCrashReporterEnabled = false;
         bool enableLargeAttachments = true;
         bool httpRetry = true;
-        bool cacheKeep = true;
+        int cacheKeepMode = 1;
+        int cacheMaxItems = 30;
+        int cacheMaxSize = 0;
+        int cacheMaxAge = 0;
         bool debug = true;
         int loggerLevel = -1;
         bool externalCrashReporterEnabled = false;
