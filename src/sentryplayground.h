@@ -40,6 +40,7 @@ public:
         bool httpRetry = true;
         bool cacheKeep = true;
         bool debug = true;
+        int loggerLevel = -1;
         bool externalCrashReporterEnabled = false;
         QString externalCrashReporterPath;
     };

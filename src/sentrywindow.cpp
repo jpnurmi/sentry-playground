@@ -119,6 +119,7 @@ SentryWindow::SentryWindow(QWidget *parent)
     ui.tracesSampleRateBox->setFixedHeight(28);
     ui.maxBreadcrumbsBox->setFixedHeight(28);
     ui.shutdownTimeoutBox->setFixedHeight(28);
+    ui.loggerLevelBox->setFixedHeight(28);
     ui.messageText->setContentsMargins(0, 2, 0, 0);
 #endif
 
@@ -553,6 +554,12 @@ void SentryWindow::setupPages()
     for (int column = 0; column < 3; ++column)
         ui.initFieldsGrid->setColumnStretch(column, 1);
     ui.reporterFieldsLayout->setStretch(0, 1);
+    ui.loggerLevelBox->addItem("Trace", SENTRY_LEVEL_TRACE);
+    ui.loggerLevelBox->addItem("Debug", SENTRY_LEVEL_DEBUG);
+    ui.loggerLevelBox->addItem("Info", SENTRY_LEVEL_INFO);
+    ui.loggerLevelBox->addItem("Warning", SENTRY_LEVEL_WARNING);
+    ui.loggerLevelBox->addItem("Error", SENTRY_LEVEL_ERROR);
+    ui.loggerLevelBox->addItem("Fatal", SENTRY_LEVEL_FATAL);
 
     auto makeEllipsisIcon = [](qreal dpr) {
         const int size = 16;
@@ -616,6 +623,7 @@ void SentryWindow::setupPages()
         clearReporterAction->setEnabled(enabled);
     };
     QObject::connect(ui.externalReporterBox, &QAbstractButton::toggled, this, updateReporterControls);
+    QObject::connect(ui.debugBox, &QAbstractButton::toggled, ui.loggerLevelBox, &QWidget::setEnabled);
 
     QObject::connect(browseAction, &QAction::triggered, this, [this]() {
         QString seed = ui.externalReporterPathEdit->text();
@@ -658,6 +666,7 @@ void SentryWindow::populateInitPage()
         ui.httpRetryBox,
         ui.cacheKeepBox,
         ui.debugBox,
+        ui.loggerLevelBox,
         ui.externalReporterBox,
         ui.externalReporterPathEdit,
     };
@@ -683,6 +692,11 @@ void SentryWindow::populateInitPage()
     ui.httpRetryBox->setChecked(options.httpRetry);
     ui.cacheKeepBox->setChecked(options.cacheKeep);
     ui.debugBox->setChecked(options.debug);
+    const int loggerLevelIndex = ui.loggerLevelBox->findData(options.loggerLevel);
+    ui.loggerLevelBox->setCurrentIndex(loggerLevelIndex >= 0
+        ? loggerLevelIndex
+        : ui.loggerLevelBox->findData(SENTRY_LEVEL_DEBUG));
+    ui.loggerLevelBox->setEnabled(options.debug);
     ui.externalReporterBox->setChecked(options.externalCrashReporterEnabled);
     ui.externalReporterPathEdit->setText(options.externalCrashReporterPath);
     for (QAction* action : ui.externalReporterPathEdit->actions()) {
@@ -716,6 +730,7 @@ SentryPlayground::InitOptions SentryWindow::initOptionsFromPage() const
     options.httpRetry = ui.httpRetryBox->isChecked();
     options.cacheKeep = ui.cacheKeepBox->isChecked();
     options.debug = ui.debugBox->isChecked();
+    options.loggerLevel = ui.loggerLevelBox->currentData().toInt();
     options.externalCrashReporterEnabled = ui.externalReporterBox->isChecked();
     options.externalCrashReporterPath = ui.externalReporterPathEdit->text();
     return options;

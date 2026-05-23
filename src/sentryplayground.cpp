@@ -10,6 +10,25 @@
 #include <QtCore/qsettings.h>
 #include <QtCore/qthread.h>
 
+namespace {
+
+int normalizedLoggerLevel(int level)
+{
+    switch (level) {
+    case SENTRY_LEVEL_TRACE:
+    case SENTRY_LEVEL_DEBUG:
+    case SENTRY_LEVEL_INFO:
+    case SENTRY_LEVEL_WARNING:
+    case SENTRY_LEVEL_ERROR:
+    case SENTRY_LEVEL_FATAL:
+        return level;
+    default:
+        return SENTRY_LEVEL_DEBUG;
+    }
+}
+
+} // namespace
+
 SentryPlayground::SentryPlayground(QObject *parent) : QObject{parent}
 {
     m_initOptions = loadInitOptions();
@@ -45,6 +64,7 @@ SentryPlayground::InitOptions SentryPlayground::loadInitOptions()
     options.httpRetry = settings.value("init/httpRetry", options.httpRetry).toBool();
     options.cacheKeep = settings.value("init/cacheKeep", options.cacheKeep).toBool();
     options.debug = settings.value("init/debug", options.debug).toBool();
+    options.loggerLevel = normalizedLoggerLevel(settings.value("init/loggerLevel", options.loggerLevel).toInt());
     options.externalCrashReporterEnabled = settings.value(
         "init/externalCrashReporter/enabled",
         settings.value("externalCrashReporter/enabled", options.externalCrashReporterEnabled)).toBool();
@@ -72,6 +92,7 @@ void SentryPlayground::saveInitOptions(const InitOptions& options)
     settings.setValue("init/httpRetry", options.httpRetry);
     settings.setValue("init/cacheKeep", options.cacheKeep);
     settings.setValue("init/debug", options.debug);
+    settings.setValue("init/loggerLevel", normalizedLoggerLevel(options.loggerLevel));
     settings.setValue("init/externalCrashReporter/enabled", options.externalCrashReporterEnabled);
     settings.setValue("init/externalCrashReporter/path", options.externalCrashReporterPath);
     settings.setValue("externalCrashReporter/enabled", options.externalCrashReporterEnabled);
@@ -122,6 +143,8 @@ void SentryPlayground::open(const InitOptions& initOptions)
     sentry_options_set_http_retry(options, playground->m_initOptions.httpRetry);
     sentry_options_set_cache_keep(options, playground->m_initOptions.cacheKeep);
     sentry_options_set_debug(options, playground->m_initOptions.debug);
+    sentry_options_set_logger_level(
+        options, static_cast<sentry_level_t>(normalizedLoggerLevel(playground->m_initOptions.loggerLevel)));
 
     sentry_options_set_before_send(options, [](sentry_value_t event, void *hint, void *userdata) {
         if (SentryPlayground::instance()->filter()) {
