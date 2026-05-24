@@ -709,6 +709,7 @@ void SentryWindow::setupPages()
         ui.cacheMaxItemsLabel,
         ui.cacheMaxSizeLabel,
         ui.cacheMaxAgeLabel,
+        ui.externalReporterSpacerLabel,
         ui.externalReporterPathLabel,
     };
     QLabel* summaryTitles[] = {
@@ -893,22 +894,12 @@ void SentryWindow::setupPages()
         makeClearIcon(devicePixelRatioF()), QLineEdit::TrailingPosition);
     clearReporterAction->setObjectName("externalReporterClearAction");
     clearReporterAction->setToolTip("Clear");
-    auto updateReporterClearAction = [this, clearReporterAction]() {
-        const bool enabled = ui.externalCrashReporterBox->isChecked();
-        clearReporterAction->setEnabled(enabled && !ui.externalReporterPathEdit->text().isEmpty());
-    };
     QObject::connect(ui.externalReporterPathEdit, &QLineEdit::textChanged, this,
-        [updateReporterClearAction](const QString&) { updateReporterClearAction(); });
+        [this](const QString&) { updateExternalReporterControls(); });
     QObject::connect(clearReporterAction, &QAction::triggered, ui.externalReporterPathEdit, &QLineEdit::clear);
-    updateReporterClearAction();
-
-    auto updateReporterControls = [this, browseAction, clearReporterAction](bool enabled) {
-        ui.externalReporterPathEdit->setReadOnly(!enabled);
-        browseAction->setEnabled(enabled);
-        clearReporterAction->setEnabled(enabled && !ui.externalReporterPathEdit->text().isEmpty());
-    };
-    QObject::connect(ui.externalCrashReporterBox, &QAbstractButton::toggled, this, updateReporterControls);
-    updateReporterControls(false);
+    QObject::connect(ui.externalCrashReporterBox, &QAbstractButton::toggled,
+        this, &SentryWindow::updateExternalReporterControls);
+    updateExternalReporterControls();
     QObject::connect(ui.initReleaseEdit, &QLineEdit::textChanged, this, &SentryWindow::updateInitSummaries);
     QObject::connect(ui.initEnvironmentEdit, &QComboBox::currentTextChanged,
         this, &SentryWindow::updateInitSummaries);
@@ -1046,17 +1037,11 @@ void SentryWindow::populateInitPage()
         ? loggerLevelIndex
         : ui.loggerLevelBox->findData(kLoggerLevelNone));
     ui.externalReporterPathEdit->setText(options.externalCrashReporterPath);
-    for (QAction* action : ui.externalReporterPathEdit->actions()) {
-        action->setEnabled(options.externalCrashReporterEnabled);
-        if (action->objectName() == "externalReporterClearAction")
-            action->setEnabled(options.externalCrashReporterEnabled
-                && !ui.externalReporterPathEdit->text().isEmpty());
-    }
     for (QAction* action : ui.databasePathEdit->actions()) {
         if (action->objectName() == "databasePathClearAction")
             action->setEnabled(!ui.databasePathEdit->text().isEmpty());
     }
-    ui.externalReporterPathEdit->setReadOnly(!options.externalCrashReporterEnabled);
+    updateExternalReporterControls();
     ui.initializeButton->setText(SentryPlayground::instance()->hasInitialized()
         ? "Re-initialize"
         : "Initialize");
@@ -1118,6 +1103,25 @@ SentryPlayground::InitOptions SentryWindow::initOptionsFromPage() const
     return options;
 }
 
+void SentryWindow::updateExternalReporterControls()
+{
+    const bool externalReporterEnabled = ui.externalCrashReporterBox->isChecked();
+    const bool reporterDetailsVisible = ui.externalReporterEditButton->isChecked();
+    ui.externalReporterDetailsFormLayout->setRowVisible(
+        ui.externalReporterPathEdit, reporterDetailsVisible && externalReporterEnabled);
+    ui.externalReporterPathEdit->setReadOnly(!externalReporterEnabled);
+
+    for (QAction* action : ui.externalReporterPathEdit->actions()) {
+        action->setEnabled(externalReporterEnabled);
+        if (action->objectName() == "externalReporterClearAction")
+            action->setEnabled(externalReporterEnabled
+                && !ui.externalReporterPathEdit->text().isEmpty());
+    }
+
+    ui.initRightColumn->invalidate();
+    ui.initScrollContents->updateGeometry();
+}
+
 void SentryWindow::updateInitDetailsVisibility()
 {
     const bool dsnVisible = ui.sdkEditButton->isChecked();
@@ -1127,12 +1131,12 @@ void SentryWindow::updateInitDetailsVisibility()
     const bool cacheVisible = ui.cacheEditButton->isChecked();
     const bool reporterVisible = ui.externalReporterEditButton->isChecked();
 
-    auto setFormVisible = [](QFormLayout* layout, bool visible) {
+    auto setFormVisible = [](QFormLayout* layout, bool visible, int visibleVerticalSpacing = 10) {
         QMargins margins = layout->contentsMargins();
         margins.setTop(visible ? 8 : 0);
         margins.setBottom(visible ? 10 : 0);
         layout->setContentsMargins(margins);
-        layout->setVerticalSpacing(visible ? 10 : 0);
+        layout->setVerticalSpacing(visible ? visibleVerticalSpacing : 0);
         for (int row = 0; row < layout->rowCount(); ++row)
             layout->setRowVisible(row, visible);
         layout->invalidate();
@@ -1142,7 +1146,8 @@ void SentryWindow::updateInitDetailsVisibility()
     setFormVisible(ui.featuresDetailsFormLayout, featuresVisible);
     setFormVisible(ui.advancedOptionsDetailsFormLayout, advancedVisible);
     setFormVisible(ui.cacheDetailsFormLayout, cacheVisible);
-    setFormVisible(ui.externalReporterDetailsFormLayout, reporterVisible);
+    setFormVisible(ui.externalReporterDetailsFormLayout, reporterVisible, 4);
+    updateExternalReporterControls();
 
     ui.initRightColumn->invalidate();
     ui.initScrollContents->updateGeometry();

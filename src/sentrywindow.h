@@ -30,6 +30,7 @@ private:
     void showRuntimePage();
     void applyRuntimePaletteStyles();
     void applyInitPaletteStyles();
+    void updateExternalReporterControls();
     void updateInitDetailsVisibility();
     void updateInitSummaries();
     void updateLogo();

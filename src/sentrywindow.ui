@@ -1206,7 +1206,7 @@
                          <property name="bottomMargin">
                           <number>10</number>
                          </property>
-                         <item row="0" column="0">
+                         <item row="4" column="0">
                           <widget class="QLabel" name="shutdownTimeoutLabel">
                            <property name="styleSheet">
                             <string notr="true">color: palette(placeholder-text); font-size: 10px;</string>
@@ -1216,7 +1216,7 @@
                            </property>
                           </widget>
                          </item>
-                         <item row="0" column="1">
+                         <item row="4" column="1">
                           <widget class="QSpinBox" name="shutdownTimeoutBox">
                            <property name="suffix">
                             <string> ms</string>
@@ -1260,7 +1260,7 @@
                            </property>
                           </widget>
                          </item>
-                         <item row="3" column="0">
+                         <item row="0" column="0">
                           <widget class="QLabel" name="tracesSampleRateLabel">
                            <property name="styleSheet">
                             <string notr="true">color: palette(placeholder-text); font-size: 10px;</string>
@@ -1270,7 +1270,7 @@
                            </property>
                           </widget>
                          </item>
-                         <item row="3" column="1">
+                         <item row="0" column="1">
                           <widget class="QDoubleSpinBox" name="tracesSampleRateBox">
                            <property name="locale">
                             <locale language="English" country="UnitedStates"/>
@@ -1286,7 +1286,7 @@
                            </property>
                           </widget>
                          </item>
-                         <item row="4" column="0">
+                         <item row="3" column="0">
                           <widget class="QLabel" name="loggerLevelLabel">
                            <property name="styleSheet">
                             <string notr="true">color: palette(placeholder-text); font-size: 10px;</string>
@@ -1296,7 +1296,7 @@
                            </property>
                           </widget>
                          </item>
-                         <item row="4" column="1">
+                         <item row="3" column="1">
                           <widget class="QComboBox" name="loggerLevelBox">
                            <property name="minimumSize">
                             <size>
@@ -1735,14 +1735,30 @@
                            </property>
                           </widget>
                          </item>
-                         <item row="1" column="0">
+                         <item row="1" column="1">
+                          <spacer name="externalReporterSystemGapSpacer">
+                           <property name="orientation">
+                            <enum>Qt::Orientation::Vertical</enum>
+                           </property>
+                           <property name="sizeType">
+                            <enum>QSizePolicy::Policy::Fixed</enum>
+                           </property>
+                           <property name="sizeHint" stdset="0">
+                            <size>
+                             <width>0</width>
+                             <height>4</height>
+                            </size>
+                           </property>
+                          </spacer>
+                         </item>
+                         <item row="2" column="0">
                           <widget class="QLabel" name="externalReporterSpacerLabel">
                            <property name="text">
                             <string/>
                            </property>
                           </widget>
                          </item>
-                         <item row="1" column="1">
+                         <item row="2" column="1">
                           <widget class="QCheckBox" name="externalCrashReporterBox">
                            <property name="sizePolicy">
                             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
@@ -1761,17 +1777,14 @@
                            </property>
                           </widget>
                          </item>
-                         <item row="2" column="0">
+                         <item row="3" column="0">
                           <widget class="QLabel" name="externalReporterPathLabel">
-                           <property name="styleSheet">
-                            <string notr="true">color: palette(placeholder-text); font-size: 10px;</string>
-                           </property>
                            <property name="text">
                             <string/>
                            </property>
                           </widget>
                          </item>
-                         <item row="2" column="1">
+                         <item row="3" column="1">
                           <widget class="QLineEdit" name="externalReporterPathEdit">
                            <property name="placeholderText">
                             <string>/path/to/Sentry Crash Reporter.app</string>
