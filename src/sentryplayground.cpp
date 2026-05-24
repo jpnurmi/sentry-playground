@@ -68,6 +68,7 @@ SentryPlayground::InitOptions SentryPlayground::loadInitOptions()
     options.attachScreenshot = settings.value("init/attachScreenshot", options.attachScreenshot).toBool();
     options.tracesSampleRate = settings.value("init/tracesSampleRate", options.tracesSampleRate).toDouble();
     options.maxBreadcrumbs = std::max(0, settings.value("init/maxBreadcrumbs", options.maxBreadcrumbs).toInt());
+    options.maxSpans = std::max(0, settings.value("init/maxSpans", options.maxSpans).toInt());
     options.shutdownTimeout = std::max(0, settings.value("init/shutdownTimeout", options.shutdownTimeout).toInt());
     options.requireUserConsent = settings.value("init/requireUserConsent", options.requireUserConsent).toBool();
     options.systemCrashReporterEnabled = settings.value(
@@ -102,6 +103,7 @@ void SentryPlayground::saveInitOptions(const InitOptions& options)
     settings.setValue("init/attachScreenshot", options.attachScreenshot);
     settings.setValue("init/tracesSampleRate", options.tracesSampleRate);
     settings.setValue("init/maxBreadcrumbs", options.maxBreadcrumbs);
+    settings.setValue("init/maxSpans", options.maxSpans);
     settings.setValue("init/shutdownTimeout", options.shutdownTimeout);
     settings.setValue("init/requireUserConsent", options.requireUserConsent);
     settings.setValue("init/systemCrashReporterEnabled", options.systemCrashReporterEnabled);
@@ -153,6 +155,8 @@ void SentryPlayground::open(const InitOptions& initOptions)
     sentry_options_set_traces_sample_rate(options, playground->m_initOptions.tracesSampleRate);
     sentry_options_set_max_breadcrumbs(
         options, static_cast<size_t>(std::max(0, playground->m_initOptions.maxBreadcrumbs)));
+    sentry_options_set_max_spans(
+        options, static_cast<size_t>(std::max(0, playground->m_initOptions.maxSpans)));
     sentry_options_set_shutdown_timeout(
         options, static_cast<uint64_t>(std::max(0, playground->m_initOptions.shutdownTimeout)));
     sentry_options_set_require_user_consent(options, playground->m_initOptions.requireUserConsent);

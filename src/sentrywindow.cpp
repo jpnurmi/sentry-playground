@@ -6,6 +6,7 @@
 #include <sentry.h>
 
 #include <functional>
+#include <utility>
 
 #include <QtCore/qcoreevent.h>
 #include <QtCore/qfileinfo.h>
@@ -13,13 +14,20 @@
 #include <QtCore/qobject.h>
 #include <QtCore/qsettings.h>
 #include <QtCore/qstandardpaths.h>
+#include <QtCore/qstringlist.h>
+#include <QtCore/qurl.h>
 #include <QtGui/qaction.h>
+#include <QtGui/qevent.h>
+#include <QtWidgets/qabstractscrollarea.h>
+#include <QtWidgets/qabstractspinbox.h>
 #include <QtWidgets/qboxlayout.h>
+#include <QtWidgets/qapplication.h>
 #include <QtWidgets/qbuttongroup.h>
 #include <QtWidgets/qcheckbox.h>
 #include <QtWidgets/qcombobox.h>
 #include <QtWidgets/qdialog.h>
 #include <QtWidgets/qfiledialog.h>
+#include <QtWidgets/qframe.h>
 #include <QtWidgets/qgridlayout.h>
 #include <QtWidgets/qheaderview.h>
 #include <QtWidgets/qlabel.h>
@@ -27,6 +35,7 @@
 #include <QtWidgets/qmenu.h>
 #include <QtWidgets/qpushbutton.h>
 #include <QtWidgets/qspinbox.h>
+#include <QtWidgets/qstackedlayout.h>
 #include <QtGui/qcolor.h>
 #include <QtGui/qpainter.h>
 #include <QtGui/qpalette.h>
@@ -41,15 +50,92 @@ static constexpr int kPageTopMargin = 22;
 static constexpr int kPageRightMargin = 22;
 static constexpr int kPageBottomMargin = 16;
 static constexpr int kPageColumnSpacing = 16;
+static constexpr int kMaxEnvironmentHistoryItems = 12;
+static constexpr int kLoggerLevelNone = -1000;
+
+static QString cssRgba(QColor color, int alpha)
+{
+    color.setAlpha(alpha);
+    return QStringLiteral("rgba(%1, %2, %3, %4)")
+        .arg(color.red())
+        .arg(color.green())
+        .arg(color.blue())
+        .arg(color.alpha());
+}
+
+static QString cssRgb(const QColor& color)
+{
+    return QStringLiteral("rgb(%1, %2, %3)")
+        .arg(color.red())
+        .arg(color.green())
+        .arg(color.blue());
+}
+
+static QColor blendedColor(QColor base, QColor overlay, int overlayAlpha)
+{
+    const qreal alpha = overlayAlpha / 255.0;
+    return QColor(
+        qRound(base.red() * (1 - alpha) + overlay.red() * alpha),
+        qRound(base.green() * (1 - alpha) + overlay.green() * alpha),
+        qRound(base.blue() * (1 - alpha) + overlay.blue() * alpha));
+}
+
+template <typename T>
+static T* findParent(QObject* object)
+{
+    for (QObject* current = object; current; current = current->parent()) {
+        if (auto* match = qobject_cast<T*>(current))
+            return match;
+    }
+    return nullptr;
+}
+
+static void forwardWheelEventToScrollArea(QObject* control, QWheelEvent* wheelEvent)
+{
+    if (auto* scrollArea = findParent<QAbstractScrollArea>(control)) {
+        QWidget* viewport = scrollArea->viewport();
+        QWheelEvent forwardedEvent(
+            viewport->mapFromGlobal(wheelEvent->globalPosition().toPoint()),
+            wheelEvent->globalPosition(),
+            wheelEvent->pixelDelta(),
+            wheelEvent->angleDelta(),
+            wheelEvent->buttons(),
+            wheelEvent->modifiers(),
+            wheelEvent->phase(),
+            wheelEvent->inverted(),
+            wheelEvent->source(),
+            wheelEvent->pointingDevice());
+        QCoreApplication::sendEvent(viewport, &forwardedEvent);
+    }
+}
+
+static QStringList environmentHistoryWith(QStringList history, const QString& environment)
+{
+    QStringList normalized;
+    auto add = [&normalized](const QString& value) {
+        const QString trimmed = value.trimmed();
+        if (!trimmed.isEmpty() && !normalized.contains(trimmed, Qt::CaseSensitive))
+            normalized.append(trimmed);
+    };
+    add(environment);
+    for (const QString& value : std::as_const(history))
+        add(value);
+    while (normalized.size() > kMaxEnvironmentHistoryItems)
+        normalized.removeLast();
+    return normalized;
+}
 
 SentryWindow::SentryWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     TRACE_FUNCTION();
     ui.setupUi(this);
-    ui.rootLayout->setContentsMargins(kPageLeftMargin, kPageTopMargin, kPageRightMargin, kPageBottomMargin);
-    ui.columnsLayout->setSpacing(kPageColumnSpacing);
+    qApp->installEventFilter(this);
+    ui.contentLayout->setContentsMargins(kPageLeftMargin, kPageTopMargin, kPageRightMargin, kPageBottomMargin);
+    ui.contentLayout->setSpacing(kPageColumnSpacing);
+    ui.initRightColumn->setAlignment(Qt::AlignTop);
     setupPages();
+    setupWheelScrolling();
     ui.backendLabel->setText(SentryPlayground::backend());
     updateLogo();
 
@@ -80,9 +166,9 @@ SentryWindow::SentryWindow(QWidget *parent)
     ui.exceptionTypeBox->setFixedWidth(typeBoxWidth);
 
     const char* kMessageSegmentedBase =
-        "QPushButton { color: #888; font-weight: bold; background: transparent;"
-        " border: 1px solid #555; padding: 3px 12px; %1 }"
-        "QPushButton:checked { background: #444; color: white; }";
+        "QPushButton { color: palette(mid); font-weight: bold; background: transparent;"
+        " border: 1px solid palette(mid); padding: 3px 12px; %1 }"
+        "QPushButton:checked { background: palette(midlight); color: palette(text); }";
     ui.messageButton->setStyleSheet(QString(kMessageSegmentedBase).arg(
         "border-top-left-radius: 4px; border-bottom-left-radius: 4px;"));
     ui.exceptionButton->setStyleSheet(QString(kMessageSegmentedBase).arg("border-left: none;"));
@@ -112,13 +198,17 @@ SentryWindow::SentryWindow(QWidget *parent)
 #ifdef Q_OS_MACOS
     for (QLineEdit* edit : { ui.messageText, ui.userIdEdit, ui.userNameEdit,
              ui.userEmailEdit, ui.userIpEdit, ui.releaseEdit, ui.environmentEdit,
-             ui.dsnEdit, ui.databasePathEdit, ui.initReleaseEdit, ui.initEnvironmentEdit,
+             ui.dsnEdit, ui.databasePathEdit, ui.initReleaseEdit,
              ui.initDistEdit, ui.externalReporterPathEdit }) {
         edit->setFixedHeight(28);
         edit->setContentsMargins(0, 4, 0, 0);
     }
+    ui.initEnvironmentEdit->setFixedHeight(28);
+    if (QLineEdit* edit = ui.initEnvironmentEdit->lineEdit())
+        edit->setContentsMargins(0, 4, 0, 0);
     ui.tracesSampleRateBox->setFixedHeight(28);
     ui.maxBreadcrumbsBox->setFixedHeight(28);
+    ui.maxSpansBox->setFixedHeight(28);
     ui.shutdownTimeoutBox->setFixedHeight(28);
     ui.cacheKeepModeBox->setFixedHeight(28);
     ui.cacheMaxItemsBox->setFixedHeight(28);
@@ -161,9 +251,9 @@ SentryWindow::SentryWindow(QWidget *parent)
         [messageAction](const QString& text) { messageAction->setEnabled(!text.isEmpty()); });
 
     const char* kSegmentedBase =
-        "QPushButton { color: #888; font-weight: bold; background: transparent;"
-        " border: 1px solid #555; padding: 3px 12px; %1 }"
-        "QPushButton:checked { background: #444; color: white; }";
+        "QPushButton { color: palette(mid); font-weight: bold; background: transparent;"
+        " border: 1px solid palette(mid); padding: 3px 12px; %1 }"
+        "QPushButton:checked { background: palette(midlight); color: palette(text); }";
     ui.tagsButton->setStyleSheet(QString(kSegmentedBase).arg(
         "border-top-left-radius: 4px; border-bottom-left-radius: 4px;"));
     ui.contextsButton->setStyleSheet(QString(kSegmentedBase).arg("border-left: none;"));
@@ -293,31 +383,32 @@ SentryWindow::SentryWindow(QWidget *parent)
     const char* kCircularButton =
         "QToolButton {"
         " border: none; border-radius: 11px;"
-        " background: #3a3a3a; padding: 0; %1 }"
-        "QToolButton:hover { background: #4a4a4a; }"
-        "QToolButton:pressed { background: #555; }";
+        " background: palette(button); padding: 0; %1 }"
+        "QToolButton:hover { background: palette(light); }"
+        "QToolButton:pressed { background: palette(midlight); }";
 
     auto makeBackIcon = [](qreal dpr) {
         const int size = 16;
+        const QColor color = QApplication::palette().color(QPalette::ButtonText);
         QPixmap pixmap(size * dpr, size * dpr);
         pixmap.setDevicePixelRatio(dpr);
         pixmap.fill(Qt::transparent);
         QPainter p(&pixmap);
         p.setRenderHint(QPainter::Antialiasing);
-        p.setPen(QPen(QColor("#f2f2f2"), 1.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+        p.setPen(QPen(color, 1.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
         p.drawLine(QPointF(4.5, 8), QPointF(11.5, 8));
         p.drawLine(QPointF(7.5, 4.5), QPointF(4.5, 8));
         p.drawLine(QPointF(4.5, 8), QPointF(7.5, 11.5));
         return QIcon(pixmap);
     };
 
-    auto* optionsButton = new QToolButton(ui.runtimePage);
+    auto* optionsButton = new QToolButton(ui.runtimeLeftPanel);
     optionsButton->setFixedSize(22, 22);
     optionsButton->setIconSize(QSize(14, 14));
     optionsButton->setIcon(makeBackIcon(devicePixelRatioF()));
     optionsButton->setStyleSheet(QString(kCircularButton).arg(""));
     optionsButton->setToolTip("Back");
-    optionsButton->move(kPageLeftMargin, kPageTopMargin);
+    optionsButton->move(0, 0);
     optionsButton->raise();
     QObject::connect(optionsButton, &QAbstractButton::clicked, this, [this]() {
         SentryPlayground::close();
@@ -554,21 +645,134 @@ SentryWindow::SentryWindow(QWidget *parent)
 
 void SentryWindow::setupPages()
 {
-    ui.initLeftPanel->setFixedWidth(ui.leftColumn->sizeHint().width());
+    ui.initScrollBackdrop->setAttribute(Qt::WA_TransparentForMouseEvents);
+    ui.initScrollBackdrop->lower();
+
+    const int leftWidth = qMax(ui.initLeftPanel->sizeHint().width(), ui.runtimeLeftPanel->sizeHint().width());
+    ui.leftStack->setFixedWidth(leftWidth);
+    ui.initLeftPanel->setFixedWidth(leftWidth);
+    ui.runtimeLeftPanel->setFixedWidth(leftWidth);
     ui.initBackendLabel->setText(SentryPlayground::backend());
-    for (int column = 0; column < 3; ++column)
-        ui.initFieldsGrid->setColumnStretch(column, 1);
-    for (int column = 0; column < 3; ++column)
-        ui.cacheFieldsGrid->setColumnStretch(column, 1);
-    for (int column = 0; column < 3; ++column)
-        ui.cacheHeaderGrid->setColumnStretch(column, 1);
-    ui.reporterFieldsLayout->setStretch(0, 1);
+
+    auto wrapSummaryRow = [this](QHBoxLayout* layout, const char* objectName) {
+        int rowIndex = -1;
+        for (int i = 0; i < ui.initSummarySheetLayout->count(); ++i) {
+            if (ui.initSummarySheetLayout->itemAt(i)->layout() == layout) {
+                rowIndex = i;
+                break;
+            }
+        }
+        if (rowIndex < 0)
+            return static_cast<QWidget*>(nullptr);
+
+        QLayoutItem* item = ui.initSummarySheetLayout->takeAt(rowIndex);
+        QWidget* row = new QWidget(ui.initSummarySheet);
+        row->setObjectName(QLatin1String(objectName));
+        row->setProperty("initSummaryRow", true);
+        row->setCursor(Qt::PointingHandCursor);
+        row->installEventFilter(this);
+        layout->setParent(nullptr);
+        row->setLayout(layout);
+        ui.initSummarySheetLayout->insertWidget(rowIndex, row);
+        if (item != layout)
+            delete item;
+        return row;
+    };
+    wrapSummaryRow(ui.sdkSummaryLayout, "sdkSummaryWidget");
+    wrapSummaryRow(ui.versionSummaryLayout, "versionSummaryWidget");
+    wrapSummaryRow(ui.featuresSummaryLayout, "featuresSummaryWidget");
+    wrapSummaryRow(ui.advancedOptionsSummaryLayout, "advancedOptionsSummaryWidget");
+    wrapSummaryRow(ui.cacheSummaryLayout, "cacheSummaryWidget");
+    wrapSummaryRow(ui.externalReporterSummaryLayout, "externalReporterSummaryWidget");
+
+    QLabel* formLabels[] = {
+        ui.dsnLabel,
+        ui.initReleaseLabel,
+        ui.initEnvironmentLabel,
+        ui.initDistLabel,
+        ui.featuresFormSpacerLabel,
+        ui.shutdownTimeoutLabel,
+        ui.maxBreadcrumbsLabel,
+        ui.maxSpansLabel,
+        ui.tracesSampleRateLabel,
+        ui.loggerLevelLabel,
+        ui.databasePathLabel,
+        ui.cacheModeLabel,
+        ui.cacheMaxItemsLabel,
+        ui.cacheMaxSizeLabel,
+        ui.cacheMaxAgeLabel,
+        ui.externalReporterPathLabel,
+    };
+    QLabel* summaryTitles[] = {
+        ui.sdkSummaryTitle,
+        ui.versionSummaryTitle,
+        ui.featuresSummaryTitle,
+        ui.advancedOptionsSummaryTitle,
+        ui.cacheSummaryTitle,
+        ui.externalReporterSummaryTitle,
+    };
+    int formLabelWidth = 0;
+    for (QLabel* label : formLabels)
+        formLabelWidth = qMax(formLabelWidth, label->sizeHint().width());
+    for (QLabel* title : summaryTitles)
+        formLabelWidth = qMax(formLabelWidth, title->sizeHint().width() + 6);
+    for (QLabel* label : formLabels) {
+        label->setFixedWidth(formLabelWidth);
+        label->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    }
+    const int formHorizontalSpacing = 12;
+    const int summaryHorizontalSpacing = formHorizontalSpacing;
+    const int summaryIconWidth = ui.sdkSummaryIcon->minimumWidth();
+    const int summaryLabelLeftMargin =
+        ui.sdkSummaryLayout->contentsMargins().left() + summaryIconWidth + summaryHorizontalSpacing;
+    auto alignDetailsForm = [summaryLabelLeftMargin, formHorizontalSpacing](QFormLayout* layout) {
+        const QMargins margins = layout->contentsMargins();
+        layout->setContentsMargins(summaryLabelLeftMargin, margins.top(), margins.right(), margins.bottom());
+        layout->setHorizontalSpacing(formHorizontalSpacing);
+    };
+    alignDetailsForm(ui.sdkDetailsFormLayout);
+    alignDetailsForm(ui.versionDetailsFormLayout);
+    alignDetailsForm(ui.featuresDetailsFormLayout);
+    alignDetailsForm(ui.advancedOptionsDetailsFormLayout);
+    alignDetailsForm(ui.cacheDetailsFormLayout);
+    alignDetailsForm(ui.externalReporterDetailsFormLayout);
+
+    auto alignSummaryValue = [formLabelWidth, summaryHorizontalSpacing](
+                                 QHBoxLayout* layout, QLabel* title, QLabel* summary) {
+        layout->setSpacing(summaryHorizontalSpacing);
+        const QMargins margins = layout->contentsMargins();
+        layout->setContentsMargins(margins.left(), 3, margins.right(), 3);
+        title->setFixedWidth(formLabelWidth);
+        title->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        summary->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    };
+    alignSummaryValue(ui.sdkSummaryLayout, ui.sdkSummaryTitle, ui.sdkSummaryLabel);
+    alignSummaryValue(ui.versionSummaryLayout, ui.versionSummaryTitle, ui.versionSummaryLabel);
+    alignSummaryValue(ui.featuresSummaryLayout, ui.featuresSummaryTitle, ui.featuresSummaryLabel);
+    alignSummaryValue(ui.advancedOptionsSummaryLayout, ui.advancedOptionsSummaryTitle,
+        ui.advancedOptionsSummaryLabel);
+    alignSummaryValue(ui.cacheSummaryLayout, ui.cacheSummaryTitle, ui.cacheSummaryLabel);
+    alignSummaryValue(ui.externalReporterSummaryLayout, ui.externalReporterSummaryTitle,
+        ui.externalReporterSummaryLabel);
+
+    for (QWidget* widget : {
+             ui.sdkSummaryIcon, ui.sdkSummaryTitle, ui.sdkSummaryLabel,
+             ui.versionSummaryIcon, ui.versionSummaryTitle, ui.versionSummaryLabel,
+             ui.featuresSummaryStatus, ui.featuresSummaryTitle, ui.featuresSummaryLabel,
+             ui.advancedOptionsSummaryStatus, ui.advancedOptionsSummaryTitle, ui.advancedOptionsSummaryLabel,
+             ui.cacheSummaryStatus, ui.cacheSummaryTitle, ui.cacheSummaryLabel,
+             ui.externalReporterSummaryStatus, ui.externalReporterSummaryTitle, ui.externalReporterSummaryLabel,
+         }) {
+        widget->setAttribute(Qt::WA_TransparentForMouseEvents);
+    }
+
     ui.cacheKeepModeBox->addItem("None", SENTRY_CACHE_KEEP_NONE);
     ui.cacheKeepModeBox->addItem("Offline", SENTRY_CACHE_KEEP_OFFLINE);
     ui.cacheKeepModeBox->addItem("Always", SENTRY_CACHE_KEEP_ALWAYS);
-    ui.cacheKeepModeBox->setSizeAdjustPolicy(QComboBox::AdjustToContents);
-    ui.cacheKeepModeBox->setFixedWidth(ui.cacheKeepModeBox->sizeHint().width());
-    ui.cacheHeaderGrid->setAlignment(ui.cacheKeepModeBox, Qt::AlignRight);
+    ui.initEnvironmentEdit->setInsertPolicy(QComboBox::NoInsert);
+    if (QLineEdit* edit = ui.initEnvironmentEdit->lineEdit())
+        edit->setPlaceholderText("production");
+    ui.loggerLevelBox->addItem("None", kLoggerLevelNone);
     ui.loggerLevelBox->addItem("Trace", SENTRY_LEVEL_TRACE);
     ui.loggerLevelBox->addItem("Debug", SENTRY_LEVEL_DEBUG);
     ui.loggerLevelBox->addItem("Info", SENTRY_LEVEL_INFO);
@@ -578,12 +782,14 @@ void SentryWindow::setupPages()
 
     auto makeEllipsisIcon = [](qreal dpr) {
         const int size = 16;
+        QColor color = QApplication::palette().color(QPalette::ButtonText);
+        color.setAlpha(180);
         QPixmap pixmap(size * dpr, size * dpr);
         pixmap.setDevicePixelRatio(dpr);
         pixmap.fill(Qt::transparent);
         QPainter p(&pixmap);
         p.setRenderHint(QPainter::Antialiasing);
-        p.setBrush(QColor("#b0b0b0"));
+        p.setBrush(color);
         p.setPen(Qt::NoPen);
         for (int x : { 5, 8, 11 })
             p.drawEllipse(QPointF(x, size / 2.0), 1.2, 1.2);
@@ -591,20 +797,75 @@ void SentryWindow::setupPages()
     };
     auto makeClearIcon = [](qreal dpr) {
         const int size = 16;
+        QColor color = QApplication::palette().color(QPalette::ButtonText);
+        color.setAlpha(180);
         QPixmap pixmap(size * dpr, size * dpr);
         pixmap.setDevicePixelRatio(dpr);
         pixmap.fill(Qt::transparent);
         QPainter p(&pixmap);
         p.setRenderHint(QPainter::Antialiasing);
-        p.setPen(QPen(QColor("#b0b0b0"), 1.6, Qt::SolidLine, Qt::RoundCap));
+        p.setPen(QPen(color, 1.6, Qt::SolidLine, Qt::RoundCap));
         p.drawLine(QPointF(5, 5), QPointF(11, 11));
         p.drawLine(QPointF(11, 5), QPointF(5, 11));
         return QIcon(pixmap);
     };
+    auto makeChevronIcon = [](qreal dpr, bool expanded) {
+        const int size = 12;
+        QPixmap pixmap(size * dpr, size * dpr);
+        pixmap.setDevicePixelRatio(dpr);
+        pixmap.fill(Qt::transparent);
+        QPainter p(&pixmap);
+        p.setRenderHint(QPainter::Antialiasing);
+        QColor color = QApplication::palette().color(QPalette::ButtonText);
+        color.setAlpha(150);
+        p.setPen(QPen(color, 1.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+        if (expanded) {
+            p.drawLine(QPointF(3.5, 4.5), QPointF(6, 7));
+            p.drawLine(QPointF(6, 7), QPointF(8.5, 4.5));
+        } else {
+            p.drawLine(QPointF(4.5, 3.5), QPointF(7, 6));
+            p.drawLine(QPointF(7, 6), QPointF(4.5, 8.5));
+        }
+        return QIcon(pixmap);
+    };
+    const char* kDisclosureButton =
+        "QToolButton { background: transparent; border: none; padding: 0; }";
+    auto setupDisclosureButton = [this, kDisclosureButton, makeChevronIcon](QToolButton* button, const char* settingKey) {
+        button->setFixedSize(14, 20);
+        button->setIconSize(QSize(12, 12));
+        button->setStyleSheet(kDisclosureButton);
+        button->setChecked(QSettings().value(settingKey, false).toBool());
+        button->setIcon(makeChevronIcon(devicePixelRatioF(), button->isChecked()));
+        button->setToolTip(button->isChecked() ? "Collapse" : "Expand");
+        QObject::connect(button, &QAbstractButton::toggled, this,
+            [this, button, settingKey, makeChevronIcon](bool expanded) {
+                QSettings().setValue(settingKey, expanded);
+                button->setIcon(makeChevronIcon(devicePixelRatioF(), expanded));
+                button->setToolTip(expanded ? "Collapse" : "Expand");
+                updateInitDetailsVisibility();
+            });
+    };
+    setupDisclosureButton(ui.versionEditButton, "init/versionExpanded");
+    setupDisclosureButton(ui.sdkEditButton, "init/sdkExpanded");
+    setupDisclosureButton(ui.featuresEditButton, "init/featuresExpanded");
+    setupDisclosureButton(ui.advancedOptionsEditButton, "init/advancedOptionsExpanded");
+    setupDisclosureButton(ui.cacheEditButton, "init/cacheOptionsExpanded");
+    setupDisclosureButton(ui.externalReporterEditButton, "init/externalReporterOptionsExpanded");
 
     QAction* databaseBrowseAction = ui.databasePathEdit->addAction(
-        makeEllipsisIcon(devicePixelRatioF()), QLineEdit::LeadingPosition);
+        makeEllipsisIcon(devicePixelRatioF()), QLineEdit::TrailingPosition);
     databaseBrowseAction->setToolTip("Browse");
+    QAction* clearDatabaseAction = ui.databasePathEdit->addAction(
+        makeClearIcon(devicePixelRatioF()), QLineEdit::TrailingPosition);
+    clearDatabaseAction->setObjectName("databasePathClearAction");
+    clearDatabaseAction->setToolTip("Clear");
+    auto updateDatabaseClearAction = [this, clearDatabaseAction]() {
+        clearDatabaseAction->setEnabled(!ui.databasePathEdit->text().isEmpty());
+    };
+    QObject::connect(ui.databasePathEdit, &QLineEdit::textChanged, this,
+        [updateDatabaseClearAction](const QString&) { updateDatabaseClearAction(); });
+    QObject::connect(clearDatabaseAction, &QAction::triggered, ui.databasePathEdit, &QLineEdit::clear);
+    updateDatabaseClearAction();
     QObject::connect(databaseBrowseAction, &QAction::triggered, this, [this]() {
         QString seed = ui.databasePathEdit->text();
         if (seed.isEmpty())
@@ -618,14 +879,15 @@ void SentryWindow::setupPages()
     });
 
     QAction* browseAction = ui.externalReporterPathEdit->addAction(
-        makeEllipsisIcon(devicePixelRatioF()), QLineEdit::LeadingPosition);
+        makeEllipsisIcon(devicePixelRatioF()), QLineEdit::TrailingPosition);
     browseAction->setToolTip("Browse");
     QAction* clearReporterAction = ui.externalReporterPathEdit->addAction(
         makeClearIcon(devicePixelRatioF()), QLineEdit::TrailingPosition);
     clearReporterAction->setObjectName("externalReporterClearAction");
     clearReporterAction->setToolTip("Clear");
     auto updateReporterClearAction = [this, clearReporterAction]() {
-        clearReporterAction->setVisible(!ui.externalReporterPathEdit->text().isEmpty());
+        const bool enabled = ui.externalCrashReporterBox->isChecked();
+        clearReporterAction->setEnabled(enabled && !ui.externalReporterPathEdit->text().isEmpty());
     };
     QObject::connect(ui.externalReporterPathEdit, &QLineEdit::textChanged, this,
         [updateReporterClearAction](const QString&) { updateReporterClearAction(); });
@@ -633,23 +895,47 @@ void SentryWindow::setupPages()
     updateReporterClearAction();
 
     auto updateReporterControls = [this, browseAction, clearReporterAction](bool enabled) {
-        ui.externalReporterPathEdit->setEnabled(enabled);
+        ui.externalReporterPathEdit->setReadOnly(!enabled);
         browseAction->setEnabled(enabled);
-        clearReporterAction->setEnabled(enabled);
+        clearReporterAction->setEnabled(enabled && !ui.externalReporterPathEdit->text().isEmpty());
     };
-    QObject::connect(ui.externalReporterBox, &QAbstractButton::toggled, this, updateReporterControls);
-    QObject::connect(ui.debugBox, &QAbstractButton::toggled, ui.loggerLevelBox, &QWidget::setEnabled);
-    const QList<QWidget*> sectionHeaders = {
-        ui.debugHeaderWidget,
-        ui.debugHeader,
-        ui.externalReporterHeaderWidget,
-        ui.externalReporterHeader,
-    };
-    for (QWidget* widget : sectionHeaders) {
-        widget->setCursor(Qt::PointingHandCursor);
-        widget->installEventFilter(this);
+    QObject::connect(ui.externalCrashReporterBox, &QAbstractButton::toggled, this, updateReporterControls);
+    updateReporterControls(false);
+    QObject::connect(ui.initReleaseEdit, &QLineEdit::textChanged, this, &SentryWindow::updateInitSummaries);
+    QObject::connect(ui.initEnvironmentEdit, &QComboBox::currentTextChanged,
+        this, &SentryWindow::updateInitSummaries);
+    QObject::connect(ui.initDistEdit, &QLineEdit::textChanged, this, &SentryWindow::updateInitSummaries);
+    QObject::connect(ui.databasePathEdit, &QLineEdit::textChanged, this, &SentryWindow::updateInitSummaries);
+    QObject::connect(ui.tracesSampleRateBox, qOverload<double>(&QDoubleSpinBox::valueChanged),
+        this, &SentryWindow::updateInitSummaries);
+    QObject::connect(ui.maxBreadcrumbsBox, qOverload<int>(&QSpinBox::valueChanged),
+        this, &SentryWindow::updateInitSummaries);
+    QObject::connect(ui.maxSpansBox, qOverload<int>(&QSpinBox::valueChanged),
+        this, &SentryWindow::updateInitSummaries);
+    QObject::connect(ui.shutdownTimeoutBox, qOverload<int>(&QSpinBox::valueChanged),
+        this, &SentryWindow::updateInitSummaries);
+    QObject::connect(ui.cacheKeepModeBox, qOverload<int>(&QComboBox::currentIndexChanged),
+        this, &SentryWindow::updateInitSummaries);
+    QObject::connect(ui.cacheMaxItemsBox, qOverload<int>(&QSpinBox::valueChanged),
+        this, &SentryWindow::updateInitSummaries);
+    QObject::connect(ui.cacheMaxSizeBox, qOverload<int>(&QSpinBox::valueChanged),
+        this, &SentryWindow::updateInitSummaries);
+    QObject::connect(ui.cacheMaxAgeBox, qOverload<int>(&QSpinBox::valueChanged),
+        this, &SentryWindow::updateInitSummaries);
+    QObject::connect(ui.loggerLevelBox, qOverload<int>(&QComboBox::currentIndexChanged),
+        this, &SentryWindow::updateInitSummaries);
+    QObject::connect(ui.externalReporterPathEdit, &QLineEdit::textChanged,
+        this, &SentryWindow::updateInitSummaries);
+    for (QCheckBox* box : {
+             ui.attachScreenshotBox,
+             ui.requireUserConsentBox,
+             ui.systemCrashReporterBox,
+             ui.externalCrashReporterBox,
+             ui.enableLargeAttachmentsBox,
+             ui.httpRetryBox,
+         }) {
+        QObject::connect(box, &QAbstractButton::toggled, this, &SentryWindow::updateInitSummaries);
     }
-
     QObject::connect(browseAction, &QAction::triggered, this, [this]() {
         QString seed = ui.externalReporterPathEdit->text();
         if (seed.isEmpty())
@@ -663,10 +949,27 @@ void SentryWindow::setupPages()
     });
 
     QObject::connect(ui.initializeButton, &QAbstractButton::clicked, this, [this]() {
-        SentryPlayground::open(initOptionsFromPage());
+        const SentryPlayground::InitOptions options = initOptionsFromPage();
+        rememberInitEnvironment(options.environment);
+        SentryPlayground::open(options);
     });
 
     populateInitPage();
+    applyInitPaletteStyles();
+    updateInitDetailsVisibility();
+}
+
+void SentryWindow::setupWheelScrolling()
+{
+    for (QAbstractSpinBox* spinBox : findChildren<QAbstractSpinBox*>()) {
+        spinBox->setFocusPolicy(Qt::StrongFocus);
+    }
+
+    for (QComboBox* comboBox : findChildren<QComboBox*>()) {
+        comboBox->setFocusPolicy(Qt::StrongFocus);
+        if (QLineEdit* edit = comboBox->lineEdit())
+            edit->setFocusPolicy(Qt::StrongFocus);
+    }
 }
 
 void SentryWindow::populateInitPage()
@@ -683,19 +986,19 @@ void SentryWindow::populateInitPage()
         ui.initDistEdit,
         ui.tracesSampleRateBox,
         ui.maxBreadcrumbsBox,
+        ui.maxSpansBox,
         ui.shutdownTimeoutBox,
         ui.attachScreenshotBox,
         ui.requireUserConsentBox,
         ui.systemCrashReporterBox,
+        ui.externalCrashReporterBox,
         ui.enableLargeAttachmentsBox,
         ui.httpRetryBox,
         ui.cacheKeepModeBox,
         ui.cacheMaxItemsBox,
         ui.cacheMaxSizeBox,
         ui.cacheMaxAgeBox,
-        ui.debugBox,
         ui.loggerLevelBox,
-        ui.externalReporterBox,
         ui.externalReporterPathEdit,
     };
     QList<QSignalBlocker*> blockers;
@@ -708,14 +1011,16 @@ void SentryWindow::populateInitPage()
     ui.databasePathEdit->setText(options.databasePath);
     ui.databasePathEdit->setCursorPosition(0);
     ui.initReleaseEdit->setText(options.release);
-    ui.initEnvironmentEdit->setText(options.environment);
+    populateInitEnvironmentHistory(options.environment);
     ui.initDistEdit->setText(options.dist);
     ui.tracesSampleRateBox->setValue(options.tracesSampleRate);
     ui.maxBreadcrumbsBox->setValue(options.maxBreadcrumbs);
+    ui.maxSpansBox->setValue(options.maxSpans);
     ui.shutdownTimeoutBox->setValue(options.shutdownTimeout);
     ui.attachScreenshotBox->setChecked(options.attachScreenshot);
     ui.requireUserConsentBox->setChecked(options.requireUserConsent);
     ui.systemCrashReporterBox->setChecked(options.systemCrashReporterEnabled);
+    ui.externalCrashReporterBox->setChecked(options.externalCrashReporterEnabled);
     ui.enableLargeAttachmentsBox->setChecked(options.enableLargeAttachments);
     ui.httpRetryBox->setChecked(options.httpRetry);
     const int cacheKeepModeIndex = ui.cacheKeepModeBox->findData(options.cacheKeepMode);
@@ -725,25 +1030,54 @@ void SentryWindow::populateInitPage()
     ui.cacheMaxItemsBox->setValue(options.cacheMaxItems);
     ui.cacheMaxSizeBox->setValue(options.cacheMaxSize);
     ui.cacheMaxAgeBox->setValue(options.cacheMaxAge);
-    ui.debugBox->setChecked(options.debug);
-    const int loggerLevelIndex = ui.loggerLevelBox->findData(options.loggerLevel);
+    const int loggerLevelIndex = options.debug
+        ? ui.loggerLevelBox->findData(options.loggerLevel)
+        : ui.loggerLevelBox->findData(kLoggerLevelNone);
     ui.loggerLevelBox->setCurrentIndex(loggerLevelIndex >= 0
         ? loggerLevelIndex
-        : ui.loggerLevelBox->findData(SENTRY_LEVEL_DEBUG));
-    ui.loggerLevelBox->setEnabled(options.debug);
-    ui.externalReporterBox->setChecked(options.externalCrashReporterEnabled);
+        : ui.loggerLevelBox->findData(kLoggerLevelNone));
     ui.externalReporterPathEdit->setText(options.externalCrashReporterPath);
     for (QAction* action : ui.externalReporterPathEdit->actions()) {
         action->setEnabled(options.externalCrashReporterEnabled);
         if (action->objectName() == "externalReporterClearAction")
-            action->setVisible(!ui.externalReporterPathEdit->text().isEmpty());
+            action->setEnabled(options.externalCrashReporterEnabled
+                && !ui.externalReporterPathEdit->text().isEmpty());
     }
-    ui.externalReporterPathEdit->setEnabled(options.externalCrashReporterEnabled);
+    for (QAction* action : ui.databasePathEdit->actions()) {
+        if (action->objectName() == "databasePathClearAction")
+            action->setEnabled(!ui.databasePathEdit->text().isEmpty());
+    }
+    ui.externalReporterPathEdit->setReadOnly(!options.externalCrashReporterEnabled);
     ui.initializeButton->setText(SentryPlayground::instance()->hasInitialized()
         ? "Re-initialize"
         : "Initialize");
+    updateInitSummaries();
+    updateInitDetailsVisibility();
 
     qDeleteAll(blockers);
+}
+
+void SentryWindow::populateInitEnvironmentHistory(const QString& currentEnvironment)
+{
+    ui.initEnvironmentEdit->clear();
+    ui.initEnvironmentEdit->addItems(environmentHistoryWith(
+        QSettings().value("init/environmentHistory").toStringList(),
+        currentEnvironment));
+    ui.initEnvironmentEdit->setEditText(currentEnvironment);
+}
+
+void SentryWindow::rememberInitEnvironment(const QString& environment)
+{
+    QSettings settings;
+    const QStringList history = environmentHistoryWith(
+        settings.value("init/environmentHistory").toStringList(),
+        environment);
+    settings.setValue("init/environmentHistory", history);
+
+    QSignalBlocker blocker(ui.initEnvironmentEdit);
+    ui.initEnvironmentEdit->clear();
+    ui.initEnvironmentEdit->addItems(history);
+    ui.initEnvironmentEdit->setEditText(environment);
 }
 
 SentryPlayground::InitOptions SentryWindow::initOptionsFromPage() const
@@ -752,10 +1086,11 @@ SentryPlayground::InitOptions SentryWindow::initOptionsFromPage() const
     options.dsn = ui.dsnEdit->text().trimmed();
     options.databasePath = ui.databasePathEdit->text();
     options.release = ui.initReleaseEdit->text().trimmed();
-    options.environment = ui.initEnvironmentEdit->text().trimmed();
+    options.environment = ui.initEnvironmentEdit->currentText().trimmed();
     options.dist = ui.initDistEdit->text().trimmed();
     options.tracesSampleRate = ui.tracesSampleRateBox->value();
     options.maxBreadcrumbs = ui.maxBreadcrumbsBox->value();
+    options.maxSpans = ui.maxSpansBox->value();
     options.shutdownTimeout = ui.shutdownTimeoutBox->value();
     options.attachScreenshot = ui.attachScreenshotBox->isChecked();
     options.requireUserConsent = ui.requireUserConsentBox->isChecked();
@@ -766,45 +1101,267 @@ SentryPlayground::InitOptions SentryWindow::initOptionsFromPage() const
     options.cacheMaxItems = ui.cacheMaxItemsBox->value();
     options.cacheMaxSize = ui.cacheMaxSizeBox->value();
     options.cacheMaxAge = ui.cacheMaxAgeBox->value();
-    options.debug = ui.debugBox->isChecked();
-    options.loggerLevel = ui.loggerLevelBox->currentData().toInt();
-    options.externalCrashReporterEnabled = ui.externalReporterBox->isChecked();
+    const int loggerLevel = ui.loggerLevelBox->currentData().toInt();
+    options.debug = loggerLevel != kLoggerLevelNone;
+    options.loggerLevel = options.debug ? loggerLevel : SENTRY_LEVEL_DEBUG;
+    options.externalCrashReporterEnabled = ui.externalCrashReporterBox->isChecked();
     options.externalCrashReporterPath = ui.externalReporterPathEdit->text();
     return options;
+}
+
+void SentryWindow::updateInitDetailsVisibility()
+{
+    const bool dsnVisible = ui.sdkEditButton->isChecked();
+    const bool versionVisible = ui.versionEditButton->isChecked();
+    const bool featuresVisible = ui.featuresEditButton->isChecked();
+    const bool advancedVisible = ui.advancedOptionsEditButton->isChecked();
+    const bool cacheVisible = ui.cacheEditButton->isChecked();
+    const bool reporterVisible = ui.externalReporterEditButton->isChecked();
+
+    auto setFormVisible = [](QFormLayout* layout, bool visible) {
+        QMargins margins = layout->contentsMargins();
+        margins.setTop(visible ? 8 : 0);
+        margins.setBottom(visible ? 10 : 0);
+        layout->setContentsMargins(margins);
+        layout->setVerticalSpacing(visible ? 10 : 0);
+        for (int row = 0; row < layout->rowCount(); ++row)
+            layout->setRowVisible(row, visible);
+        layout->invalidate();
+    };
+    setFormVisible(ui.sdkDetailsFormLayout, dsnVisible);
+    setFormVisible(ui.versionDetailsFormLayout, versionVisible);
+    setFormVisible(ui.featuresDetailsFormLayout, featuresVisible);
+    setFormVisible(ui.advancedOptionsDetailsFormLayout, advancedVisible);
+    setFormVisible(ui.cacheDetailsFormLayout, cacheVisible);
+    setFormVisible(ui.externalReporterDetailsFormLayout, reporterVisible);
+
+    ui.initRightColumn->invalidate();
+    ui.initScrollContents->updateGeometry();
+}
+
+void SentryWindow::applyInitPaletteStyles()
+{
+    const QColor textColor = palette().color(QPalette::WindowText);
+    const QColor paneColor = blendedColor(palette().color(QPalette::Window), textColor, 10);
+
+    ui.initBackendLabel->setStyleSheet(QStringLiteral(
+        "color: %1; font-weight: bold; background-color: %2; border: none; border-radius: 5px; padding: 1px 7px;")
+            .arg(cssRgba(textColor, 170), cssRgba(textColor, 24)));
+    ui.backendLabel->setStyleSheet(ui.initBackendLabel->styleSheet());
+
+    ui.initScrollBackdrop->setStyleSheet(QStringLiteral(
+        "QFrame#initScrollBackdrop {"
+        " background-color: %1;"
+        " border: 1px solid %2;"
+        " border-radius: 6px;"
+        "}")
+            .arg(cssRgb(paneColor), cssRgba(textColor, 38)));
+    const QString dividerStyle = QStringLiteral(
+        "QFrame { background-color: %1; border: none; }").arg(cssRgba(textColor, 26));
+    QWidget* const sectionDividers[] = {
+        ui.sdkSectionDivider,
+        ui.versionSectionDivider,
+        ui.featuresSectionDivider,
+        ui.parametersSectionDivider,
+        ui.databaseSectionDivider,
+    };
+    for (QWidget* divider : sectionDividers)
+        divider->setStyleSheet(dividerStyle);
+    ui.initScrollArea->setFrameShape(QFrame::NoFrame);
+    ui.initScrollArea->setFrameShadow(QFrame::Plain);
+
+    QPalette panePalette = palette();
+    panePalette.setColor(QPalette::Window, paneColor);
+    panePalette.setColor(QPalette::Base, paneColor);
+    QWidget* const transparentPaneWidgets[] = {
+             ui.initScrollArea,
+             ui.initScrollArea->viewport(),
+             ui.initScrollContents,
+             ui.initSummarySheet,
+    };
+    for (QWidget* widget : transparentPaneWidgets) {
+        widget->setPalette(panePalette);
+        widget->setAutoFillBackground(false);
+    }
+    updateInitSummaries();
+}
+
+void SentryWindow::updateInitSummaries()
+{
+    const QColor textColor = palette().color(QPalette::WindowText);
+    const QString inactiveStatusStyle = QStringLiteral("color: %1; font-weight: bold;")
+        .arg(cssRgba(textColor, 115));
+    auto setStatus = [&inactiveStatusStyle](QLabel* label, bool enabled) {
+        label->setText(enabled ? QStringLiteral("✓") : QStringLiteral("-"));
+        label->setStyleSheet(enabled
+            ? QStringLiteral("color: #21c26a; font-weight: bold;")
+            : inactiveStatusStyle);
+    };
+
+    QString dsnSummary;
+    const QUrl dsnUrl(ui.dsnEdit->text().trimmed());
+    dsnSummary = dsnUrl.host();
+    if (!dsnSummary.isEmpty() && dsnUrl.port() >= 0)
+        dsnSummary += QStringLiteral(":%1").arg(dsnUrl.port());
+    ui.sdkSummaryLabel->setText(dsnSummary.isEmpty()
+                                    ? QStringLiteral("N/A")
+                                    : dsnSummary);
+    setStatus(ui.sdkSummaryIcon, !dsnSummary.isEmpty());
+
+    QStringList versionParts;
+    const QString release = ui.initReleaseEdit->text().trimmed();
+    const QString environment = ui.initEnvironmentEdit->currentText().trimmed();
+    const QString dist = ui.initDistEdit->text().trimmed();
+    if (!release.isEmpty())
+        versionParts.append(release);
+    if (!environment.isEmpty())
+        versionParts.append(environment);
+    if (!dist.isEmpty())
+        versionParts.append(dist);
+    ui.versionSummaryLabel->setText(versionParts.isEmpty()
+            ? QStringLiteral("N/A")
+            : versionParts.join(QStringLiteral(", ")));
+    setStatus(ui.versionSummaryIcon, !versionParts.isEmpty());
+
+    QStringList features;
+    if (ui.requireUserConsentBox->isChecked())
+        features.append(QStringLiteral("consent"));
+    if (ui.httpRetryBox->isChecked())
+        features.append(QStringLiteral("retry"));
+    if (ui.attachScreenshotBox->isChecked())
+        features.append(QStringLiteral("screenshot"));
+    if (ui.enableLargeAttachmentsBox->isChecked())
+        features.append(QStringLiteral("large attachments"));
+    ui.featuresSummaryLabel->setText(features.isEmpty()
+            ? QStringLiteral("N/A")
+            : features.join(QStringLiteral(", ")));
+    setStatus(ui.featuresSummaryStatus, !features.isEmpty());
+
+    ui.advancedOptionsSummaryLabel->setText(
+        QStringLiteral("sample %1x, %2 crumbs, %3 spans, %4")
+            .arg(QLocale::c().toString(ui.tracesSampleRateBox->value(), 'f', 2))
+            .arg(ui.maxBreadcrumbsBox->value())
+            .arg(ui.maxSpansBox->value())
+            .arg(ui.loggerLevelBox->currentData().toInt() != kLoggerLevelNone
+                     ? ui.loggerLevelBox->currentText().toLower()
+                     : QString()));
+    setStatus(ui.advancedOptionsSummaryStatus, true);
+
+    QStringList databaseParts;
+    const QString databasePath = ui.databasePathEdit->text().trimmed();
+    if (!databasePath.isEmpty()) {
+        databaseParts += QFileInfo(databasePath).fileName();
+    }
+    if (ui.cacheKeepModeBox->currentIndex() > 0) {
+        databaseParts += QString("cache %1").arg(ui.cacheKeepModeBox->currentText().toLower());
+        if (ui.cacheMaxItemsBox->value() > 0) {
+            databaseParts += QString("%1 items").arg(ui.cacheMaxItemsBox->value());
+        }
+        if (ui.cacheMaxSizeBox->value() > 0) {
+            databaseParts += QLocale().formattedDataSize(ui.cacheMaxSizeBox->value());
+        }
+        if (ui.cacheMaxAgeBox->value() > 0) {
+            databaseParts += QStringLiteral("%1 s").arg(ui.cacheMaxAgeBox->value());
+        }
+    }
+    ui.cacheSummaryLabel->setText(databaseParts.join(", "));
+    setStatus(ui.cacheSummaryStatus, true);
+
+    QStringList reporterParts;
+    if (ui.systemCrashReporterBox->isChecked())
+        reporterParts.append(QStringLiteral("system"));
+
+    const bool externalReporterEnabled = ui.externalCrashReporterBox->isChecked();
+    if (externalReporterEnabled) {
+        const QString path = ui.externalReporterPathEdit->text().trimmed();
+        reporterParts.append(path.isEmpty()
+            ? QStringLiteral("external")
+            : QFileInfo(path).fileName());
+    }
+
+    QString reporterSummary = QStringLiteral("N/A");
+    if (!reporterParts.isEmpty()) {
+        reporterSummary = reporterParts.join(QStringLiteral(", "));
+    }
+    ui.externalReporterSummaryLabel->setText(reporterSummary);
+    setStatus(ui.externalReporterSummaryStatus, !reporterParts.isEmpty());
 }
 
 void SentryWindow::showInitPage()
 {
     populateInitPage();
+    ui.leftStack->setCurrentWidget(ui.initLeftPanel);
     ui.pages->setCurrentWidget(ui.initPage);
     statusBar()->hide();
 }
 
 void SentryWindow::showRuntimePage()
 {
+    ui.leftStack->setCurrentWidget(ui.runtimeLeftPanel);
     ui.pages->setCurrentWidget(ui.runtimePage);
     statusBar()->show();
 }
 
 void SentryWindow::changeEvent(QEvent *event)
 {
-    if (event->type() == QEvent::PaletteChange)
+    if (event->type() == QEvent::PaletteChange) {
+        applyInitPaletteStyles();
         updateLogo();
+    }
     QMainWindow::changeEvent(event);
 }
 
 bool SentryWindow::eventFilter(QObject *watched, QEvent *event)
 {
-    if (event->type() == QEvent::MouseButtonRelease) {
-        if (watched == ui.debugHeaderWidget || watched == ui.debugHeader) {
-            ui.debugBox->toggle();
+    auto* summaryRow = qobject_cast<QWidget*>(watched);
+    if (summaryRow && summaryRow->property("initSummaryRow").toBool()) {
+        if (event->type() == QEvent::Enter || event->type() == QEvent::Leave) {
+            const bool hovered = event->type() == QEvent::Enter;
+            QPalette rowPalette = summaryRow->palette();
+            rowPalette.setColor(QPalette::Window, blendedColor(
+                palette().color(QPalette::Window), palette().color(QPalette::WindowText), 18));
+            summaryRow->setPalette(rowPalette);
+            summaryRow->setAutoFillBackground(hovered);
+        } else if (event->type() == QEvent::MouseButtonRelease) {
+            const QString name = summaryRow->objectName();
+            if (name == QLatin1String("versionSummaryWidget")) {
+                ui.versionEditButton->toggle();
+                return true;
+            }
+            if (name == QLatin1String("sdkSummaryWidget")) {
+                ui.sdkEditButton->toggle();
+                return true;
+            }
+            if (name == QLatin1String("featuresSummaryWidget")) {
+                ui.featuresEditButton->toggle();
+                return true;
+            }
+            if (name == QLatin1String("advancedOptionsSummaryWidget")) {
+                ui.advancedOptionsEditButton->toggle();
+                return true;
+            }
+            if (name == QLatin1String("cacheSummaryWidget")) {
+                ui.cacheEditButton->toggle();
+                return true;
+            }
+            if (name == QLatin1String("externalReporterSummaryWidget")) {
+                ui.externalReporterEditButton->toggle();
+                return true;
+            }
+        }
+    }
+
+    if (event->type() == QEvent::Wheel) {
+        if (auto* spinBox = findParent<QAbstractSpinBox>(watched)) {
+            forwardWheelEventToScrollArea(spinBox, static_cast<QWheelEvent*>(event));
             return true;
         }
-        if (watched == ui.externalReporterHeaderWidget || watched == ui.externalReporterHeader) {
-            ui.externalReporterBox->toggle();
+        if (auto* comboBox = findParent<QComboBox>(watched)) {
+            forwardWheelEventToScrollArea(comboBox, static_cast<QWheelEvent*>(event));
             return true;
         }
     }
+
     return QMainWindow::eventFilter(watched, event);
 }
 
