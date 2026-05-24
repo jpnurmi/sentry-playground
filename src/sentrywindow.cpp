@@ -80,6 +80,37 @@ static QColor blendedColor(QColor base, QColor overlay, int overlayAlpha)
         qRound(base.blue() * (1 - alpha) + overlay.blue() * alpha));
 }
 
+static QString segmentedButtonStyle(const QPalette& palette, const QString& extra)
+{
+    const QColor window = palette.color(QPalette::Window);
+    const QColor text = palette.color(QPalette::WindowText);
+    return QStringLiteral(
+        "QPushButton { color: %1; font-weight: bold; background: transparent;"
+        " border: 1px solid %2; padding: 3px 12px; %3 }"
+        "QPushButton:checked { background: %4; color: %5; }")
+        .arg(cssRgb(blendedColor(window, text, 120)),
+             cssRgb(blendedColor(window, text, 70)),
+             extra,
+             cssRgb(blendedColor(window, text, 44)),
+             cssRgb(text));
+}
+
+static QString circularButtonStyle(const QPalette& palette, const QString& extra = QString())
+{
+    const QColor window = palette.color(QPalette::Window);
+    const QColor text = palette.color(QPalette::WindowText);
+    return QStringLiteral(
+        "QToolButton {"
+        " border: none; border-radius: 11px;"
+        " background: %1; padding: 0; %4 }"
+        "QToolButton:hover { background: %2; }"
+        "QToolButton:pressed { background: %3; }")
+        .arg(cssRgb(blendedColor(window, text, 34)),
+             cssRgb(blendedColor(window, text, 52)),
+             cssRgb(blendedColor(window, text, 68)),
+             extra);
+}
+
 template <typename T>
 static T* findParent(QObject* object)
 {
@@ -165,15 +196,6 @@ SentryWindow::SentryWindow(QWidget *parent)
     ui.breadcrumbTypeBox->setFixedWidth(typeBoxWidth);
     ui.exceptionTypeBox->setFixedWidth(typeBoxWidth);
 
-    const char* kMessageSegmentedBase =
-        "QPushButton { color: palette(mid); font-weight: bold; background: transparent;"
-        " border: 1px solid palette(mid); padding: 3px 12px; %1 }"
-        "QPushButton:checked { background: palette(midlight); color: palette(text); }";
-    ui.messageButton->setStyleSheet(QString(kMessageSegmentedBase).arg(
-        "border-top-left-radius: 4px; border-bottom-left-radius: 4px;"));
-    ui.exceptionButton->setStyleSheet(QString(kMessageSegmentedBase).arg("border-left: none;"));
-    ui.breadcrumbButton->setStyleSheet(QString(kMessageSegmentedBase).arg(
-        "border-left: none; border-top-right-radius: 4px; border-bottom-right-radius: 4px;"));
     auto* messageGroup = new QButtonGroup(this);
     messageGroup->setExclusive(true);
     messageGroup->addButton(ui.messageButton);
@@ -250,20 +272,12 @@ SentryWindow::SentryWindow(QWidget *parent)
     QObject::connect(ui.messageText, &QLineEdit::textChanged, this,
         [messageAction](const QString& text) { messageAction->setEnabled(!text.isEmpty()); });
 
-    const char* kSegmentedBase =
-        "QPushButton { color: palette(mid); font-weight: bold; background: transparent;"
-        " border: 1px solid palette(mid); padding: 3px 12px; %1 }"
-        "QPushButton:checked { background: palette(midlight); color: palette(text); }";
-    ui.tagsButton->setStyleSheet(QString(kSegmentedBase).arg(
-        "border-top-left-radius: 4px; border-bottom-left-radius: 4px;"));
-    ui.contextsButton->setStyleSheet(QString(kSegmentedBase).arg("border-left: none;"));
-    ui.attachmentsButton->setStyleSheet(QString(kSegmentedBase).arg(
-        "border-left: none; border-top-right-radius: 4px; border-bottom-right-radius: 4px;"));
     auto* categoryGroup = new QButtonGroup(this);
     categoryGroup->setExclusive(true);
     categoryGroup->addButton(ui.tagsButton);
     categoryGroup->addButton(ui.contextsButton);
     categoryGroup->addButton(ui.attachmentsButton);
+    applyRuntimePaletteStyles();
 
     const auto segmentedButtons = messageGroup->buttons() + categoryGroup->buttons();
     int segmentedWidth = 0;
@@ -380,13 +394,6 @@ SentryWindow::SentryWindow(QWidget *parent)
         tree->editItem(item, 0);
     };
 
-    const char* kCircularButton =
-        "QToolButton {"
-        " border: none; border-radius: 11px;"
-        " background: palette(button); padding: 0; %1 }"
-        "QToolButton:hover { background: palette(light); }"
-        "QToolButton:pressed { background: palette(midlight); }";
-
     auto makeBackIcon = [](qreal dpr) {
         const int size = 16;
         const QColor color = QApplication::palette().color(QPalette::ButtonText);
@@ -403,10 +410,11 @@ SentryWindow::SentryWindow(QWidget *parent)
     };
 
     auto* optionsButton = new QToolButton(ui.runtimeLeftPanel);
+    optionsButton->setObjectName(QStringLiteral("runtimeOptionsButton"));
     optionsButton->setFixedSize(22, 22);
     optionsButton->setIconSize(QSize(14, 14));
     optionsButton->setIcon(makeBackIcon(devicePixelRatioF()));
-    optionsButton->setStyleSheet(QString(kCircularButton).arg(""));
+    optionsButton->setStyleSheet(circularButtonStyle(palette()));
     optionsButton->setToolTip("Back");
     optionsButton->move(0, 0);
     optionsButton->raise();
@@ -415,7 +423,6 @@ SentryWindow::SentryWindow(QWidget *parent)
     });
 
     ui.addButton->setFixedSize(22, 22);
-    ui.addButton->setStyleSheet(QString(kCircularButton).arg(""));
 
     auto makePlusIcon = [this](qreal dpr) {
         const int size = 12;
@@ -483,7 +490,7 @@ SentryWindow::SentryWindow(QWidget *parent)
     QPalette editDefaultPalette = ui.releaseEdit->palette();
     QPalette editPendingPalette = editDefaultPalette;
     editPendingPalette.setColor(QPalette::Text, QColor("#ff3b30"));
-    auto updateSessionButton = [this, playground, editDefaultPalette, editPendingPalette, kCircularButton]() {
+    auto updateSessionButton = [this, playground, editDefaultPalette, editPendingPalette]() {
         bool releasePending = ui.releaseEdit->text() != playground->release();
         bool envPending = ui.environmentEdit->text() != playground->environment();
         bool pending = releasePending || envPending;
@@ -493,12 +500,13 @@ SentryWindow::SentryWindow(QWidget *parent)
         if (pending) {
             ui.sessionButton->setText("⟳");
             ui.sessionButton->setToolTip("Apply and restart session");
-            ui.sessionButton->setStyleSheet(QString(kCircularButton).arg(
-                "font-size: 16px; font-weight: bold; color: #ff3b30;"));
+            ui.sessionButton->setStyleSheet(circularButtonStyle(
+                palette(), QStringLiteral("font-size: 16px; font-weight: bold; color: #ff3b30;")));
         } else {
             ui.sessionButton->setText(active ? "⏹" : "▶");
             ui.sessionButton->setToolTip(active ? "End session" : "Start session");
-            ui.sessionButton->setStyleSheet(QString(kCircularButton).arg("font-size: 16px;"));
+            ui.sessionButton->setStyleSheet(circularButtonStyle(
+                palette(), QStringLiteral("font-size: 16px;")));
         }
     };
     updateSessionButton();
@@ -956,6 +964,7 @@ void SentryWindow::setupPages()
 
     populateInitPage();
     applyInitPaletteStyles();
+    applyRuntimePaletteStyles();
     updateInitDetailsVisibility();
 }
 
@@ -1186,6 +1195,29 @@ void SentryWindow::applyInitPaletteStyles()
     updateInitSummaries();
 }
 
+void SentryWindow::applyRuntimePaletteStyles()
+{
+    ui.messageButton->setStyleSheet(segmentedButtonStyle(
+        palette(), QStringLiteral("border-top-left-radius: 4px; border-bottom-left-radius: 4px;")));
+    ui.exceptionButton->setStyleSheet(segmentedButtonStyle(
+        palette(), QStringLiteral("border-left: none;")));
+    ui.breadcrumbButton->setStyleSheet(segmentedButtonStyle(
+        palette(), QStringLiteral("border-left: none; border-top-right-radius: 4px; border-bottom-right-radius: 4px;")));
+
+    ui.tagsButton->setStyleSheet(segmentedButtonStyle(
+        palette(), QStringLiteral("border-top-left-radius: 4px; border-bottom-left-radius: 4px;")));
+    ui.contextsButton->setStyleSheet(segmentedButtonStyle(
+        palette(), QStringLiteral("border-left: none;")));
+    ui.attachmentsButton->setStyleSheet(segmentedButtonStyle(
+        palette(), QStringLiteral("border-left: none; border-top-right-radius: 4px; border-bottom-right-radius: 4px;")));
+
+    if (auto* optionsButton = ui.runtimeLeftPanel->findChild<QToolButton*>(QStringLiteral("runtimeOptionsButton")))
+        optionsButton->setStyleSheet(circularButtonStyle(palette()));
+    ui.addButton->setStyleSheet(circularButtonStyle(palette()));
+    ui.sessionButton->setStyleSheet(circularButtonStyle(
+        palette(), QStringLiteral("font-size: 16px;")));
+}
+
 void SentryWindow::updateInitSummaries()
 {
     const QColor textColor = palette().color(QPalette::WindowText);
@@ -1306,6 +1338,7 @@ void SentryWindow::changeEvent(QEvent *event)
 {
     if (event->type() == QEvent::PaletteChange) {
         applyInitPaletteStyles();
+        applyRuntimePaletteStyles();
         updateLogo();
     }
     QMainWindow::changeEvent(event);

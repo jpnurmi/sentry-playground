@@ -28,6 +28,7 @@ private:
     SentryPlayground::InitOptions initOptionsFromPage() const;
     void showInitPage();
     void showRuntimePage();
+    void applyRuntimePaletteStyles();
     void applyInitPaletteStyles();
     void updateInitDetailsVisibility();
     void updateInitSummaries();
