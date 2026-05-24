@@ -1,22 +1,27 @@
 #include "sentrytrace.h"
 
-bool SentryTrace::s_enabled = false;
+std::atomic_bool SentryTrace::s_enabled = false;
+std::mutex SentryTrace::s_mutex;
 sentry_transaction_t *SentryTrace::s_tx = nullptr;
 thread_local std::vector<sentry_span_t *> SentryTrace::t_spans;
 
 bool SentryTrace::enabled()
 {
-    return s_enabled;
+    return s_enabled.load(std::memory_order_acquire);
 }
 
 void SentryTrace::setEnabled(bool enabled)
 {
-    s_enabled = enabled;
+    s_enabled.store(enabled, std::memory_order_release);
 }
 
 void SentryTrace::begin(const char *op, const char *description)
 {
-    if (!s_enabled)
+    if (!enabled())
+        return;
+
+    std::lock_guard<std::mutex> lock(s_mutex);
+    if (!s_enabled.load(std::memory_order_relaxed))
         return;
 
     if (!s_tx) {
@@ -39,11 +44,10 @@ void SentryTrace::begin(const char *op, const char *description)
 
 void SentryTrace::end()
 {
-    if (!s_enabled)
-        return;
-
     if (t_spans.empty())
         return;
+
+    std::lock_guard<std::mutex> lock(s_mutex);
     sentry_span_t *span = t_spans.back();
     t_spans.pop_back();
     if (span)
@@ -56,21 +60,23 @@ void SentryTrace::end()
 
 void SentryTrace::flush()
 {
-    if (!s_enabled)
-        return;
-
-    while (!t_spans.empty()) {
-        sentry_span_t *span = t_spans.back();
-        t_spans.pop_back();
-        if (span)
-            sentry_span_finish(span);
+    sentry_uuid_t uuid = sentry_uuid_nil();
+    {
+        std::lock_guard<std::mutex> lock(s_mutex);
+        while (!t_spans.empty()) {
+            sentry_span_t *span = t_spans.back();
+            t_spans.pop_back();
+            if (span)
+                sentry_span_finish(span);
+        }
+        sentry_transaction_t *tx = s_tx;
+        if (!tx)
+            return;
+        s_tx = nullptr;
+        uuid = sentry_transaction_finish(tx);
     }
-    sentry_transaction_t *tx = s_tx;
-    if (!tx)
-        return;
-    s_tx = nullptr;
-    sentry_transaction_finish(tx);
-    sentry_flush(2000);
+    if (!sentry_uuid_is_nil(&uuid))
+        sentry_flush(2000);
 }
 
 SentryTrace::Scope::Scope(const char *op, const char *description)

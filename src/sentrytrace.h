@@ -2,6 +2,8 @@
 #define SENTRYTRACE_H
 
 #include <sentry.h>
+#include <atomic>
+#include <mutex>
 #include <vector>
 
 class SentryTrace
@@ -24,7 +26,8 @@ public:
     };
 
 private:
-    static bool s_enabled;
+    static std::atomic_bool s_enabled;
+    static std::mutex s_mutex;
     static sentry_transaction_t *s_tx;
     static thread_local std::vector<sentry_span_t *> t_spans;
 };

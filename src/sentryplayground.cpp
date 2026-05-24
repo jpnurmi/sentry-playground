@@ -216,8 +216,8 @@ void SentryPlayground::close()
     if (!playground->m_initialized)
         return;
 
-    SentryTrace::flush();
     SentryTrace::setEnabled(false);
+    SentryTrace::flush();
     sentry_close();
     playground->m_initialized = false;
     emit playground->initializedChanged(false);
