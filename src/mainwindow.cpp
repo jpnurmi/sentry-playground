@@ -19,6 +19,7 @@
 #include <QtWidgets/qlabel.h>
 #include <QtWidgets/qlineedit.h>
 #include <QtWidgets/qpushbutton.h>
+#include <QtWidgets/qsizepolicy.h>
 #include <QtWidgets/qstatusbar.h>
 #include <QtWidgets/qtoolbutton.h>
 
@@ -27,6 +28,35 @@ static constexpr int kPageTopMargin = 22;
 static constexpr int kPageRightMargin = 22;
 static constexpr int kPageBottomMargin = 16;
 static constexpr int kPageColumnSpacing = 16;
+static constexpr int kStatusBarRightMargin = 8;
+static constexpr int kStatusBarVerticalPadding = 4;
+
+static QString statusBarStyle(const QString& backgroundColor)
+{
+    return QStringLiteral(
+        "QStatusBar { background-color: %1; }"
+        "QStatusBar QPushButton#consentButton { border: none; background: transparent; }"
+        "QStatusBar QLabel { color: white; font-weight: bold; background: transparent; }"
+        "QStatusBar QLabel#consentIcon { font-size: 18px; }"
+        "QStatusBar QPushButton#feedbackButton {"
+        " color: white; font-weight: bold;"
+        " background: rgba(255, 255, 255, 0.15);"
+        " border: 1px solid rgba(255, 255, 255, 0.5);"
+        " border-radius: 4px; padding: 3px 12px; }"
+        "QStatusBar QPushButton#feedbackButton:hover {"
+        " background: rgba(255, 255, 255, 0.25); }"
+        "QStatusBar QPushButton#feedbackButton:pressed {"
+        " background: rgba(255, 255, 255, 0.35); }")
+        .arg(backgroundColor);
+}
+
+static QString mutedStatusBarBackground(const QPalette& palette)
+{
+    return Style::cssRgb(Style::blendedColor(
+        palette.color(QPalette::Window),
+        palette.color(QPalette::WindowText),
+        4));
+}
 
 template <typename T>
 static T* findParent(QObject* object)
@@ -95,6 +125,7 @@ MainWindow::MainWindow(QWidget* parent)
     consentButton->setObjectName("consentButton");
     consentButton->setCheckable(true);
     consentButton->setFlat(true);
+    consentButton->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     auto* consentIcon = new QLabel(consentButton);
     auto* consentText = new QLabel(consentButton);
     auto* consentLayout = new QHBoxLayout(consentButton);
@@ -106,10 +137,16 @@ MainWindow::MainWindow(QWidget* parent)
     consentText->setAttribute(Qt::WA_TransparentForMouseEvents);
     statusBar()->addPermanentWidget(consentButton, 1);
     statusBar()->setSizeGripEnabled(false);
+    statusBar()->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
     auto* feedbackButton = new QPushButton("Feedback", this);
     feedbackButton->setObjectName("feedbackButton");
+    feedbackButton->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     statusBar()->addPermanentWidget(feedbackButton);
+    if (QLayout* statusLayout = statusBar()->layout())
+        statusLayout->setContentsMargins(
+            0, kStatusBarVerticalPadding, kStatusBarRightMargin, kStatusBarVerticalPadding);
+    statusBar()->setFixedHeight(feedbackButton->sizeHint().height());
     QObject::connect(feedbackButton, &QAbstractButton::clicked, this, [this, playground]() {
         FeedbackDialog dialog(this);
         QVariantMap user = playground->user();
@@ -119,6 +156,9 @@ MainWindow::MainWindow(QWidget* parent)
             playground->captureFeedback(dialog.message(), dialog.name(), dialog.email());
     });
     QObject::connect(consentButton, &QAbstractButton::clicked, playground, [playground]() {
+        if (!playground->initOptions().requireUserConsent)
+            return;
+
         switch (playground->consent()) {
         case Qt::PartiallyChecked: playground->setConsent(Qt::Checked); break;
         case Qt::Checked: playground->setConsent(Qt::Unchecked); break;
@@ -126,45 +166,13 @@ MainWindow::MainWindow(QWidget* parent)
         }
     });
 
-    auto updateConsentStatus = [this, consentButton, consentIcon, consentText](Qt::CheckState state) {
-        static const char* kStyle =
-            "QStatusBar { background-color: %1; }"
-            "QStatusBar QPushButton#consentButton { border: none; background: transparent; }"
-            "QStatusBar QLabel { color: white; font-weight: bold; background: transparent; }"
-            "QStatusBar QLabel#consentIcon { font-size: 18px; }"
-            "QStatusBar QPushButton#feedbackButton {"
-            " color: white; font-weight: bold;"
-            " background: rgba(255, 255, 255, 0.15);"
-            " border: 1px solid rgba(255, 255, 255, 0.5);"
-            " border-radius: 4px; padding: 3px 12px; }"
-            "QStatusBar QPushButton#feedbackButton:hover {"
-            " background: rgba(255, 255, 255, 0.25); }"
-            "QStatusBar QPushButton#feedbackButton:pressed {"
-            " background: rgba(255, 255, 255, 0.35); }";
-        switch (state) {
-        case Qt::Checked:
-            statusBar()->setStyleSheet(QString(kStyle).arg("#2ecc71"));
-            consentIcon->setText("✓");
-            consentText->setText("Consent given — events will be captured and sent to Sentry");
-            consentButton->setChecked(true);
-            break;
-        case Qt::Unchecked:
-            statusBar()->setStyleSheet(QString(kStyle).arg("#e74c3c"));
-            consentIcon->setText("⚠");
-            consentText->setText("Consent revoked — events will be discarded and not sent to Sentry");
-            consentButton->setChecked(false);
-            break;
-        case Qt::PartiallyChecked:
-            statusBar()->setStyleSheet(QString(kStyle).arg("#f39c12"));
-            consentIcon->setText("⚠");
-            consentText->setText("Consent unknown — events will be discarded until consent is given");
-            consentButton->setChecked(false);
-            break;
-        }
-    };
     consentIcon->setObjectName("consentIcon");
+    consentText->setObjectName("consentText");
     updateConsentStatus(playground->consent());
-    QObject::connect(playground, &Playground::consentChanged, this, updateConsentStatus);
+    QObject::connect(playground, &Playground::consentChanged,
+        this, &MainWindow::updateConsentStatus);
+    QObject::connect(playground, &Playground::initOptionsChanged, this,
+        [this](const Playground::InitOptions&) { updateStatusBarVisibility(); });
     QObject::connect(playground, &Playground::initializedChanged, this,
         [this](bool initialized) {
             if (initialized)
@@ -206,7 +214,7 @@ void MainWindow::showInitPage()
     if (auto* optionsButton = ui.leftPanel->findChild<QToolButton*>(QStringLiteral("runtimeOptionsButton")))
         optionsButton->hide();
     ui.pages->setCurrentWidget(ui.initPage);
-    statusBar()->hide();
+    updateStatusBarVisibility();
 }
 
 void MainWindow::showRuntimePage()
@@ -217,7 +225,76 @@ void MainWindow::showRuntimePage()
         optionsButton->raise();
     }
     ui.pages->setCurrentWidget(ui.runtimePage);
-    statusBar()->show();
+    updateStatusBarVisibility();
+}
+
+void MainWindow::updateStatusBarVisibility()
+{
+    Playground* playground = Playground::instance();
+    const bool showRuntimeFooter = playground->initialized()
+        && ui.pages->currentWidget() == ui.runtimePage;
+    const bool showConsentFooter = playground->initialized()
+        && ui.pages->currentWidget() == ui.runtimePage
+        && playground->initOptions().requireUserConsent;
+    statusBar()->setVisible(showRuntimeFooter);
+
+    auto* consentButton = statusBar()->findChild<QPushButton*>(QStringLiteral("consentButton"));
+    auto* consentIcon = statusBar()->findChild<QLabel*>(QStringLiteral("consentIcon"));
+    auto* consentText = statusBar()->findChild<QLabel*>(QStringLiteral("consentText"));
+    if (showConsentFooter) {
+        if (consentButton) {
+            consentButton->setEnabled(true);
+            consentButton->show();
+        }
+        updateConsentStatus(playground->consent());
+    } else {
+        statusBar()->setStyleSheet(statusBarStyle(mutedStatusBarBackground(palette())));
+        if (consentButton) {
+            consentButton->setEnabled(true);
+            consentButton->setChecked(false);
+            consentButton->hide();
+        }
+        if (consentIcon)
+            consentIcon->clear();
+        if (consentText)
+            consentText->clear();
+    }
+}
+
+void MainWindow::updateConsentStatus(Qt::CheckState state)
+{
+    Playground* playground = Playground::instance();
+    if (!playground->initOptions().requireUserConsent) {
+        updateStatusBarVisibility();
+        return;
+    }
+
+    auto* consentButton = statusBar()->findChild<QPushButton*>(QStringLiteral("consentButton"));
+    auto* consentIcon = statusBar()->findChild<QLabel*>(QStringLiteral("consentIcon"));
+    auto* consentText = statusBar()->findChild<QLabel*>(QStringLiteral("consentText"));
+    if (!consentButton || !consentIcon || !consentText)
+        return;
+
+    switch (state) {
+    case Qt::Checked:
+        statusBar()->setStyleSheet(statusBarStyle(QStringLiteral("#2ecc71")));
+        consentIcon->setText("✓");
+        consentText->setText("Consent given — events will be captured and sent to Sentry");
+        consentButton->setChecked(true);
+        break;
+    case Qt::Unchecked:
+        statusBar()->setStyleSheet(statusBarStyle(QStringLiteral("#e74c3c")));
+        consentIcon->setText("⚠");
+        consentText->setText("Consent revoked — events will be discarded and not sent to Sentry");
+        consentButton->setChecked(false);
+        break;
+    case Qt::PartiallyChecked:
+        statusBar()->setStyleSheet(statusBarStyle(QStringLiteral("#f39c12")));
+        consentIcon->setText("⚠");
+        consentText->setText("Consent unknown — events will be discarded until consent is given");
+        consentButton->setChecked(false);
+        break;
+    }
 }
 
 void MainWindow::applyLeftPanelStyles()
@@ -240,6 +317,7 @@ void MainWindow::changeEvent(QEvent* event)
         ui.runtimePage->refreshPaletteStyles();
         applyLeftPanelStyles();
         updateLogo();
+        updateStatusBarVisibility();
     }
     QMainWindow::changeEvent(event);
 }

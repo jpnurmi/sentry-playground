@@ -24,6 +24,8 @@ private:
     void setupWheelScrolling();
     void showInitPage();
     void showRuntimePage();
+    void updateStatusBarVisibility();
+    void updateConsentStatus(Qt::CheckState state);
     void applyLeftPanelStyles();
     void updateLogo();
 
