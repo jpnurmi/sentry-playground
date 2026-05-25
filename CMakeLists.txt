@@ -26,6 +26,8 @@ qt_add_executable(sentry-playground
     src/sentryfeedbackdialog.cpp
     src/sentryplayground.h
     src/sentryplayground.cpp
+    src/sentrystyle.h
+    src/sentrystyle.cpp
     src/sentrytrace.h
     src/sentrytrace.cpp
     src/sentrywindow.h

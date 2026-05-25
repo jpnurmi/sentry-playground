@@ -217,29 +217,6 @@ SentryWindow::SentryWindow(QWidget *parent)
         ui.exceptionTypeBox->show();
     });
 
-#ifdef Q_OS_MACOS
-    for (QLineEdit* edit : { ui.messageText, ui.userIdEdit, ui.userNameEdit,
-             ui.userEmailEdit, ui.userIpEdit, ui.releaseEdit, ui.environmentEdit,
-             ui.dsnEdit, ui.databasePathEdit, ui.initReleaseEdit,
-             ui.initDistEdit, ui.crashReporterPathEdit }) {
-        edit->setFixedHeight(28);
-        edit->setContentsMargins(0, 4, 0, 0);
-    }
-    ui.initEnvironmentEdit->setFixedHeight(28);
-    if (QLineEdit* edit = ui.initEnvironmentEdit->lineEdit())
-        edit->setContentsMargins(0, 4, 0, 0);
-    ui.tracesSampleRateBox->setFixedHeight(28);
-    ui.maxBreadcrumbsBox->setFixedHeight(28);
-    ui.maxSpansBox->setFixedHeight(28);
-    ui.shutdownTimeoutBox->setFixedHeight(28);
-    ui.cacheKeepModeBox->setFixedHeight(28);
-    ui.cacheMaxItemsBox->setFixedHeight(28);
-    ui.cacheMaxSizeBox->setFixedHeight(28);
-    ui.cacheMaxAgeBox->setFixedHeight(28);
-    ui.loggerLevelBox->setFixedHeight(28);
-    ui.messageText->setContentsMargins(0, 2, 0, 0);
-#endif
-
     auto makeArrowIcon = [this](qreal dpr) {
         const int size = 16;
         QPixmap pixmap(size * dpr, size * dpr);
