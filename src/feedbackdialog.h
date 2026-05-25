@@ -1,5 +1,5 @@
-#ifndef SENTRYFEEDBACKDIALOG_H
-#define SENTRYFEEDBACKDIALOG_H
+#ifndef FEEDBACKDIALOG_H
+#define FEEDBACKDIALOG_H
 
 #include <QtWidgets/qdialog.h>
 
@@ -7,12 +7,12 @@ class QLineEdit;
 class QPlainTextEdit;
 class QPushButton;
 
-class SentryFeedbackDialog : public QDialog
+class FeedbackDialog : public QDialog
 {
     Q_OBJECT
 
 public:
-    explicit SentryFeedbackDialog(QWidget *parent = nullptr);
+    explicit FeedbackDialog(QWidget *parent = nullptr);
 
     QString message() const;
     QString name() const;
@@ -28,4 +28,4 @@ private:
     QPushButton *m_sendButton;
 };
 
-#endif // SENTRYFEEDBACKDIALOG_H
+#endif // FEEDBACKDIALOG_H

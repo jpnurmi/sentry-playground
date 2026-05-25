@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>CrashPane</class>
+ <widget class="QWidget" name="CrashPane">
+  <layout class="QVBoxLayout" name="crashPaneLayout">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item>
+    <spacer name="leftTopSpacer">
+     <property name="orientation">
+      <enum>Qt::Orientation::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>0</width>
+       <height>0</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QLabel" name="crashesHeader">
+     <property name="styleSheet">
+      <string notr="true">color: palette(placeholder-text); font-weight: bold;</string>
+     </property>
+     <property name="text">
+      <string>CRASH</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="crashButton">
+     <property name="text">
+      <string>Segfault</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="stackOverflowButton">
+     <property name="text">
+      <string>Stack overflow</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="throwButton">
+     <property name="text">
+      <string>Exception</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="fastfailButton">
+     <property name="text">
+      <string>Fast-fail</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="assertButton">
+     <property name="text">
+      <string>Assert</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="abortButton">
+     <property name="text">
+      <string>Abort</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="leftBottomSpacer">
+     <property name="orientation">
+      <enum>Qt::Orientation::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>0</width>
+       <height>0</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="togglesLayout">
+     <item>
+      <spacer name="togglesSpacer">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="filterBox">
+       <property name="text">
+        <string>Filter</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="workerBox">
+       <property name="text">
+        <string>Worker</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources>
+  <include location="../assets/assets.qrc"/>
+ </resources>
+ <connections/>
+</ui>

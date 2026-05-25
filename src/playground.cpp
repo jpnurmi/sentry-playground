@@ -1,13 +1,12 @@
-#include "sentryplayground.h"
-#include "sentrycrash.h"
-#include "sentrydebug.h"
-#include "sentrytrace.h"
+#include "playground.h"
+#include "tracing.h"
 
 #include <sentry.h>
 
 #include <algorithm>
 #include <ctime>
 
+#include <QtCore/qdebug.h>
 #include <QtCore/qsettings.h>
 #include <QtCore/qthread.h>
 
@@ -42,7 +41,7 @@ int normalizedCacheKeepMode(int mode)
 
 } // namespace
 
-SentryPlayground::SentryPlayground(QObject *parent) : QObject{parent}
+Playground::Playground(QObject *parent) : QObject{parent}
 {
     m_initOptions = loadInitOptions();
     m_tags.insert("backend", SENTRY_BACKEND);
@@ -52,7 +51,7 @@ SentryPlayground::SentryPlayground(QObject *parent) : QObject{parent}
     m_environment = m_initOptions.environment;
 }
 
-SentryPlayground::InitOptions SentryPlayground::loadInitOptions()
+Playground::InitOptions Playground::loadInitOptions()
 {
     QSettings settings;
 
@@ -92,7 +91,7 @@ SentryPlayground::InitOptions SentryPlayground::loadInitOptions()
     return options;
 }
 
-void SentryPlayground::saveInitOptions(const InitOptions& options)
+void Playground::saveInitOptions(const InitOptions& options)
 {
     QSettings settings;
     settings.setValue("init/dsn", options.dsn);
@@ -121,12 +120,12 @@ void SentryPlayground::saveInitOptions(const InitOptions& options)
     settings.setValue("externalCrashReporter/path", options.externalCrashReporterPath);
 }
 
-void SentryPlayground::open(const InitOptions& initOptions)
+void Playground::open(const InitOptions& initOptions)
 {
     if (instance()->m_initialized)
         close();
 
-    SentryPlayground* playground = instance();
+    Playground* playground = instance();
     playground->m_initOptions = initOptions;
     playground->m_release = initOptions.release;
     playground->m_environment = initOptions.environment;
@@ -177,7 +176,7 @@ void SentryPlayground::open(const InitOptions& initOptions)
         options, static_cast<sentry_level_t>(normalizedLoggerLevel(playground->m_initOptions.loggerLevel)));
 
     sentry_options_set_before_send(options, [](sentry_value_t event, void *hint, void *userdata) {
-        if (SentryPlayground::instance()->filter()) {
+        if (Playground::instance()->filter()) {
             sentry_value_decref(event);
             return sentry_value_new_null();
         }
@@ -185,7 +184,7 @@ void SentryPlayground::open(const InitOptions& initOptions)
     }, NULL);
 
     sentry_options_set_on_crash(options, [](const sentry_ucontext_t *uctx, sentry_value_t event, void *userdata) {
-        if (SentryPlayground::instance()->filter()) {
+        if (Playground::instance()->filter()) {
             sentry_value_decref(event);
             return sentry_value_new_null();
         }
@@ -195,7 +194,7 @@ void SentryPlayground::open(const InitOptions& initOptions)
     sentry_init(options);
     playground->m_initialized = true;
     playground->m_hasInitialized = true;
-    SentryTrace::setEnabled(true);
+    Tracing::setEnabled(true);
 
     sentry_uuid_t uuid = sentry_uuid_new_v4();
     char buf[37];
@@ -210,20 +209,20 @@ void SentryPlayground::open(const InitOptions& initOptions)
     emit playground->initializedChanged(true);
 }
 
-void SentryPlayground::close()
+void Playground::close()
 {
-    SentryPlayground* playground = instance();
+    Playground* playground = instance();
     if (!playground->m_initialized)
         return;
 
-    SentryTrace::setEnabled(false);
-    SentryTrace::flush();
+    Tracing::setEnabled(false);
+    Tracing::flush();
     sentry_close();
     playground->m_initialized = false;
     emit playground->initializedChanged(false);
 }
 
-void SentryPlayground::reinit(const InitOptions& options)
+void Playground::reinit(const InitOptions& options)
 {
     TRACE_FUNCTION();
 
@@ -231,38 +230,38 @@ void SentryPlayground::reinit(const InitOptions& options)
     open(options);
 }
 
-SentryPlayground* SentryPlayground::instance()
+Playground* Playground::instance()
 {
-    static SentryPlayground playground;
+    static Playground playground;
     return &playground;
 }
 
-QString SentryPlayground::backend()
+QString Playground::backend()
 {
     return SENTRY_BACKEND;
 }
 
-bool SentryPlayground::initialized() const
+bool Playground::initialized() const
 {
     return m_initialized;
 }
 
-bool SentryPlayground::hasInitialized() const
+bool Playground::hasInitialized() const
 {
     return m_hasInitialized;
 }
 
-SentryPlayground::InitOptions SentryPlayground::initOptions() const
+Playground::InitOptions Playground::initOptions() const
 {
     return m_initOptions;
 }
 
-bool SentryPlayground::worker() const
+bool Playground::worker() const
 {
     return m_worker;
 }
 
-void SentryPlayground::setWorker(bool worker)
+void Playground::setWorker(bool worker)
 {
     TRACE_FUNCTION();
 
@@ -273,12 +272,12 @@ void SentryPlayground::setWorker(bool worker)
     emit workerChanged(worker);
 }
 
-bool SentryPlayground::filter() const
+bool Playground::filter() const
 {
     return m_filter;
 }
 
-void SentryPlayground::setFilter(bool filter)
+void Playground::setFilter(bool filter)
 {
     TRACE_FUNCTION();
 
@@ -289,7 +288,7 @@ void SentryPlayground::setFilter(bool filter)
     emit filterChanged(filter);
 }
 
-Qt::CheckState SentryPlayground::consent() const
+Qt::CheckState Playground::consent() const
 {
     if (!m_initialized)
         return m_consent;
@@ -302,7 +301,7 @@ Qt::CheckState SentryPlayground::consent() const
     }
 }
 
-void SentryPlayground::setConsent(Qt::CheckState consent)
+void Playground::setConsent(Qt::CheckState consent)
 {
     TRACE_FUNCTION();
 
@@ -319,7 +318,7 @@ void SentryPlayground::setConsent(Qt::CheckState consent)
     emit consentChanged(consent);
 }
 
-void SentryPlayground::applyConsent()
+void Playground::applyConsent()
 {
     switch (m_consent) {
     case Qt::Checked: sentry_user_consent_give(); break;
@@ -328,79 +327,12 @@ void SentryPlayground::applyConsent()
     }
 }
 
-void SentryPlayground::triggerCrash()
-{
-    TRACE_FUNCTION();
-
-    if (m_worker) {
-        QThread::create([]() { SentryCrash::segfault(); })->start();
-    } else {
-        SentryCrash::segfault();
-    }
-}
-
-void SentryPlayground::triggerStackOverflow()
-{
-    TRACE_FUNCTION();
-
-    if (m_worker) {
-        QThread::create([]() { SentryCrash::stackOverflow(); })->start();
-    } else {
-        SentryCrash::stackOverflow();
-    }
-}
-
-void SentryPlayground::triggerFastfail()
-{
-    TRACE_FUNCTION();
-
-    SentryTrace::flush();
-    if (m_worker) {
-        QThread::create([]() { SentryCrash::fastfail(); })->start();
-    } else {
-        SentryCrash::fastfail();
-    }
-}
-
-void SentryPlayground::triggerAssertFailure()
-{
-    TRACE_FUNCTION();
-
-    if (m_worker) {
-        QThread::create([]() { SentryCrash::failAssert(); })->start();
-    } else {
-        SentryCrash::failAssert();
-    }
-}
-
-void SentryPlayground::triggerAbort()
-{
-    TRACE_FUNCTION();
-
-    if (m_worker) {
-        QThread::create([]() { SentryCrash::doAbort(); })->start();
-    } else {
-        SentryCrash::doAbort();
-    }
-}
-
-void SentryPlayground::triggerException()
-{
-    TRACE_FUNCTION();
-
-    if (m_worker) {
-        QThread::create([]() { SentryCrash::throwException(); })->start();
-    } else {
-        SentryCrash::throwException();
-    }
-}
-
-QStringList SentryPlayground::attachments() const
+QStringList Playground::attachments() const
 {
     return m_attachments.keys();
 }
 
-void SentryPlayground::addAttachment(const QString& path)
+void Playground::addAttachment(const QString& path)
 {
     TRACE_FUNCTION();
 
@@ -413,7 +345,7 @@ void SentryPlayground::addAttachment(const QString& path)
     emit attachmentsChanged(attachments());
 }
 
-void SentryPlayground::removeAttachment(const QString& path)
+void Playground::removeAttachment(const QString& path)
 {
     TRACE_FUNCTION();
 
@@ -426,12 +358,12 @@ void SentryPlayground::removeAttachment(const QString& path)
     emit attachmentsChanged(attachments());
 }
 
-QVariantMap SentryPlayground::tags() const
+QVariantMap Playground::tags() const
 {
     return m_tags;
 }
 
-void SentryPlayground::setTag(const QString& key, const QString& value)
+void Playground::setTag(const QString& key, const QString& value)
 {
     TRACE_FUNCTION();
 
@@ -443,7 +375,7 @@ void SentryPlayground::setTag(const QString& key, const QString& value)
     emit tagsChanged(m_tags);
 }
 
-void SentryPlayground::removeTag(const QString& key)
+void Playground::removeTag(const QString& key)
 {
     TRACE_FUNCTION();
 
@@ -454,12 +386,12 @@ void SentryPlayground::removeTag(const QString& key)
     emit tagsChanged(m_tags);
 }
 
-QVariantMap SentryPlayground::contexts() const
+QVariantMap Playground::contexts() const
 {
     return m_contexts;
 }
 
-void SentryPlayground::setContext(const QString& name, const QString& value)
+void Playground::setContext(const QString& name, const QString& value)
 {
     TRACE_FUNCTION();
 
@@ -475,7 +407,7 @@ void SentryPlayground::setContext(const QString& name, const QString& value)
     emit contextsChanged(m_contexts);
 }
 
-void SentryPlayground::removeContext(const QString& name)
+void Playground::removeContext(const QString& name)
 {
     TRACE_FUNCTION();
 
@@ -486,12 +418,12 @@ void SentryPlayground::removeContext(const QString& name)
     emit contextsChanged(m_contexts);
 }
 
-QVariantMap SentryPlayground::user() const
+QVariantMap Playground::user() const
 {
     return m_user;
 }
 
-void SentryPlayground::updateUser(const QString& field, const QString& value)
+void Playground::updateUser(const QString& field, const QString& value)
 {
     TRACE_FUNCTION();
 
@@ -514,12 +446,12 @@ void SentryPlayground::updateUser(const QString& field, const QString& value)
     emit userChanged(m_user);
 }
 
-QString SentryPlayground::release() const
+QString Playground::release() const
 {
     return m_release;
 }
 
-void SentryPlayground::setRelease(const QString& release)
+void Playground::setRelease(const QString& release)
 {
     TRACE_FUNCTION();
 
@@ -533,12 +465,12 @@ void SentryPlayground::setRelease(const QString& release)
     emit initOptionsChanged(m_initOptions);
 }
 
-QString SentryPlayground::environment() const
+QString Playground::environment() const
 {
     return m_environment;
 }
 
-void SentryPlayground::setEnvironment(const QString& environment)
+void Playground::setEnvironment(const QString& environment)
 {
     TRACE_FUNCTION();
 
@@ -552,12 +484,12 @@ void SentryPlayground::setEnvironment(const QString& environment)
     emit initOptionsChanged(m_initOptions);
 }
 
-bool SentryPlayground::session() const
+bool Playground::session() const
 {
     return m_session;
 }
 
-void SentryPlayground::setSession(bool session)
+void Playground::setSession(bool session)
 {
     TRACE_FUNCTION();
 
@@ -575,12 +507,12 @@ void SentryPlayground::setSession(bool session)
     emit sessionChanged(session);
 }
 
-void SentryPlayground::captureMessage(int level, const QString& message)
+void Playground::captureMessage(int level, const QString& message)
 {
     TRACE_FUNCTION();
     if (!m_initialized)
         return;
-    sentryDebug() << "captureMessage" << level << message;
+    qDebug() << "captureMessage" << level << message;
 
     sentry_value_t event = sentry_value_new_message_event(
         static_cast<sentry_level_t>(level),
@@ -589,12 +521,12 @@ void SentryPlayground::captureMessage(int level, const QString& message)
     sentry_capture_event(event);
 }
 
-void SentryPlayground::captureException(int level, const QString& type, const QString& value)
+void Playground::captureException(int level, const QString& type, const QString& value)
 {
     TRACE_FUNCTION();
     if (!m_initialized)
         return;
-    sentryDebug() << "captureException" << level << type << value;
+    qDebug() << "captureException" << level << type << value;
 
     const char* levelStr = nullptr;
     switch (static_cast<sentry_level_t>(level)) {
@@ -616,12 +548,12 @@ void SentryPlayground::captureException(int level, const QString& type, const QS
     sentry_capture_event(event);
 }
 
-void SentryPlayground::captureFeedback(const QString& message, const QString& name, const QString& email)
+void Playground::captureFeedback(const QString& message, const QString& name, const QString& email)
 {
     TRACE_FUNCTION();
     if (!m_initialized)
         return;
-    sentryDebug() << "captureFeedback" << name << email << message;
+    qDebug() << "captureFeedback" << name << email << message;
 
     QByteArray msg = message.toUtf8();
     QByteArray nm = name.toUtf8();
@@ -634,7 +566,7 @@ void SentryPlayground::captureFeedback(const QString& message, const QString& na
     sentry_capture_feedback(feedback);
 }
 
-void SentryPlayground::reapplyScope()
+void Playground::reapplyScope()
 {
     TRACE_FUNCTION();
 
@@ -673,12 +605,12 @@ void SentryPlayground::reapplyScope()
         sentry_end_session();
 }
 
-void SentryPlayground::addBreadcrumb(const QString& type, int level, const QString& message)
+void Playground::addBreadcrumb(const QString& type, int level, const QString& message)
 {
     TRACE_FUNCTION();
     if (!m_initialized)
         return;
-    sentryDebug() << "addBreadcrumb" << type << level << message;
+    qDebug() << "addBreadcrumb" << type << level << message;
 
     const char* levelStr = nullptr;
     switch (static_cast<sentry_level_t>(level)) {

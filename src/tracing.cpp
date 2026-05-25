@@ -1,21 +1,21 @@
-#include "sentrytrace.h"
+#include "tracing.h"
 
-std::atomic_bool SentryTrace::s_enabled = false;
-std::mutex SentryTrace::s_mutex;
-sentry_transaction_t *SentryTrace::s_tx = nullptr;
-thread_local std::vector<sentry_span_t *> SentryTrace::t_spans;
+std::atomic_bool Tracing::s_enabled = false;
+std::mutex Tracing::s_mutex;
+sentry_transaction_t *Tracing::s_tx = nullptr;
+thread_local std::vector<sentry_span_t *> Tracing::t_spans;
 
-bool SentryTrace::enabled()
+bool Tracing::enabled()
 {
     return s_enabled.load(std::memory_order_acquire);
 }
 
-void SentryTrace::setEnabled(bool enabled)
+void Tracing::setEnabled(bool enabled)
 {
     s_enabled.store(enabled, std::memory_order_release);
 }
 
-void SentryTrace::begin(const char *op, const char *description)
+void Tracing::begin(const char *op, const char *description)
 {
     if (!enabled())
         return;
@@ -42,7 +42,7 @@ void SentryTrace::begin(const char *op, const char *description)
         sentry_set_span(span);
 }
 
-void SentryTrace::end()
+void Tracing::end()
 {
     if (t_spans.empty())
         return;
@@ -58,7 +58,7 @@ void SentryTrace::end()
         sentry_set_transaction_object(s_tx);
 }
 
-void SentryTrace::flush()
+void Tracing::flush()
 {
     sentry_uuid_t uuid = sentry_uuid_nil();
     {
@@ -79,12 +79,12 @@ void SentryTrace::flush()
         sentry_flush(2000);
 }
 
-SentryTrace::Scope::Scope(const char *op, const char *description)
+Tracing::Scope::Scope(const char *op, const char *description)
 {
-    SentryTrace::begin(op, description);
+    Tracing::begin(op, description);
 }
 
-SentryTrace::Scope::~Scope()
+Tracing::Scope::~Scope()
 {
-    SentryTrace::end();
+    Tracing::end();
 }

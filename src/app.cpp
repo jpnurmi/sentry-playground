@@ -1,5 +1,5 @@
-#include "sentryapp.h"
-#include "sentrytrace.h"
+#include "app.h"
+#include "tracing.h"
 
 #include <QtCore/qmetaobject.h>
 #include <QtCore/qthread.h>
@@ -37,7 +37,7 @@ static void onSignalBegin(QObject *caller, int signalIndex, void **)
     if (!shouldTraceSignal(caller->metaObject(), method.name().constData())) {
         return;
     }
-    SentryTrace::begin("signal", desc.constData());
+    Tracing::begin("signal", desc.constData());
 }
 
 static void onSignalEnd(QObject *caller, int signalIndex)
@@ -47,17 +47,17 @@ static void onSignalEnd(QObject *caller, int signalIndex)
     QMetaMethod method = QMetaObjectPrivate::signal(caller->metaObject(), signalIndex);
     if (!shouldTraceSignal(caller->metaObject(), method.name().constData()))
         return;
-    SentryTrace::end();
+    Tracing::end();
 }
 
-SentryApp::SentryApp(int &argc, char **argv)
+App::App(int &argc, char **argv)
     : QApplication(argc, argv)
 {
     static QSignalSpyCallbackSet spy_callbacks = { &onSignalBegin, nullptr, &onSignalEnd, nullptr };
     qt_register_signal_spy_callbacks(&spy_callbacks);
 }
 
-bool SentryApp::notify(QObject *receiver, QEvent *event)
+bool App::notify(QObject *receiver, QEvent *event)
 {
     switch (event->type()) {
     // window / lifecycle

@@ -1,12 +1,12 @@
-#ifndef SENTRYTRACE_H
-#define SENTRYTRACE_H
+#ifndef TRACING_H
+#define TRACING_H
 
 #include <sentry.h>
 #include <atomic>
 #include <mutex>
 #include <vector>
 
-class SentryTrace
+class Tracing
 {
 public:
     static bool enabled();
@@ -36,13 +36,13 @@ private:
 #define TRACE_CONCAT(a, b) TRACE_CONCAT_(a, b)
 
 #define TRACE_FUNCTION() \
-    SentryTrace::Scope TRACE_CONCAT(_trace_scope_, __LINE__){"function", Q_FUNC_INFO}
+    Tracing::Scope TRACE_CONCAT(_trace_scope_, __LINE__){"function", Q_FUNC_INFO}
 #define TRACE_SCOPE(op, description) \
-    SentryTrace::Scope TRACE_CONCAT(_trace_scope_, __LINE__){(op), (description)}
+    Tracing::Scope TRACE_CONCAT(_trace_scope_, __LINE__){(op), (description)}
 
 #define TRACE_BEGIN(op, description) \
-    SentryTrace::begin((op), (description))
+    Tracing::begin((op), (description))
 #define TRACE_END() \
-    SentryTrace::end()
+    Tracing::end()
 
-#endif // SENTRYTRACE_H
+#endif // TRACING_H

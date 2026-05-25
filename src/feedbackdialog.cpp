@@ -1,4 +1,4 @@
-#include "sentryfeedbackdialog.h"
+#include "feedbackdialog.h"
 
 #include <QtWidgets/qboxlayout.h>
 #include <QtWidgets/qdialogbuttonbox.h>
@@ -8,7 +8,7 @@
 #include <QtWidgets/qplaintextedit.h>
 #include <QtWidgets/qpushbutton.h>
 
-SentryFeedbackDialog::SentryFeedbackDialog(QWidget *parent)
+FeedbackDialog::FeedbackDialog(QWidget *parent)
     : QDialog(parent)
 {
     setWindowTitle("Feedback");
@@ -45,27 +45,27 @@ SentryFeedbackDialog::SentryFeedbackDialog(QWidget *parent)
     });
 }
 
-QString SentryFeedbackDialog::message() const
+QString FeedbackDialog::message() const
 {
     return m_messageEdit->toPlainText();
 }
 
-QString SentryFeedbackDialog::name() const
+QString FeedbackDialog::name() const
 {
     return m_nameEdit->text();
 }
 
-QString SentryFeedbackDialog::email() const
+QString FeedbackDialog::email() const
 {
     return m_emailEdit->text();
 }
 
-void SentryFeedbackDialog::setName(const QString &name)
+void FeedbackDialog::setName(const QString &name)
 {
     m_nameEdit->setText(name);
 }
 
-void SentryFeedbackDialog::setEmail(const QString &email)
+void FeedbackDialog::setEmail(const QString &email)
 {
     m_emailEdit->setText(email);
 }

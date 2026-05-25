@@ -16,24 +16,29 @@ find_package(Qt6 REQUIRED COMPONENTS Core CorePrivate Gui Widgets)
 qt_add_executable(sentry-playground
     MANUAL_FINALIZATION
     main.cpp
-    src/sentryapp.h
-    src/sentryapp.cpp
-    src/sentrycrash.h
-    src/sentrycrash.cpp
-    src/sentrydebug.h
-    src/sentrydebug.cpp
-    src/sentryfeedbackdialog.h
-    src/sentryfeedbackdialog.cpp
-    src/sentryplayground.h
-    src/sentryplayground.cpp
-    src/sentrystyle.h
-    src/sentrystyle.cpp
-    src/sentrytrace.h
-    src/sentrytrace.cpp
-    src/sentrywindow.h
-    src/sentrywindow.cpp
-    src/sentrywindow.ui
     assets/assets.qrc
+    src/app.h
+    src/app.cpp
+    src/crashpane.h
+    src/crashpane.cpp
+    src/crashpane.ui
+    src/feedbackdialog.h
+    src/feedbackdialog.cpp
+    src/initpane.h
+    src/initpane.cpp
+    src/initpane.ui
+    src/mainwindow.h
+    src/mainwindow.cpp
+    src/mainwindow.ui
+    src/runtimepane.h
+    src/runtimepane.cpp
+    src/runtimepane.ui
+    src/playground.h
+    src/playground.cpp
+    src/style.h
+    src/style.cpp
+    src/tracing.h
+    src/tracing.cpp
 )
 
 target_link_libraries(sentry-playground PRIVATE Qt6::Gui Qt6::CorePrivate Qt6::Widgets)

@@ -1,23 +1,24 @@
-#include "sentryapp.h"
-#include "sentrydebug.h"
-#include "sentryplayground.h"
-#include "sentrystyle.h"
-#include "sentrywindow.h"
+#include "app.h"
+#include "playground.h"
+#include "style.h"
+#include "mainwindow.h"
 
 #include <QtCore/qcoreapplication.h>
+#include <QtCore/qdebug.h>
 
 int main(int argc, char *argv[])
 {
-    SentryApp app(argc, argv);
-    app.setStyle(new SentryStyle(app.style()));
+    App app(argc, argv);
+    app.setStyle(new Style(app.style()));
 
-    sentryDebug().nospace() << "backend=" << SENTRY_BACKEND;
+    qSetMessagePattern("[sentry-playground:%{threadid}] %{message}");
+    qDebug().nospace() << "backend=" << SENTRY_BACKEND;
     QCoreApplication::setOrganizationName("Sentry");
     QCoreApplication::setOrganizationDomain("sentry.io");
     QCoreApplication::setApplicationName("Playground");
-    auto _ = qScopeGuard(SentryPlayground::close);
+    auto _ = qScopeGuard(Playground::close);
 
-    SentryWindow window;
+    MainWindow window;
     window.show();
     return app.exec();
 }

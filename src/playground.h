@@ -1,5 +1,5 @@
-#ifndef SENTRYPLAYGROUND_H
-#define SENTRYPLAYGROUND_H
+#ifndef PLAYGROUND_H
+#define PLAYGROUND_H
 
 #include <QtCore/qmap.h>
 #include <QtCore/qobject.h>
@@ -7,7 +7,7 @@
 #include <QtCore/qvariant.h>
 #include <QtGui/qguiapplication.h>
 
-class SentryPlayground : public QObject
+class Playground : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QString backend READ backend CONSTANT)
@@ -49,13 +49,13 @@ public:
         QString externalCrashReporterPath;
     };
 
-    explicit SentryPlayground(QObject *parent = nullptr);
+    explicit Playground(QObject *parent = nullptr);
 
     static void open(const InitOptions& options);
     static void close();
     static void reinit(const InitOptions& options);
 
-    static SentryPlayground* instance();
+    static Playground* instance();
     static QString backend();
 
     static InitOptions loadInitOptions();
@@ -101,16 +101,9 @@ signals:
     void environmentChanged(const QString& environment);
     void sessionChanged(bool session);
     void initializedChanged(bool initialized);
-    void initOptionsChanged(const SentryPlayground::InitOptions& options);
+    void initOptionsChanged(const Playground::InitOptions& options);
 
 public slots:
-    void triggerCrash();
-    void triggerStackOverflow();
-    void triggerFastfail();
-    void triggerAssertFailure();
-    void triggerAbort();
-    void triggerException();
-
     void captureMessage(int level, const QString& message);
     void captureException(int level, const QString& type, const QString& value);
     void captureFeedback(const QString& message, const QString& name, const QString& email);
@@ -146,4 +139,4 @@ private:
     bool m_session = true;
 };
 
-#endif // SENTRYPLAYGROUND_H
+#endif // PLAYGROUND_H
