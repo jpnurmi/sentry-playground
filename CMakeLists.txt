@@ -22,6 +22,8 @@ qt_add_executable(sentry-playground
     src/crashpane.h
     src/crashpane.cpp
     src/crashpane.ui
+    src/debugfilesdialog.h
+    src/debugfilesdialog.cpp
     src/feedbackdialog.h
     src/feedbackdialog.cpp
     src/initpane.h
@@ -71,7 +73,6 @@ target_link_libraries(sentry-playground PRIVATE sentry)
 target_compile_definitions(sentry-playground PRIVATE
     NOMINMAX
     SENTRY_BACKEND="${SENTRY_BACKEND}"
-    SENTRY_DSN="$ENV{SENTRY_DSN}"
     SENTRY_RELEASE="${PROJECT_NAME}@${PROJECT_VERSION}"
 )
 
@@ -79,20 +80,4 @@ if(MSVC)
     target_compile_options(sentry-playground PRIVATE /Oy-)
 else()
     target_compile_options(sentry-playground PRIVATE -fno-omit-frame-pointer)
-endif()
-
-set(SENTRY_DSN $ENV{SENTRY_DSN})
-string(REGEX REPLACE "^(https?://)([^@]+@)?([^/]+)/[0-9]+$" "\\1\\3" SENTRY_URL "${SENTRY_DSN}")
-if(SENTRY_URL)
-    message(STATUS "SENTRY_DSN=${SENTRY_DSN}")
-    message(STATUS "SENTRY_URL=${SENTRY_URL}")
-    add_custom_target(sentry_debug_files_upload ALL
-        COMMAND sentry-cli --url "${SENTRY_URL}" debug-files upload --project sentry-native --org sentry-sdks .
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMENT "Uploading debug info files to Sentry..."
-        VERBATIM
-    )
-    add_dependencies(sentry_debug_files_upload sentry-playground)
-else()
-    message(WARNING "Set SENTRY_DSN environment variable")
 endif()

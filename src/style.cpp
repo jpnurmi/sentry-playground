@@ -216,6 +216,30 @@ QIcon Style::makePlusIcon(const QPalette& palette, qreal dpr)
     return QIcon(pixmap);
 }
 
+QIcon Style::makeStatusIcon(bool enabled, qreal dpr)
+{
+    const int size = 14;
+    QPixmap pixmap(size * dpr, size * dpr);
+    pixmap.setDevicePixelRatio(dpr);
+    pixmap.fill(Qt::transparent);
+    QPainter p(&pixmap);
+    p.setRenderHint(QPainter::Antialiasing);
+    p.setPen(QPen(
+        enabled ? QColor("#34c759") : QColor("#ff453a"),
+        2.0,
+        Qt::SolidLine,
+        Qt::RoundCap,
+        Qt::RoundJoin));
+    if (enabled) {
+        p.drawLine(QPointF(3.0, 7.0), QPointF(6.0, 10.0));
+        p.drawLine(QPointF(6.0, 10.0), QPointF(11.5, 4.0));
+    } else {
+        p.drawLine(QPointF(4.0, 4.0), QPointF(10.0, 10.0));
+        p.drawLine(QPointF(10.0, 4.0), QPointF(4.0, 10.0));
+    }
+    return QIcon(pixmap);
+}
+
 #ifdef Q_OS_MACOS
 int Style::inputHeight(const QWidget* widget) const
 {

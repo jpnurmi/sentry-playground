@@ -24,6 +24,7 @@ public:
     static QIcon makeClearIcon(const QPalette& palette, qreal dpr);
     static QIcon makeEllipsisIcon(const QPalette& palette, qreal dpr);
     static QIcon makePlusIcon(const QPalette& palette, qreal dpr);
+    static QIcon makeStatusIcon(bool enabled, qreal dpr);
 
     void drawPrimitive(PrimitiveElement element, const QStyleOption* option,
         QPainter* painter, const QWidget* widget = nullptr) const override;

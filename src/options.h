@@ -14,7 +14,7 @@ struct Options
     QByteArray save() const;
     sentry_options_t *toNative() const;
 
-    QString dsn = QString::fromUtf8(SENTRY_DSN);
+    QString dsn = qEnvironmentVariable("SENTRY_DSN");
     QString databasePath;
     QString release = QString::fromUtf8(SENTRY_RELEASE);
     QString environment = "playground";

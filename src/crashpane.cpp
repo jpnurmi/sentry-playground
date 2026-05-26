@@ -1,8 +1,10 @@
 #include "crashpane.h"
 #include "playground.h"
+#include "style.h"
 #include "tracing.h"
 
 #include <QtCore/qdebug.h>
+#include <QtCore/qsize.h>
 #include <QtCore/qthread.h>
 #include <QtWidgets/qabstractbutton.h>
 
@@ -99,6 +101,14 @@ CrashPane::CrashPane(QWidget* parent)
         [this] { triggerCrash(&doAbort); });
     connect(ui.throwButton, &QAbstractButton::clicked, this,
         [this] { triggerCrash(&throwException); });
+    connect(ui.uploadDebugFilesButton, &QAbstractButton::clicked,
+        this, &CrashPane::uploadDebugFiles);
+    ui.uploadDebugFilesButton->setIconSize(QSize(14, 14));
+    m_debugFilesDialog = new DebugFilesDialog(this);
+    connect(m_debugFilesDialog, &DebugFilesDialog::uploadStatusChanged,
+        this, &CrashPane::updateDebugFilesUploadStatus);
+    updateDebugFilesUploadStatus(m_debugFilesDialog->uploadStatus());
+    m_debugFilesDialog->refreshUploadStatus();
 
     connect(ui.workerBox, &QAbstractButton::toggled, playground, &Playground::setWorker);
     connect(playground, &Playground::workerChanged, ui.workerBox, &QAbstractButton::setChecked);
@@ -119,4 +129,18 @@ void CrashPane::triggerCrash(void (*crashFunction)())
 Playground* CrashPane::playground() const
 {
     return Playground::instance();
+}
+
+void CrashPane::uploadDebugFiles()
+{
+    m_debugFilesDialog->upload(playground()->options().dsn);
+}
+
+void CrashPane::updateDebugFilesUploadStatus(DebugFilesDialog::UploadStatus status)
+{
+    ui.uploadDebugFilesButton->setIcon(
+        Style::makeStatusIcon(status == DebugFilesDialog::UploadStatus::UpToDate, devicePixelRatioF()));
+    ui.uploadDebugFilesButton->setToolTip(status == DebugFilesDialog::UploadStatus::UpToDate
+        ? "Debug files uploaded for this build"
+        : "Debug files not uploaded for this build");
 }

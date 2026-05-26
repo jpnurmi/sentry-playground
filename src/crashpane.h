@@ -3,6 +3,7 @@
 
 #include <QWidget>
 
+#include "debugfilesdialog.h"
 #include "ui_crashpane.h"
 
 class Playground;
@@ -16,8 +17,12 @@ public:
 
 private:
     void triggerCrash(void (*crashFunction)());
+    void uploadDebugFiles();
+    void updateDebugFilesUploadStatus(DebugFilesDialog::UploadStatus status);
 
     Playground* playground() const;
+
+    DebugFilesDialog* m_debugFilesDialog = nullptr;
 
     Ui::CrashPane ui;
 };

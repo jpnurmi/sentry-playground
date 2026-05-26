@@ -2,6 +2,14 @@
 <ui version="4.0">
  <class>CrashPane</class>
  <widget class="QWidget" name="CrashPane">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>135</width>
+    <height>364</height>
+   </rect>
+  </property>
   <layout class="QVBoxLayout" name="crashPaneLayout">
    <property name="leftMargin">
     <number>0</number>
@@ -19,6 +27,39 @@
     <spacer name="leftTopSpacer">
      <property name="orientation">
       <enum>Qt::Orientation::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>0</width>
+       <height>0</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QLabel" name="debugFilesHeader">
+     <property name="styleSheet">
+      <string notr="true">color: palette(placeholder-text); font-weight: bold;</string>
+     </property>
+     <property name="text">
+      <string>DEBUG FILES</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="uploadDebugFilesButton">
+     <property name="text">
+      <string>Upload</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="crashesTopSpacer">
+     <property name="orientation">
+      <enum>Qt::Orientation::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Policy::Expanding</enum>
      </property>
      <property name="sizeHint" stdset="0">
       <size>
@@ -126,8 +167,6 @@
    </item>
   </layout>
  </widget>
- <resources>
-  <include location="../assets/assets.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>
