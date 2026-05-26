@@ -22,6 +22,10 @@ static void segfault()
     memset((char *)invalid_mem, 1, 100);
 }
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4717)
+#endif
 static void stackOverflow()
 {
     TRACE_FUNCTION();
@@ -30,6 +34,9 @@ static void stackOverflow()
     alloca(1024);
     stackOverflow();
 }
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 static void fastfail()
 {

@@ -69,12 +69,17 @@ add_subdirectory(../sentry-native ${CMAKE_BINARY_DIR}/sentry-native)
 target_link_libraries(sentry-playground PRIVATE sentry)
 
 target_compile_definitions(sentry-playground PRIVATE
+    NOMINMAX
     SENTRY_BACKEND="${SENTRY_BACKEND}"
     SENTRY_DSN="$ENV{SENTRY_DSN}"
     SENTRY_RELEASE="${PROJECT_NAME}@${PROJECT_VERSION}"
 )
 
-target_compile_options(sentry-playground PRIVATE -fno-omit-frame-pointer)
+if(MSVC)
+    target_compile_options(sentry-playground PRIVATE /Oy-)
+else()
+    target_compile_options(sentry-playground PRIVATE -fno-omit-frame-pointer)
+endif()
 
 set(SENTRY_DSN $ENV{SENTRY_DSN})
 string(REGEX REPLACE "^(https?://)([^@]+@)?([^/]+)/[0-9]+$" "\\1\\3" SENTRY_URL "${SENTRY_DSN}")
