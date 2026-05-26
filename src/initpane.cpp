@@ -50,9 +50,9 @@ InitPane::InitPane(QWidget* parent)
     : QWidget(parent)
 {
     ui.setupUi(this);
-    ui.initRightColumn->setAlignment(Qt::AlignTop);
-    ui.initScrollBackdrop->setAttribute(Qt::WA_TransparentForMouseEvents);
-    ui.initScrollBackdrop->lower();
+    ui.rightColumn->setAlignment(Qt::AlignTop);
+    ui.scrollBackdrop->setAttribute(Qt::WA_TransparentForMouseEvents);
+    ui.scrollBackdrop->lower();
 
     setupSummaryRows();
     setupFormAlignment();
@@ -66,8 +66,8 @@ void InitPane::setupSummaryRows()
 {
     auto wrapSummaryRow = [this](QHBoxLayout* layout, const char* objectName) {
         int rowIndex = -1;
-        for (int i = 0; i < ui.initSummarySheetLayout->count(); ++i) {
-            if (ui.initSummarySheetLayout->itemAt(i)->layout() == layout) {
+        for (int i = 0; i < ui.summarySheetLayout->count(); ++i) {
+            if (ui.summarySheetLayout->itemAt(i)->layout() == layout) {
                 rowIndex = i;
                 break;
             }
@@ -75,15 +75,15 @@ void InitPane::setupSummaryRows()
         if (rowIndex < 0)
             return static_cast<QWidget*>(nullptr);
 
-        QLayoutItem* item = ui.initSummarySheetLayout->takeAt(rowIndex);
-        QWidget* row = new QWidget(ui.initSummarySheet);
+        QLayoutItem* item = ui.summarySheetLayout->takeAt(rowIndex);
+        QWidget* row = new QWidget(ui.summarySheet);
         row->setObjectName(QLatin1String(objectName));
-        row->setProperty("initSummaryRow", true);
+        row->setProperty("summaryRow", true);
         row->setCursor(Qt::PointingHandCursor);
         row->installEventFilter(this);
         layout->setParent(nullptr);
         row->setLayout(layout);
-        ui.initSummarySheetLayout->insertWidget(rowIndex, row);
+        ui.summarySheetLayout->insertWidget(rowIndex, row);
         if (item != layout)
             delete item;
         return row;
@@ -100,9 +100,9 @@ void InitPane::setupFormAlignment()
 {
     QLabel* formLabels[] = {
         ui.dsnLabel,
-        ui.initReleaseLabel,
-        ui.initEnvironmentLabel,
-        ui.initDistLabel,
+        ui.releaseLabel,
+        ui.environmentLabel,
+        ui.distLabel,
         ui.featuresFormSpacerLabel,
         ui.shutdownTimeoutLabel,
         ui.maxBreadcrumbsLabel,
@@ -184,8 +184,8 @@ void InitPane::setupControls()
     ui.cacheKeepModeBox->addItem("None", SENTRY_CACHE_KEEP_NONE);
     ui.cacheKeepModeBox->addItem("Offline", SENTRY_CACHE_KEEP_OFFLINE);
     ui.cacheKeepModeBox->addItem("Always", SENTRY_CACHE_KEEP_ALWAYS);
-    ui.initEnvironmentEdit->setInsertPolicy(QComboBox::NoInsert);
-    if (QLineEdit* edit = ui.initEnvironmentEdit->lineEdit())
+    ui.environmentEdit->setInsertPolicy(QComboBox::NoInsert);
+    if (QLineEdit* edit = ui.environmentEdit->lineEdit())
         edit->setPlaceholderText("production");
     ui.loggerLevelBox->addItem("None", kLoggerLevelNone);
     ui.loggerLevelBox->addItem("Trace", SENTRY_LEVEL_TRACE);
@@ -259,9 +259,9 @@ void InitPane::setupControls()
         this, &InitPane::updateCrashReporterControls);
     updateCrashReporterControls();
 
-    connect(ui.initReleaseEdit, &QLineEdit::textChanged, this, &InitPane::updateSummaries);
-    connect(ui.initEnvironmentEdit, &QComboBox::currentTextChanged, this, &InitPane::updateSummaries);
-    connect(ui.initDistEdit, &QLineEdit::textChanged, this, &InitPane::updateSummaries);
+    connect(ui.releaseEdit, &QLineEdit::textChanged, this, &InitPane::updateSummaries);
+    connect(ui.environmentEdit, &QComboBox::currentTextChanged, this, &InitPane::updateSummaries);
+    connect(ui.distEdit, &QLineEdit::textChanged, this, &InitPane::updateSummaries);
     connect(ui.databasePathEdit, &QLineEdit::textChanged, this, &InitPane::updateSummaries);
     connect(ui.tracesSampleRateBox, qOverload<double>(&QDoubleSpinBox::valueChanged),
         this, &InitPane::updateSummaries);
@@ -317,9 +317,9 @@ void InitPane::populate()
     const QList<QWidget*> widgets = {
         ui.dsnEdit,
         ui.databasePathEdit,
-        ui.initReleaseEdit,
-        ui.initEnvironmentEdit,
-        ui.initDistEdit,
+        ui.releaseEdit,
+        ui.environmentEdit,
+        ui.distEdit,
         ui.tracesSampleRateBox,
         ui.maxBreadcrumbsBox,
         ui.maxSpansBox,
@@ -346,9 +346,9 @@ void InitPane::populate()
     ui.dsnEdit->setCursorPosition(0);
     ui.databasePathEdit->setText(options.databasePath);
     ui.databasePathEdit->setCursorPosition(0);
-    ui.initReleaseEdit->setText(options.release);
+    ui.releaseEdit->setText(options.release);
     populateEnvironmentHistory(options.environment);
-    ui.initDistEdit->setText(options.dist);
+    ui.distEdit->setText(options.dist);
     ui.tracesSampleRateBox->setValue(options.tracesSampleRate);
     ui.maxBreadcrumbsBox->setValue(options.maxBreadcrumbs);
     ui.maxSpansBox->setValue(options.maxSpans);
@@ -387,11 +387,11 @@ void InitPane::populate()
 
 void InitPane::populateEnvironmentHistory(const QString& currentEnvironment)
 {
-    ui.initEnvironmentEdit->clear();
-    ui.initEnvironmentEdit->addItems(environmentHistoryWith(
+    ui.environmentEdit->clear();
+    ui.environmentEdit->addItems(environmentHistoryWith(
         QSettings().value("init/environmentHistory").toStringList(),
         currentEnvironment));
-    ui.initEnvironmentEdit->setEditText(currentEnvironment);
+    ui.environmentEdit->setEditText(currentEnvironment);
 }
 
 void InitPane::rememberEnvironment(const QString& environment)
@@ -402,10 +402,10 @@ void InitPane::rememberEnvironment(const QString& environment)
         environment);
     settings.setValue("init/environmentHistory", history);
 
-    QSignalBlocker blocker(ui.initEnvironmentEdit);
-    ui.initEnvironmentEdit->clear();
-    ui.initEnvironmentEdit->addItems(history);
-    ui.initEnvironmentEdit->setEditText(environment);
+    QSignalBlocker blocker(ui.environmentEdit);
+    ui.environmentEdit->clear();
+    ui.environmentEdit->addItems(history);
+    ui.environmentEdit->setEditText(environment);
 }
 
 Options InitPane::optionsFromPage() const
@@ -413,9 +413,9 @@ Options InitPane::optionsFromPage() const
     Options options = Playground::instance()->options();
     options.dsn = ui.dsnEdit->text().trimmed();
     options.databasePath = ui.databasePathEdit->text();
-    options.release = ui.initReleaseEdit->text().trimmed();
-    options.environment = ui.initEnvironmentEdit->currentText().trimmed();
-    options.dist = ui.initDistEdit->text().trimmed();
+    options.release = ui.releaseEdit->text().trimmed();
+    options.environment = ui.environmentEdit->currentText().trimmed();
+    options.dist = ui.distEdit->text().trimmed();
     options.tracesSampleRate = ui.tracesSampleRateBox->value();
     options.maxBreadcrumbs = ui.maxBreadcrumbsBox->value();
     options.maxSpans = ui.maxSpansBox->value();
@@ -452,8 +452,8 @@ void InitPane::updateCrashReporterControls()
                 && !ui.crashReporterPathEdit->text().isEmpty());
     }
 
-    ui.initRightColumn->invalidate();
-    ui.initScrollContents->updateGeometry();
+    ui.rightColumn->invalidate();
+    ui.scrollContents->updateGeometry();
 }
 
 void InitPane::updateDetailsVisibility()
@@ -483,8 +483,8 @@ void InitPane::updateDetailsVisibility()
     setFormVisible(ui.crashReporterDetailsFormLayout, crashReporterVisible, 4);
     updateCrashReporterControls();
 
-    ui.initRightColumn->invalidate();
-    ui.initScrollContents->updateGeometry();
+    ui.rightColumn->invalidate();
+    ui.scrollContents->updateGeometry();
 }
 
 void InitPane::refreshPaletteStyles()
@@ -492,8 +492,8 @@ void InitPane::refreshPaletteStyles()
     const QColor textColor = palette().color(QPalette::WindowText);
     const QColor paneColor = Style::blendedColor(palette().color(QPalette::Window), textColor, 10);
 
-    ui.initScrollBackdrop->setStyleSheet(QStringLiteral(
-        "QFrame#initScrollBackdrop {"
+    ui.scrollBackdrop->setStyleSheet(QStringLiteral(
+        "QFrame#scrollBackdrop {"
         " background-color: %1;"
         " border: 1px solid %2;"
         " border-radius: 6px;"
@@ -510,17 +510,17 @@ void InitPane::refreshPaletteStyles()
     };
     for (QWidget* divider : sectionDividers)
         divider->setStyleSheet(dividerStyle);
-    ui.initScrollArea->setFrameShape(QFrame::NoFrame);
-    ui.initScrollArea->setFrameShadow(QFrame::Plain);
+    ui.scrollArea->setFrameShape(QFrame::NoFrame);
+    ui.scrollArea->setFrameShadow(QFrame::Plain);
 
     QPalette panePalette = palette();
     panePalette.setColor(QPalette::Window, paneColor);
     panePalette.setColor(QPalette::Base, paneColor);
     QWidget* const transparentPaneWidgets[] = {
-             ui.initScrollArea,
-             ui.initScrollArea->viewport(),
-             ui.initScrollContents,
-             ui.initSummarySheet,
+             ui.scrollArea,
+             ui.scrollArea->viewport(),
+             ui.scrollContents,
+             ui.summarySheet,
     };
     for (QWidget* widget : transparentPaneWidgets) {
         widget->setPalette(panePalette);
@@ -552,9 +552,9 @@ void InitPane::updateSummaries()
     setStatus(ui.dsnSummaryStatus, !dsnSummary.isEmpty());
 
     QStringList versionParts;
-    const QString release = ui.initReleaseEdit->text().trimmed();
-    const QString environment = ui.initEnvironmentEdit->currentText().trimmed();
-    const QString dist = ui.initDistEdit->text().trimmed();
+    const QString release = ui.releaseEdit->text().trimmed();
+    const QString environment = ui.environmentEdit->currentText().trimmed();
+    const QString dist = ui.distEdit->text().trimmed();
     if (!release.isEmpty())
         versionParts.append(release);
     if (!environment.isEmpty())
@@ -640,7 +640,7 @@ void InitPane::updateSummaries()
 bool InitPane::eventFilter(QObject* watched, QEvent* event)
 {
     auto* summaryRow = qobject_cast<QWidget*>(watched);
-    if (summaryRow && summaryRow->property("initSummaryRow").toBool()) {
+    if (summaryRow && summaryRow->property("summaryRow").toBool()) {
         if (event->type() == QEvent::Enter || event->type() == QEvent::Leave) {
             const bool hovered = event->type() == QEvent::Enter;
             QPalette rowPalette = summaryRow->palette();

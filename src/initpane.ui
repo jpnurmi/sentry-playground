@@ -2,7 +2,7 @@
 <ui version="4.0">
  <class>InitPane</class>
  <widget class="QWidget" name="InitPane">
-  <layout class="QVBoxLayout" name="initPageLayout">
+  <layout class="QVBoxLayout" name="pageLayout">
    <property name="spacing">
     <number>0</number>
    </property>
@@ -19,7 +19,7 @@
     <number>0</number>
    </property>
    <item>
-    <widget class="QFrame" name="initScrollFrame">
+    <widget class="QFrame" name="scrollFrame">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
        <horstretch>0</horstretch>
@@ -29,7 +29,7 @@
      <property name="frameShape">
       <enum>QFrame::Shape::NoFrame</enum>
      </property>
-     <layout class="QGridLayout" name="initScrollFrameLayout">
+     <layout class="QGridLayout" name="scrollFrameLayout">
       <property name="leftMargin">
        <number>0</number>
       </property>
@@ -43,9 +43,9 @@
        <number>0</number>
       </property>
       <item row="0" column="0">
-       <widget class="QFrame" name="initScrollBackdrop">
+       <widget class="QFrame" name="scrollBackdrop">
         <property name="styleSheet">
-         <string notr="true">QFrame#initScrollBackdrop {
+         <string notr="true">QFrame#scrollBackdrop {
  background-color: rgba(255, 255, 255, 10);
  border: 1px solid rgba(255, 255, 255, 38);
  border-radius: 6px;
@@ -57,7 +57,7 @@
        </widget>
       </item>
       <item row="0" column="0">
-       <layout class="QVBoxLayout" name="initScrollContentLayerLayout">
+       <layout class="QVBoxLayout" name="scrollContentLayerLayout">
         <property name="spacing">
          <number>0</number>
         </property>
@@ -74,14 +74,14 @@
          <number>1</number>
         </property>
         <item>
-         <widget class="QScrollArea" name="initScrollArea">
+         <widget class="QScrollArea" name="scrollArea">
           <property name="frameShape">
            <enum>QFrame::Shape::NoFrame</enum>
           </property>
           <property name="widgetResizable">
            <bool>true</bool>
           </property>
-          <widget class="QWidget" name="initScrollContents">
+          <widget class="QWidget" name="scrollContents">
            <property name="geometry">
             <rect>
              <x>0</x>
@@ -90,7 +90,7 @@
              <height>1010</height>
             </rect>
            </property>
-           <layout class="QVBoxLayout" name="initRightColumn">
+           <layout class="QVBoxLayout" name="rightColumn">
             <property name="spacing">
              <number>0</number>
             </property>
@@ -107,7 +107,7 @@
              <number>0</number>
             </property>
             <item>
-             <widget class="QLabel" name="initOptionsHeader">
+             <widget class="QLabel" name="optionsHeader">
               <property name="styleSheet">
                <string notr="true">color: palette(placeholder-text); font-weight: bold; padding: 10px 10px 0 10px;</string>
               </property>
@@ -117,7 +117,7 @@
              </widget>
             </item>
             <item>
-             <spacer name="initOptionsHeaderSpacer">
+             <spacer name="optionsHeaderSpacer">
               <property name="orientation">
                <enum>Qt::Orientation::Vertical</enum>
               </property>
@@ -133,11 +133,11 @@
              </spacer>
             </item>
             <item>
-             <widget class="QFrame" name="initSummarySheet">
+             <widget class="QFrame" name="summarySheet">
               <property name="frameShape">
                <enum>QFrame::Shape::NoFrame</enum>
               </property>
-              <layout class="QVBoxLayout" name="initSummarySheetLayout">
+              <layout class="QVBoxLayout" name="summarySheetLayout">
                <property name="spacing">
                 <number>0</number>
                </property>
@@ -454,7 +454,7 @@
                   <number>10</number>
                  </property>
                  <item row="0" column="0">
-                  <widget class="QLabel" name="initReleaseLabel">
+                  <widget class="QLabel" name="releaseLabel">
                    <property name="styleSheet">
                     <string notr="true">color: palette(placeholder-text); font-size: 10px;</string>
                    </property>
@@ -464,14 +464,14 @@
                   </widget>
                  </item>
                  <item row="0" column="1">
-                  <widget class="QLineEdit" name="initReleaseEdit">
+                  <widget class="QLineEdit" name="releaseEdit">
                    <property name="placeholderText">
                     <string>my-app@1.0.0</string>
                    </property>
                   </widget>
                  </item>
                  <item row="1" column="0">
-                  <widget class="QLabel" name="initEnvironmentLabel">
+                  <widget class="QLabel" name="environmentLabel">
                    <property name="styleSheet">
                     <string notr="true">color: palette(placeholder-text); font-size: 10px;</string>
                    </property>
@@ -481,7 +481,7 @@
                   </widget>
                  </item>
                  <item row="1" column="1">
-                  <widget class="QComboBox" name="initEnvironmentEdit">
+                  <widget class="QComboBox" name="environmentEdit">
                    <property name="editable">
                     <bool>true</bool>
                    </property>
@@ -491,7 +491,7 @@
                   </widget>
                  </item>
                  <item row="2" column="0">
-                  <widget class="QLabel" name="initDistLabel">
+                  <widget class="QLabel" name="distLabel">
                    <property name="styleSheet">
                     <string notr="true">color: palette(placeholder-text); font-size: 10px;</string>
                    </property>
@@ -501,7 +501,7 @@
                   </widget>
                  </item>
                  <item row="2" column="1">
-                  <widget class="QLineEdit" name="initDistEdit">
+                  <widget class="QLineEdit" name="distEdit">
                    <property name="placeholderText">
                     <string>1</string>
                    </property>
@@ -1482,12 +1482,12 @@
     </widget>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="initFooterLayout">
+    <layout class="QHBoxLayout" name="footerLayout">
      <property name="topMargin">
       <number>16</number>
      </property>
      <item>
-      <spacer name="initFooterSpacer">
+      <spacer name="footerSpacer">
        <property name="orientation">
         <enum>Qt::Orientation::Horizontal</enum>
        </property>
