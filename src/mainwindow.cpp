@@ -156,7 +156,7 @@ MainWindow::MainWindow(QWidget* parent)
             playground->captureFeedback(dialog.message(), dialog.name(), dialog.email());
     });
     QObject::connect(consentButton, &QAbstractButton::clicked, playground, [playground]() {
-        if (!playground->initOptions().requireUserConsent)
+        if (!playground->options().requireUserConsent)
             return;
 
         switch (playground->consent()) {
@@ -171,8 +171,8 @@ MainWindow::MainWindow(QWidget* parent)
     updateConsentStatus(playground->consent());
     QObject::connect(playground, &Playground::consentChanged,
         this, &MainWindow::updateConsentStatus);
-    QObject::connect(playground, &Playground::initOptionsChanged, this,
-        [this](const Playground::InitOptions&) { updateStatusBarVisibility(); });
+    QObject::connect(playground, &Playground::optionsChanged, this,
+        [this](const Options&) { updateStatusBarVisibility(); });
     QObject::connect(playground, &Playground::initializedChanged, this,
         [this](bool initialized) {
             if (initialized)
@@ -181,7 +181,7 @@ MainWindow::MainWindow(QWidget* parent)
                 showInitPage();
         });
 
-    if (playground->initialized())
+    if (playground->isInitialized())
         showRuntimePage();
     else
         showInitPage();
@@ -231,11 +231,11 @@ void MainWindow::showRuntimePage()
 void MainWindow::updateStatusBarVisibility()
 {
     Playground* playground = Playground::instance();
-    const bool showRuntimeFooter = playground->initialized()
+    const bool showRuntimeFooter = playground->isInitialized()
         && ui.pages->currentWidget() == ui.runtimePage;
-    const bool showConsentFooter = playground->initialized()
+    const bool showConsentFooter = playground->isInitialized()
         && ui.pages->currentWidget() == ui.runtimePage
-        && playground->initOptions().requireUserConsent;
+        && playground->options().requireUserConsent;
     statusBar()->setVisible(showRuntimeFooter);
 
     auto* consentButton = statusBar()->findChild<QPushButton*>(QStringLiteral("consentButton"));
@@ -264,7 +264,7 @@ void MainWindow::updateStatusBarVisibility()
 void MainWindow::updateConsentStatus(Qt::CheckState state)
 {
     Playground* playground = Playground::instance();
-    if (!playground->initOptions().requireUserConsent) {
+    if (!playground->options().requireUserConsent) {
         updateStatusBarVisibility();
         return;
     }

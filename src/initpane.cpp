@@ -1,4 +1,5 @@
 #include "initpane.h"
+#include "playground.h"
 #include "style.h"
 
 #include <sentry.h>
@@ -304,7 +305,7 @@ void InitPane::setupControls()
     });
 
     connect(ui.initializeButton, &QAbstractButton::clicked, this, [this]() {
-        const Playground::InitOptions options = optionsFromPage();
+        const Options options = optionsFromPage();
         rememberEnvironment(options.environment);
         Playground::open(options);
     });
@@ -312,7 +313,7 @@ void InitPane::setupControls()
 
 void InitPane::populate()
 {
-    const Playground::InitOptions options = Playground::instance()->initOptions();
+    const Options options = Playground::instance()->options();
     const QList<QWidget*> widgets = {
         ui.dsnEdit,
         ui.databasePathEdit,
@@ -377,7 +378,7 @@ void InitPane::populate()
             action->setEnabled(!ui.databasePathEdit->text().isEmpty());
     }
     updateCrashReporterControls();
-    ui.initializeButton->setText(Playground::instance()->hasInitialized()
+    ui.initializeButton->setText(Playground::instance()->wasInitialized()
         ? "Re-initialize"
         : "Initialize");
     updateSummaries();
@@ -407,9 +408,9 @@ void InitPane::rememberEnvironment(const QString& environment)
     ui.initEnvironmentEdit->setEditText(environment);
 }
 
-Playground::InitOptions InitPane::optionsFromPage() const
+Options InitPane::optionsFromPage() const
 {
-    Playground::InitOptions options = Playground::instance()->initOptions();
+    Options options = Playground::instance()->options();
     options.dsn = ui.dsnEdit->text().trimmed();
     options.databasePath = ui.databasePathEdit->text();
     options.release = ui.initReleaseEdit->text().trimmed();

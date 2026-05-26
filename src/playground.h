@@ -7,6 +7,8 @@
 #include <QtCore/qvariant.h>
 #include <QtGui/qguiapplication.h>
 
+#include "options.h"
+
 class Playground : public QObject
 {
     Q_OBJECT
@@ -23,47 +25,18 @@ class Playground : public QObject
     Q_PROPERTY(bool session READ session WRITE setSession NOTIFY sessionChanged)
 
 public:
-    struct InitOptions
-    {
-        QString dsn;
-        QString databasePath;
-        QString release;
-        QString environment;
-        QString dist;
-        bool attachScreenshot = true;
-        double tracesSampleRate = 1.0;
-        int maxBreadcrumbs = 100;
-        int maxSpans = 1000;
-        int shutdownTimeout = 2000;
-        bool requireUserConsent = true;
-        bool systemCrashReporterEnabled = false;
-        bool enableLargeAttachments = true;
-        bool httpRetry = true;
-        int cacheKeepMode = 1;
-        int cacheMaxItems = 30;
-        int cacheMaxSize = 0;
-        int cacheMaxAge = 0;
-        bool debug = true;
-        int loggerLevel = -1;
-        bool externalCrashReporterEnabled = false;
-        QString externalCrashReporterPath;
-    };
-
     explicit Playground(QObject *parent = nullptr);
 
-    static void open(const InitOptions& options);
+    static void open(const Options& options);
     static void close();
-    static void reinit(const InitOptions& options);
+    static void reinit(const Options& options);
 
     static Playground* instance();
     static QString backend();
 
-    static InitOptions loadInitOptions();
-    static void saveInitOptions(const InitOptions& options);
-
-    bool initialized() const;
-    bool hasInitialized() const;
-    InitOptions initOptions() const;
+    bool isInitialized() const;
+    bool wasInitialized() const;
+    Options options() const;
 
     bool worker() const;
     void setWorker(bool worker);
@@ -101,7 +74,7 @@ signals:
     void environmentChanged(const QString& environment);
     void sessionChanged(bool session);
     void initializedChanged(bool initialized);
-    void initOptionsChanged(const Playground::InitOptions& options);
+    void optionsChanged(const Options& options);
 
 public slots:
     void captureMessage(int level, const QString& message);
@@ -127,8 +100,8 @@ private:
     bool m_worker = false;
     bool m_filter = false;
     bool m_initialized = false;
-    bool m_hasInitialized = false;
-    InitOptions m_initOptions;
+    bool m_wasInitialized = false;
+    Options m_options;
     Qt::CheckState m_consent = Qt::PartiallyChecked;
     QMap<QString, void*> m_attachments;
     QVariantMap m_tags;

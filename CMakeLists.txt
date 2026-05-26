@@ -30,6 +30,8 @@ qt_add_executable(sentry-playground
     src/mainwindow.h
     src/mainwindow.cpp
     src/mainwindow.ui
+    src/options.h
+    src/options.cpp
     src/runtimepane.h
     src/runtimepane.cpp
     src/runtimepane.ui

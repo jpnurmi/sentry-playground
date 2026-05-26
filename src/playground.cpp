@@ -3,179 +3,38 @@
 
 #include <sentry.h>
 
-#include <algorithm>
-#include <ctime>
-
 #include <QtCore/qdebug.h>
 #include <QtCore/qsettings.h>
-#include <QtCore/qthread.h>
 
 namespace {
 
-int normalizedLoggerLevel(int level)
-{
-    switch (level) {
-    case SENTRY_LEVEL_TRACE:
-    case SENTRY_LEVEL_DEBUG:
-    case SENTRY_LEVEL_INFO:
-    case SENTRY_LEVEL_WARNING:
-    case SENTRY_LEVEL_ERROR:
-    case SENTRY_LEVEL_FATAL:
-        return level;
-    default:
-        return SENTRY_LEVEL_DEBUG;
-    }
-}
-
-int normalizedCacheKeepMode(int mode)
-{
-    switch (mode) {
-    case SENTRY_CACHE_KEEP_NONE:
-    case SENTRY_CACHE_KEEP_OFFLINE:
-    case SENTRY_CACHE_KEEP_ALWAYS:
-        return mode;
-    default:
-        return SENTRY_CACHE_KEEP_OFFLINE;
-    }
-}
+static constexpr auto kOptionsSettingsKey = "init/options";
 
 } // namespace
 
 Playground::Playground(QObject *parent) : QObject{parent}
 {
-    m_initOptions = loadInitOptions();
+    m_options.load(QSettings().value(kOptionsSettingsKey).toByteArray());
     m_tags.insert("backend", SENTRY_BACKEND);
     m_user.insert("name", "nobody");
     m_user.insert("email", "nobody@example.com");
-    m_release = m_initOptions.release;
-    m_environment = m_initOptions.environment;
+    m_release = m_options.release;
+    m_environment = m_options.environment;
 }
 
-Playground::InitOptions Playground::loadInitOptions()
-{
-    QSettings settings;
-
-    InitOptions options;
-    options.dsn = QString::fromUtf8(SENTRY_DSN);
-    options.release = QString::fromUtf8(SENTRY_RELEASE);
-    options.environment = "playground";
-    options.dsn = settings.value("init/dsn", options.dsn).toString();
-    options.databasePath = settings.value("init/databasePath", options.databasePath).toString();
-    options.release = settings.value("init/release", options.release).toString();
-    options.environment = settings.value("init/environment", options.environment).toString();
-    options.dist = settings.value("init/dist", options.dist).toString();
-    options.attachScreenshot = settings.value("init/attachScreenshot", options.attachScreenshot).toBool();
-    options.tracesSampleRate = settings.value("init/tracesSampleRate", options.tracesSampleRate).toDouble();
-    options.maxBreadcrumbs = std::max(0, settings.value("init/maxBreadcrumbs", options.maxBreadcrumbs).toInt());
-    options.maxSpans = std::max(0, settings.value("init/maxSpans", options.maxSpans).toInt());
-    options.shutdownTimeout = std::max(0, settings.value("init/shutdownTimeout", options.shutdownTimeout).toInt());
-    options.requireUserConsent = settings.value("init/requireUserConsent", options.requireUserConsent).toBool();
-    options.systemCrashReporterEnabled = settings.value(
-        "init/systemCrashReporterEnabled", options.systemCrashReporterEnabled).toBool();
-    options.enableLargeAttachments = settings.value(
-        "init/enableLargeAttachments", options.enableLargeAttachments).toBool();
-    options.httpRetry = settings.value("init/httpRetry", options.httpRetry).toBool();
-    options.cacheKeepMode = normalizedCacheKeepMode(
-        settings.value("init/cacheKeep", options.cacheKeepMode).toInt());
-    options.cacheMaxItems = std::max(0, settings.value("init/cacheMaxItems", options.cacheMaxItems).toInt());
-    options.cacheMaxSize = std::max(0, settings.value("init/cacheMaxSize", options.cacheMaxSize).toInt());
-    options.cacheMaxAge = std::max(0, settings.value("init/cacheMaxAge", options.cacheMaxAge).toInt());
-    options.debug = settings.value("init/debug", options.debug).toBool();
-    options.loggerLevel = normalizedLoggerLevel(settings.value("init/loggerLevel", options.loggerLevel).toInt());
-    options.externalCrashReporterEnabled = settings.value(
-        "init/externalCrashReporter/enabled",
-        settings.value("externalCrashReporter/enabled", options.externalCrashReporterEnabled)).toBool();
-    options.externalCrashReporterPath = settings.value(
-        "init/externalCrashReporter/path",
-        settings.value("externalCrashReporter/path", options.externalCrashReporterPath)).toString();
-    return options;
-}
-
-void Playground::saveInitOptions(const InitOptions& options)
-{
-    QSettings settings;
-    settings.setValue("init/dsn", options.dsn);
-    settings.setValue("init/databasePath", options.databasePath);
-    settings.setValue("init/release", options.release);
-    settings.setValue("init/environment", options.environment);
-    settings.setValue("init/dist", options.dist);
-    settings.setValue("init/attachScreenshot", options.attachScreenshot);
-    settings.setValue("init/tracesSampleRate", options.tracesSampleRate);
-    settings.setValue("init/maxBreadcrumbs", options.maxBreadcrumbs);
-    settings.setValue("init/maxSpans", options.maxSpans);
-    settings.setValue("init/shutdownTimeout", options.shutdownTimeout);
-    settings.setValue("init/requireUserConsent", options.requireUserConsent);
-    settings.setValue("init/systemCrashReporterEnabled", options.systemCrashReporterEnabled);
-    settings.setValue("init/enableLargeAttachments", options.enableLargeAttachments);
-    settings.setValue("init/httpRetry", options.httpRetry);
-    settings.setValue("init/cacheKeep", normalizedCacheKeepMode(options.cacheKeepMode));
-    settings.setValue("init/cacheMaxItems", options.cacheMaxItems);
-    settings.setValue("init/cacheMaxSize", options.cacheMaxSize);
-    settings.setValue("init/cacheMaxAge", options.cacheMaxAge);
-    settings.setValue("init/debug", options.debug);
-    settings.setValue("init/loggerLevel", normalizedLoggerLevel(options.loggerLevel));
-    settings.setValue("init/externalCrashReporter/enabled", options.externalCrashReporterEnabled);
-    settings.setValue("init/externalCrashReporter/path", options.externalCrashReporterPath);
-    settings.setValue("externalCrashReporter/enabled", options.externalCrashReporterEnabled);
-    settings.setValue("externalCrashReporter/path", options.externalCrashReporterPath);
-}
-
-void Playground::open(const InitOptions& initOptions)
+void Playground::open(const Options& options)
 {
     if (instance()->m_initialized)
         close();
 
     Playground* playground = instance();
-    playground->m_initOptions = initOptions;
-    playground->m_release = initOptions.release;
-    playground->m_environment = initOptions.environment;
-    saveInitOptions(initOptions);
+    playground->m_options = options;
+    playground->m_release = options.release;
+    playground->m_environment = options.environment;
+    QSettings().setValue(kOptionsSettingsKey, options.save());
 
-    sentry_options_t *options = sentry_options_new();
-    QByteArray dsn = playground->m_initOptions.dsn.toUtf8();
-    QByteArray databasePath = playground->m_initOptions.databasePath.toUtf8();
-    QByteArray release = playground->m_initOptions.release.toUtf8();
-    QByteArray environment = playground->m_initOptions.environment.toUtf8();
-    QByteArray dist = playground->m_initOptions.dist.toUtf8();
-    QByteArray reporterPath = playground->m_initOptions.externalCrashReporterPath.toUtf8();
-    if (!dsn.isEmpty())
-        sentry_options_set_dsn(options, dsn.constData());
-    if (!databasePath.isEmpty())
-        sentry_options_set_database_path(options, databasePath.constData());
-    if (!release.isEmpty())
-        sentry_options_set_release(options, release.constData());
-    if (!environment.isEmpty())
-        sentry_options_set_environment(options, environment.constData());
-    if (!dist.isEmpty())
-        sentry_options_set_dist(options, dist.constData());
-    if (playground->m_initOptions.externalCrashReporterEnabled && !reporterPath.isEmpty())
-        sentry_options_set_external_crash_reporter_path(options, reporterPath.constData());
-    sentry_options_set_attach_screenshot(options, playground->m_initOptions.attachScreenshot);
-    sentry_options_set_traces_sample_rate(options, playground->m_initOptions.tracesSampleRate);
-    sentry_options_set_max_breadcrumbs(
-        options, static_cast<size_t>(std::max(0, playground->m_initOptions.maxBreadcrumbs)));
-    sentry_options_set_max_spans(
-        options, static_cast<size_t>(std::max(0, playground->m_initOptions.maxSpans)));
-    sentry_options_set_shutdown_timeout(
-        options, static_cast<uint64_t>(std::max(0, playground->m_initOptions.shutdownTimeout)));
-    sentry_options_set_require_user_consent(options, playground->m_initOptions.requireUserConsent);
-    sentry_options_set_system_crash_reporter_enabled(
-        options, playground->m_initOptions.systemCrashReporterEnabled);
-    sentry_options_set_crashpad_wait_for_upload(options, true);
-    sentry_options_set_enable_large_attachments(options, playground->m_initOptions.enableLargeAttachments);
-    sentry_options_set_http_retry(options, playground->m_initOptions.httpRetry);
-    sentry_options_set_cache_keep(options, normalizedCacheKeepMode(playground->m_initOptions.cacheKeepMode));
-    sentry_options_set_cache_max_items(
-        options, static_cast<size_t>(std::max(0, playground->m_initOptions.cacheMaxItems)));
-    sentry_options_set_cache_max_size(
-        options, static_cast<size_t>(std::max(0, playground->m_initOptions.cacheMaxSize)));
-    sentry_options_set_cache_max_age(
-        options, static_cast<time_t>(std::max(0, playground->m_initOptions.cacheMaxAge)));
-    sentry_options_set_debug(options, playground->m_initOptions.debug);
-    sentry_options_set_logger_level(
-        options, static_cast<sentry_level_t>(normalizedLoggerLevel(playground->m_initOptions.loggerLevel)));
-
-    sentry_options_set_before_send(options, [](sentry_value_t event, void *hint, void *userdata) {
+    sentry_options_t *opt = playground->m_options.toNative();
+    sentry_options_set_before_send(opt, [](sentry_value_t event, void *hint, void *userdata) {
         if (Playground::instance()->filter()) {
             sentry_value_decref(event);
             return sentry_value_new_null();
@@ -183,17 +42,17 @@ void Playground::open(const InitOptions& initOptions)
         return event;
     }, NULL);
 
-    sentry_options_set_on_crash(options, [](const sentry_ucontext_t *uctx, sentry_value_t event, void *userdata) {
+    sentry_options_set_on_crash(opt, [](const sentry_ucontext_t *uctx, sentry_value_t event, void *userdata) {
         if (Playground::instance()->filter()) {
             sentry_value_decref(event);
             return sentry_value_new_null();
         }
         return event;
     }, NULL);
+    sentry_init(opt);
 
-    sentry_init(options);
     playground->m_initialized = true;
-    playground->m_hasInitialized = true;
+    playground->m_wasInitialized = true;
     Tracing::setEnabled(true);
 
     sentry_uuid_t uuid = sentry_uuid_new_v4();
@@ -203,7 +62,7 @@ void Playground::open(const InitOptions& initOptions)
     sentry_set_fingerprint(buf, NULL);
 
     playground->reapplyScope();
-    emit playground->initOptionsChanged(playground->m_initOptions);
+    emit playground->optionsChanged(playground->m_options);
     emit playground->releaseChanged(playground->m_release);
     emit playground->environmentChanged(playground->m_environment);
     emit playground->initializedChanged(true);
@@ -222,7 +81,7 @@ void Playground::close()
     emit playground->initializedChanged(false);
 }
 
-void Playground::reinit(const InitOptions& options)
+void Playground::reinit(const Options& options)
 {
     TRACE_FUNCTION();
 
@@ -241,19 +100,19 @@ QString Playground::backend()
     return SENTRY_BACKEND;
 }
 
-bool Playground::initialized() const
+bool Playground::isInitialized() const
 {
     return m_initialized;
 }
 
-bool Playground::hasInitialized() const
+bool Playground::wasInitialized() const
 {
-    return m_hasInitialized;
+    return m_wasInitialized;
 }
 
-Playground::InitOptions Playground::initOptions() const
+Options Playground::options() const
 {
-    return m_initOptions;
+    return m_options;
 }
 
 bool Playground::worker() const
@@ -458,11 +317,11 @@ void Playground::setRelease(const QString& release)
     if (m_release == release)
         return;
     m_release = release;
-    m_initOptions.release = release;
+    m_options.release = release;
     if (m_initialized)
         sentry_set_release(release.toUtf8().constData());
     emit releaseChanged(release);
-    emit initOptionsChanged(m_initOptions);
+    emit optionsChanged(m_options);
 }
 
 QString Playground::environment() const
@@ -477,11 +336,11 @@ void Playground::setEnvironment(const QString& environment)
     if (m_environment == environment)
         return;
     m_environment = environment;
-    m_initOptions.environment = environment;
+    m_options.environment = environment;
     if (m_initialized)
         sentry_set_environment(environment.toUtf8().constData());
     emit environmentChanged(environment);
-    emit initOptionsChanged(m_initOptions);
+    emit optionsChanged(m_options);
 }
 
 bool Playground::session() const

@@ -3,7 +3,7 @@
 
 #include <QWidget>
 
-#include "playground.h"
+#include "options.h"
 #include "ui_initpane.h"
 
 class InitPane : public QWidget
@@ -25,7 +25,7 @@ private:
     void setupControls();
     void populateEnvironmentHistory(const QString& currentEnvironment);
     void rememberEnvironment(const QString& environment);
-    Playground::InitOptions optionsFromPage() const;
+    Options optionsFromPage() const;
     void updateCrashReporterControls();
     void updateDetailsVisibility();
     void updateSummaries();
