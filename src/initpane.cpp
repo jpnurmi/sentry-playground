@@ -143,6 +143,7 @@ void InitPane::setupFormAlignment()
         const QMargins margins = layout->contentsMargins();
         layout->setContentsMargins(summaryLabelLeftMargin, margins.top(), margins.right(), margins.bottom());
         layout->setHorizontalSpacing(formHorizontalSpacing);
+        layout->setProperty("visibleVerticalSpacing", layout->verticalSpacing());
     };
     alignDetailsForm(ui.dsnDetailsFormLayout);
     alignDetailsForm(ui.versionDetailsFormLayout);
@@ -465,12 +466,12 @@ void InitPane::updateDetailsVisibility()
     const bool databaseVisible = ui.databaseEditButton->isChecked();
     const bool crashReporterVisible = ui.crashReporterEditButton->isChecked();
 
-    auto setFormVisible = [](QFormLayout* layout, bool visible, int visibleVerticalSpacing = 10) {
+    auto setFormVisible = [](QFormLayout* layout, bool visible) {
         QMargins margins = layout->contentsMargins();
         margins.setTop(visible ? 8 : 0);
         margins.setBottom(visible ? 10 : 0);
         layout->setContentsMargins(margins);
-        layout->setVerticalSpacing(visible ? visibleVerticalSpacing : 0);
+        layout->setVerticalSpacing(visible ? layout->property("visibleVerticalSpacing").toInt() : 0);
         for (int row = 0; row < layout->rowCount(); ++row)
             layout->setRowVisible(row, visible);
         layout->invalidate();
@@ -480,7 +481,7 @@ void InitPane::updateDetailsVisibility()
     setFormVisible(ui.featuresDetailsFormLayout, featuresVisible);
     setFormVisible(ui.parametersDetailsFormLayout, parametersVisible);
     setFormVisible(ui.databaseDetailsFormLayout, databaseVisible);
-    setFormVisible(ui.crashReporterDetailsFormLayout, crashReporterVisible, 4);
+    setFormVisible(ui.crashReporterDetailsFormLayout, crashReporterVisible);
     updateCrashReporterControls();
 
     ui.rightColumn->invalidate();

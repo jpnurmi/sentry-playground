@@ -28,6 +28,8 @@ public:
 
     void drawPrimitive(PrimitiveElement element, const QStyleOption* option,
         QPainter* painter, const QWidget* widget = nullptr) const override;
+    QRect subElementRect(SubElement element, const QStyleOption* option,
+        const QWidget* widget = nullptr) const override;
     void polish(QWidget* widget) override;
     QSize sizeFromContents(ContentsType type, const QStyleOption* option,
         const QSize& contentsSize, const QWidget* widget) const override;

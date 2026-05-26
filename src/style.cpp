@@ -301,6 +301,27 @@ void Style::drawPrimitive(PrimitiveElement element, const QStyleOption* option,
     QProxyStyle::drawPrimitive(element, option, painter, widget);
 }
 
+QRect Style::subElementRect(SubElement element, const QStyleOption* option,
+    const QWidget* widget) const
+{
+#ifdef Q_OS_MACOS
+    switch (element) {
+    case SE_ComboBoxLayoutItem:
+    case SE_SpinBoxLayoutItem:
+        if (option) {
+            QRect rect = QProxyStyle::subElementRect(element, option, widget);
+            rect.setY(option->rect.y());
+            rect.setHeight(option->rect.height());
+            return rect;
+        }
+        break;
+    default:
+        break;
+    }
+#endif
+    return QProxyStyle::subElementRect(element, option, widget);
+}
+
 void Style::polish(QWidget* widget)
 {
     QProxyStyle::polish(widget);
