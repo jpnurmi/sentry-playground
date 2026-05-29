@@ -37,39 +37,6 @@
     </spacer>
    </item>
    <item>
-    <widget class="QLabel" name="debugFilesHeader">
-     <property name="styleSheet">
-      <string notr="true">color: palette(placeholder-text); font-weight: bold;</string>
-     </property>
-     <property name="text">
-      <string>DEBUG FILES</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QPushButton" name="uploadDebugFilesButton">
-     <property name="text">
-      <string>Upload</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <spacer name="crashesTopSpacer">
-     <property name="orientation">
-      <enum>Qt::Orientation::Vertical</enum>
-     </property>
-     <property name="sizeType">
-      <enum>QSizePolicy::Policy::Expanding</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>0</width>
-       <height>0</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item>
     <widget class="QLabel" name="crashesHeader">
      <property name="styleSheet">
       <string notr="true">color: palette(placeholder-text); font-weight: bold;</string>
@@ -136,19 +103,6 @@
    </item>
    <item>
     <layout class="QHBoxLayout" name="togglesLayout">
-     <item>
-      <spacer name="togglesSpacer">
-       <property name="orientation">
-        <enum>Qt::Orientation::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>0</width>
-         <height>0</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
      <item>
       <widget class="QCheckBox" name="filterBox">
        <property name="text">

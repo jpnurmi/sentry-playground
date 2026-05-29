@@ -145,7 +145,7 @@ static void rememberUploadedDebugIds(const QStringList& debugIds)
 DebugFilesDialog::DebugFilesDialog(QWidget* parent)
     : QDialog(parent)
 {
-    setWindowTitle("Debug Files Upload");
+    setWindowTitle("Upload Debug Files");
     resize(760, 360);
 
     auto* layout = new QVBoxLayout(this);

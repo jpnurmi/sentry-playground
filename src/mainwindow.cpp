@@ -8,6 +8,7 @@
 #include <QtGui/qaction.h>
 #include <QtGui/qevent.h>
 #include <QtGui/qpalette.h>
+#include <QtGui/qpainter.h>
 #include <QtGui/qpixmap.h>
 #include <QtWidgets/qabstractbutton.h>
 #include <QtWidgets/qabstractscrollarea.h>
@@ -30,7 +31,6 @@ static constexpr int kPageBottomMargin = 16;
 static constexpr int kPageColumnSpacing = 16;
 static constexpr int kStatusBarRightMargin = 8;
 static constexpr int kStatusBarVerticalPadding = 4;
-
 static QString statusBarStyle(const QString& backgroundColor)
 {
     return QStringLiteral(
@@ -98,19 +98,23 @@ MainWindow::MainWindow(QWidget* parent)
     setupPages();
     setupWheelScrolling();
     ui.backendLabel->setText(Playground::backend());
-    updateLogo();
 
     Playground* playground = Playground::instance();
+    QObject::connect(ui.sentryLogoButton, &QAbstractButton::clicked, this, [this]() {
+        if (Playground::instance()->isInitialized() && ui.pages->currentWidget() == ui.runtimePage)
+            ui.crashPane->uploadDebugFiles();
+    });
+    QObject::connect(ui.crashPane, &CrashPane::debugFilesUploadStatusChanged, this,
+        [this](DebugFilesDialog::UploadStatus status) {
+            m_debugFilesUploadStatus = status;
+            updateLogo();
+        });
+    m_debugFilesUploadStatus = ui.crashPane->debugFilesUploadStatus();
+    updateLogo();
 
-    auto* optionsButton = new QToolButton(ui.leftPanel);
-    optionsButton->setObjectName(QStringLiteral("runtimeOptionsButton"));
-    optionsButton->setFixedSize(22, 22);
-    optionsButton->setIconSize(QSize(14, 14));
-    optionsButton->setToolTip("Back");
-    optionsButton->move(0, 0);
-    optionsButton->hide();
-    optionsButton->raise();
-    QObject::connect(optionsButton, &QAbstractButton::clicked, this, []() {
+    ui.runtimeOptionsButton->setIconSize(QSize(14, 14));
+    ui.runtimeOptionsButton->hide();
+    QObject::connect(ui.runtimeOptionsButton, &QAbstractButton::clicked, this, []() {
         Playground::close();
     });
     applyLeftPanelStyles();
@@ -211,20 +215,18 @@ void MainWindow::showInitPage()
 {
     ui.initPage->populate();
     ui.crashPane->hide();
-    if (auto* optionsButton = ui.leftPanel->findChild<QToolButton*>(QStringLiteral("runtimeOptionsButton")))
-        optionsButton->hide();
+    ui.runtimeOptionsButton->hide();
     ui.pages->setCurrentWidget(ui.initPage);
+    updateLogo();
     updateStatusBarVisibility();
 }
 
 void MainWindow::showRuntimePage()
 {
     ui.crashPane->show();
-    if (auto* optionsButton = ui.leftPanel->findChild<QToolButton*>(QStringLiteral("runtimeOptionsButton"))) {
-        optionsButton->show();
-        optionsButton->raise();
-    }
+    ui.runtimeOptionsButton->show();
     ui.pages->setCurrentWidget(ui.runtimePage);
+    updateLogo();
     updateStatusBarVisibility();
 }
 
@@ -304,10 +306,8 @@ void MainWindow::applyLeftPanelStyles()
         "color: %1; font-weight: bold; background-color: %2; border: none; border-radius: 5px; padding: 1px 7px;")
             .arg(Style::cssRgba(textColor, 170), Style::cssRgba(textColor, 24)));
 
-    if (auto* optionsButton = ui.leftPanel->findChild<QToolButton*>(QStringLiteral("runtimeOptionsButton"))) {
-        optionsButton->setIcon(Style::makeBackIcon(palette(), devicePixelRatioF()));
-        optionsButton->setStyleSheet(Style::circularButtonStyle(palette()));
-    }
+    ui.runtimeOptionsButton->setIcon(Style::makeBackIcon(palette(), devicePixelRatioF()));
+    ui.runtimeOptionsButton->setStyleSheet(Style::circularButtonStyle(palette()));
 }
 
 void MainWindow::changeEvent(QEvent* event)
@@ -342,5 +342,64 @@ void MainWindow::updateLogo()
 {
     const bool isDark = qApp->palette().window().color().lightness() < 128;
     const QPixmap logo(isDark ? ":/assets/sentry-glyph-light.png" : ":/assets/sentry-glyph-dark.png");
-    ui.sentryLogo->setPixmap(logo);
+    const qreal dpr = logo.devicePixelRatio();
+    const int width = qRound(logo.width() / dpr);
+    const int height = qRound(logo.height() / dpr);
+    const bool uploadAvailable = Playground::instance()->isInitialized()
+        && ui.pages->currentWidget() == ui.runtimePage;
+    const int padding = 4;
+    const int canvasWidth = width + padding * 2;
+    const int canvasHeight = height + padding * 2;
+    const QRect logoRect(padding, padding, width, height);
+
+    QPixmap composite(qRound(canvasWidth * dpr), qRound(canvasHeight * dpr));
+    composite.setDevicePixelRatio(dpr);
+    composite.fill(Qt::transparent);
+
+    QPainter painter(&composite);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.drawPixmap(logoRect, logo);
+
+    if (uploadAvailable) {
+        const int dotSize = 10;
+        const QRect dotRect(
+            logoRect.right() - dotSize / 2 + 1,
+            logoRect.bottom() - dotSize / 2 + 1,
+            dotSize,
+            dotSize);
+        const QColor dotColor = m_debugFilesUploadStatus == DebugFilesDialog::UploadStatus::UpToDate
+            ? QColor("#34c759")
+            : QColor("#ff453a");
+        QColor dotOutline = palette().color(QPalette::Window);
+        dotOutline.setAlpha(235);
+        painter.setBrush(dotColor);
+        painter.setPen(QPen(dotOutline, 2));
+        painter.drawEllipse(dotRect);
+    }
+    painter.end();
+
+    ui.sentryLogoButton->setIcon(QIcon(composite));
+    ui.sentryLogoButton->setIconSize(QSize(canvasWidth, canvasHeight));
+    ui.sentryLogoButton->setCursor(uploadAvailable ? Qt::PointingHandCursor : Qt::ArrowCursor);
+    ui.sentryLogoButton->setToolTip(uploadAvailable ? debugFilesUploadToolTip() : QString());
+    const QColor hoverColor = Style::blendedColor(
+        palette().color(QPalette::Window),
+        palette().color(QPalette::WindowText),
+        uploadAvailable ? 20 : 0);
+    const QColor pressedColor = Style::blendedColor(
+        palette().color(QPalette::Window),
+        palette().color(QPalette::WindowText),
+        uploadAvailable ? 32 : 0);
+    ui.sentryLogoButton->setStyleSheet(QStringLiteral(
+        "QToolButton { border: none; border-radius: 10px; background: transparent; padding: 0; }"
+        "QToolButton:hover { background: %1; }"
+        "QToolButton:pressed { background: %2; }")
+            .arg(Style::cssRgb(hoverColor), Style::cssRgb(pressedColor)));
+}
+
+QString MainWindow::debugFilesUploadToolTip() const
+{
+    return m_debugFilesUploadStatus == DebugFilesDialog::UploadStatus::UpToDate
+        ? QStringLiteral("Debug files uploaded")
+        : QStringLiteral("Upload debug files");
 }

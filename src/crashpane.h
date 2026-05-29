@@ -14,11 +14,14 @@ class CrashPane : public QWidget
 
 public:
     explicit CrashPane(QWidget* parent = nullptr);
+    void uploadDebugFiles();
+    DebugFilesDialog::UploadStatus debugFilesUploadStatus() const;
+
+signals:
+    void debugFilesUploadStatusChanged(DebugFilesDialog::UploadStatus status);
 
 private:
     void triggerCrash(void (*crashFunction)());
-    void uploadDebugFiles();
-    void updateDebugFilesUploadStatus(DebugFilesDialog::UploadStatus status);
 
     Playground* playground() const;
 
