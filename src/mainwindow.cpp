@@ -37,16 +37,7 @@ static QString statusBarStyle(const QString& backgroundColor)
         "QStatusBar { background-color: %1; }"
         "QStatusBar QPushButton#consentButton { border: none; background: transparent; }"
         "QStatusBar QLabel { color: white; font-weight: bold; background: transparent; }"
-        "QStatusBar QLabel#consentIcon { font-size: 18px; }"
-        "QStatusBar QPushButton#feedbackButton {"
-        " color: white; font-weight: bold;"
-        " background: rgba(255, 255, 255, 0.15);"
-        " border: 1px solid rgba(255, 255, 255, 0.5);"
-        " border-radius: 4px; padding: 3px 12px; }"
-        "QStatusBar QPushButton#feedbackButton:hover {"
-        " background: rgba(255, 255, 255, 0.25); }"
-        "QStatusBar QPushButton#feedbackButton:pressed {"
-        " background: rgba(255, 255, 255, 0.35); }")
+        "QStatusBar QLabel#consentIcon { font-size: 18px; }")
         .arg(backgroundColor);
 }
 
@@ -124,6 +115,14 @@ MainWindow::MainWindow(QWidget* parent)
         MainWindow* subwindow = new MainWindow(this);
         subwindow->show();
     });
+    QObject::connect(ui.actionFeedback, &QAction::triggered, this, [this, playground] {
+        FeedbackDialog dialog(this);
+        QVariantMap user = playground->user();
+        dialog.setName(user.value("name").toString());
+        dialog.setEmail(user.value("email").toString());
+        if (dialog.exec() == QDialog::Accepted)
+            playground->captureFeedback(dialog.message(), dialog.name(), dialog.email());
+    });
 
     auto* consentButton = new QPushButton(this);
     consentButton->setObjectName("consentButton");
@@ -142,23 +141,10 @@ MainWindow::MainWindow(QWidget* parent)
     statusBar()->addPermanentWidget(consentButton, 1);
     statusBar()->setSizeGripEnabled(false);
     statusBar()->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
-
-    auto* feedbackButton = new QPushButton("Feedback", this);
-    feedbackButton->setObjectName("feedbackButton");
-    feedbackButton->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-    statusBar()->addPermanentWidget(feedbackButton);
     if (QLayout* statusLayout = statusBar()->layout())
         statusLayout->setContentsMargins(
             0, kStatusBarVerticalPadding, kStatusBarRightMargin, kStatusBarVerticalPadding);
-    statusBar()->setFixedHeight(feedbackButton->sizeHint().height());
-    QObject::connect(feedbackButton, &QAbstractButton::clicked, this, [this, playground]() {
-        FeedbackDialog dialog(this);
-        QVariantMap user = playground->user();
-        dialog.setName(user.value("name").toString());
-        dialog.setEmail(user.value("email").toString());
-        if (dialog.exec() == QDialog::Accepted)
-            playground->captureFeedback(dialog.message(), dialog.name(), dialog.email());
-    });
+    statusBar()->setFixedHeight(consentButton->sizeHint().height());
     QObject::connect(consentButton, &QAbstractButton::clicked, playground, [playground]() {
         if (!playground->options().requireUserConsent)
             return;
@@ -233,12 +219,10 @@ void MainWindow::showRuntimePage()
 void MainWindow::updateStatusBarVisibility()
 {
     Playground* playground = Playground::instance();
-    const bool showRuntimeFooter = playground->isInitialized()
-        && ui.pages->currentWidget() == ui.runtimePage;
     const bool showConsentFooter = playground->isInitialized()
         && ui.pages->currentWidget() == ui.runtimePage
         && playground->options().requireUserConsent;
-    statusBar()->setVisible(showRuntimeFooter);
+    statusBar()->setVisible(showConsentFooter);
 
     auto* consentButton = statusBar()->findChild<QPushButton*>(QStringLiteral("consentButton"));
     auto* consentIcon = statusBar()->findChild<QLabel*>(QStringLiteral("consentIcon"));
