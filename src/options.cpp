@@ -13,7 +13,7 @@
 
 namespace {
 
-static constexpr int kOptionsSchemaVersion = 1;
+static constexpr int kOptionsSchemaVersion = 2;
 
 bool resolveDebug()
 {
@@ -54,9 +54,36 @@ int normalizeCacheKeepMode(int mode)
     }
 }
 
+int normalizeCrashReportingMode(int mode)
+{
+    switch (mode) {
+    case SENTRY_CRASH_REPORTING_MODE_MINIDUMP:
+    case SENTRY_CRASH_REPORTING_MODE_NATIVE:
+    case SENTRY_CRASH_REPORTING_MODE_NATIVE_WITH_MINIDUMP:
+        return mode;
+    default:
+        return SENTRY_CRASH_REPORTING_MODE_NATIVE_WITH_MINIDUMP;
+    }
+}
+
+int normalizeMinidumpMode(int mode)
+{
+    switch (mode) {
+    case SENTRY_MINIDUMP_MODE_STACK_ONLY:
+    case SENTRY_MINIDUMP_MODE_SMART:
+    case SENTRY_MINIDUMP_MODE_FULL:
+        return mode;
+    default:
+        return SENTRY_MINIDUMP_MODE_SMART;
+    }
+}
+
 } // namespace
 
-Options::Options() : debug(resolveDebug())
+Options::Options()
+    : debug(resolveDebug())
+    , crashReportingMode(SENTRY_CRASH_REPORTING_MODE_NATIVE_WITH_MINIDUMP)
+    , minidumpMode(SENTRY_MINIDUMP_MODE_SMART)
 {
 }
 
@@ -94,6 +121,8 @@ bool Options::load(const QByteArray &data)
     loggerLevel = values.value("loggerLevel", loggerLevel).toInt();
     externalCrashReporterEnabled = values.value("externalCrashReporterEnabled", externalCrashReporterEnabled).toBool();
     externalCrashReporterPath = values.value("externalCrashReporterPath", externalCrashReporterPath).toString();
+    crashReportingMode = values.value("crashReportingMode", crashReportingMode).toInt();
+    minidumpMode = values.value("minidumpMode", minidumpMode).toInt();
 
     maxBreadcrumbs = std::max(0, maxBreadcrumbs);
     maxSpans = std::max(0, maxSpans);
@@ -103,6 +132,8 @@ bool Options::load(const QByteArray &data)
     cacheMaxSize = std::max(0, cacheMaxSize);
     cacheMaxAge = std::max(0, cacheMaxAge);
     loggerLevel = normalizeLoggerLevel(loggerLevel);
+    crashReportingMode = normalizeCrashReportingMode(crashReportingMode);
+    minidumpMode = normalizeMinidumpMode(minidumpMode);
     return true;
 }
 
@@ -132,6 +163,8 @@ QByteArray Options::save() const
     values.insert("loggerLevel", normalizeLoggerLevel(loggerLevel));
     values.insert("externalCrashReporterEnabled", externalCrashReporterEnabled);
     values.insert("externalCrashReporterPath", externalCrashReporterPath);
+    values.insert("crashReportingMode", normalizeCrashReportingMode(crashReportingMode));
+    values.insert("minidumpMode", normalizeMinidumpMode(minidumpMode));
 
     QByteArray data;
     QDataStream stream(&data, QIODevice::WriteOnly);
@@ -171,5 +204,11 @@ sentry_options_t *Options::toNative() const
     sentry_options_set_cache_max_age(opt, static_cast<time_t>(std::max(0, cacheMaxAge)));
     sentry_options_set_debug(opt, debug);
     sentry_options_set_logger_level(opt, static_cast<sentry_level_t>(normalizeLoggerLevel(loggerLevel)));
+    sentry_options_set_crash_reporting_mode(
+        opt,
+        static_cast<sentry_crash_reporting_mode_t>(normalizeCrashReportingMode(crashReportingMode)));
+    sentry_options_set_minidump_mode(
+        opt,
+        static_cast<sentry_minidump_mode_t>(normalizeMinidumpMode(minidumpMode)));
     return opt;
 }

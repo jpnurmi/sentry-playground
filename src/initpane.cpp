@@ -30,6 +30,42 @@
 static constexpr int kMaxEnvironmentHistoryItems = 12;
 static constexpr int kLoggerLevelNone = -1000;
 
+bool supportsNativeOptions()
+{
+    return Playground::backend() == QStringLiteral("native");
+}
+
+bool crashReportingModeUsesMinidump(int mode)
+{
+    return mode != SENTRY_CRASH_REPORTING_MODE_NATIVE;
+}
+
+QString crashReportingModeSummaryText(int mode)
+{
+    switch (mode) {
+    case SENTRY_CRASH_REPORTING_MODE_NATIVE:
+        return QStringLiteral("native");
+    case SENTRY_CRASH_REPORTING_MODE_MINIDUMP:
+        return QStringLiteral("minidump");
+    case SENTRY_CRASH_REPORTING_MODE_NATIVE_WITH_MINIDUMP:
+    default:
+        return QStringLiteral("native with minidump");
+    }
+}
+
+QString minidumpModeSummaryText(int mode)
+{
+    switch (mode) {
+    case SENTRY_MINIDUMP_MODE_STACK_ONLY:
+        return QStringLiteral("stack only");
+    case SENTRY_MINIDUMP_MODE_FULL:
+        return QStringLiteral("full");
+    case SENTRY_MINIDUMP_MODE_SMART:
+    default:
+        return QStringLiteral("smart");
+    }
+}
+
 static QStringList environmentHistoryWith(QStringList history, const QString& environment)
 {
     QStringList normalized;
@@ -95,6 +131,7 @@ void InitPane::setupSummaryRows()
     wrapSummaryRow(ui.parametersSummaryLayout, "parametersSummaryWidget");
     wrapSummaryRow(ui.databaseSummaryLayout, "databaseSummaryWidget");
     wrapSummaryRow(ui.crashReporterSummaryLayout, "crashReporterSummaryWidget");
+    wrapSummaryRow(ui.nativeSummaryLayout, "nativeSummaryWidget");
 }
 
 void InitPane::setupFormAlignment()
@@ -117,6 +154,8 @@ void InitPane::setupFormAlignment()
         ui.cacheMaxAgeLabel,
         ui.crashReporterSpacerLabel,
         ui.crashReporterPathLabel,
+        ui.crashReportingModeLabel,
+        ui.minidumpModeLabel,
     };
     QLabel* summaryTitles[] = {
         ui.dsnSummaryTitle,
@@ -126,6 +165,7 @@ void InitPane::setupFormAlignment()
         ui.parametersSummaryTitle,
         ui.databaseSummaryTitle,
         ui.crashReporterSummaryTitle,
+        ui.nativeSummaryTitle,
     };
     int formLabelWidth = 0;
     for (QLabel* label : formLabels)
@@ -154,6 +194,7 @@ void InitPane::setupFormAlignment()
     alignDetailsForm(ui.parametersDetailsFormLayout);
     alignDetailsForm(ui.databaseDetailsFormLayout);
     alignDetailsForm(ui.crashReporterDetailsFormLayout);
+    alignDetailsForm(ui.nativeDetailsFormLayout);
 
     auto alignSummaryValue = [formLabelWidth, summaryHorizontalSpacing](
                                  QHBoxLayout* layout, QLabel* title, QLabel* summary) {
@@ -171,6 +212,7 @@ void InitPane::setupFormAlignment()
     alignSummaryValue(ui.parametersSummaryLayout, ui.parametersSummaryTitle, ui.parametersSummaryLabel);
     alignSummaryValue(ui.databaseSummaryLayout, ui.databaseSummaryTitle, ui.databaseSummaryLabel);
     alignSummaryValue(ui.crashReporterSummaryLayout, ui.crashReporterSummaryTitle, ui.crashReporterSummaryLabel);
+    alignSummaryValue(ui.nativeSummaryLayout, ui.nativeSummaryTitle, ui.nativeSummaryLabel);
 
     for (QWidget* widget : {
              ui.dsnSummaryStatus, ui.dsnSummaryTitle, ui.dsnSummaryLabel,
@@ -180,6 +222,7 @@ void InitPane::setupFormAlignment()
              ui.parametersSummaryStatus, ui.parametersSummaryTitle, ui.parametersSummaryLabel,
              ui.databaseSummaryStatus, ui.databaseSummaryTitle, ui.databaseSummaryLabel,
              ui.crashReporterSummaryStatus, ui.crashReporterSummaryTitle, ui.crashReporterSummaryLabel,
+             ui.nativeSummaryStatus, ui.nativeSummaryTitle, ui.nativeSummaryLabel,
          }) {
         widget->setAttribute(Qt::WA_TransparentForMouseEvents);
     }
@@ -200,6 +243,12 @@ void InitPane::setupControls()
     ui.loggerLevelBox->addItem("Warning", SENTRY_LEVEL_WARNING);
     ui.loggerLevelBox->addItem("Error", SENTRY_LEVEL_ERROR);
     ui.loggerLevelBox->addItem("Fatal", SENTRY_LEVEL_FATAL);
+    ui.crashReportingModeBox->addItem("Native", SENTRY_CRASH_REPORTING_MODE_NATIVE);
+    ui.crashReportingModeBox->addItem("Minidump", SENTRY_CRASH_REPORTING_MODE_MINIDUMP);
+    ui.crashReportingModeBox->addItem("Native with minidump", SENTRY_CRASH_REPORTING_MODE_NATIVE_WITH_MINIDUMP);
+    ui.minidumpModeBox->addItem("Stack only", SENTRY_MINIDUMP_MODE_STACK_ONLY);
+    ui.minidumpModeBox->addItem("Smart", SENTRY_MINIDUMP_MODE_SMART);
+    ui.minidumpModeBox->addItem("Full", SENTRY_MINIDUMP_MODE_FULL);
 
     const char* kDisclosureButton =
         "QToolButton { background: transparent; border: none; padding: 0; }";
@@ -225,6 +274,7 @@ void InitPane::setupControls()
     setupDisclosureButton(ui.parametersEditButton, "init/parametersExpanded");
     setupDisclosureButton(ui.databaseEditButton, "init/databaseExpanded");
     setupDisclosureButton(ui.crashReporterEditButton, "init/crashReporterExpanded");
+    setupDisclosureButton(ui.nativeEditButton, "init/nativeExpanded");
 
     QAction* databaseBrowseAction = ui.databasePathEdit->addAction(
         Style::makeEllipsisIcon(palette(), devicePixelRatioF()), QLineEdit::TrailingPosition);
@@ -264,7 +314,10 @@ void InitPane::setupControls()
     connect(clearCrashReporterAction, &QAction::triggered, ui.crashReporterPathEdit, &QLineEdit::clear);
     connect(ui.externalCrashReporterBox, &QAbstractButton::toggled,
         this, &InitPane::updateCrashReporterControls);
+    connect(ui.crashReportingModeBox, qOverload<int>(&QComboBox::currentIndexChanged), this,
+        [this](int) { updateNativeControls(); });
     updateCrashReporterControls();
+    updateNativeControls();
 
     connect(ui.releaseEdit, &QLineEdit::textChanged, this, &InitPane::updateSummaries);
     connect(ui.environmentEdit, &QComboBox::currentTextChanged, this, &InitPane::updateSummaries);
@@ -287,6 +340,10 @@ void InitPane::setupControls()
     connect(ui.cacheMaxAgeBox, qOverload<int>(&QSpinBox::valueChanged),
         this, &InitPane::updateSummaries);
     connect(ui.loggerLevelBox, qOverload<int>(&QComboBox::currentIndexChanged),
+        this, &InitPane::updateSummaries);
+    connect(ui.crashReportingModeBox, qOverload<int>(&QComboBox::currentIndexChanged),
+        this, &InitPane::updateSummaries);
+    connect(ui.minidumpModeBox, qOverload<int>(&QComboBox::currentIndexChanged),
         this, &InitPane::updateSummaries);
     connect(ui.crashReporterPathEdit, &QLineEdit::textChanged, this, &InitPane::updateSummaries);
     for (QCheckBox* box : {
@@ -343,6 +400,8 @@ void InitPane::populate()
         ui.cacheMaxAgeBox,
         ui.loggerLevelBox,
         ui.crashReporterPathEdit,
+        ui.crashReportingModeBox,
+        ui.minidumpModeBox,
     };
     std::vector<std::unique_ptr<QSignalBlocker>> blockers;
     blockers.reserve(widgets.size());
@@ -380,11 +439,20 @@ void InitPane::populate()
         ? loggerLevelIndex
         : ui.loggerLevelBox->findData(kLoggerLevelNone));
     ui.crashReporterPathEdit->setText(options.externalCrashReporterPath);
+    const int crashReportingModeIndex = ui.crashReportingModeBox->findData(options.crashReportingMode);
+    ui.crashReportingModeBox->setCurrentIndex(crashReportingModeIndex >= 0
+        ? crashReportingModeIndex
+        : ui.crashReportingModeBox->findData(SENTRY_CRASH_REPORTING_MODE_NATIVE_WITH_MINIDUMP));
+    const int minidumpModeIndex = ui.minidumpModeBox->findData(options.minidumpMode);
+    ui.minidumpModeBox->setCurrentIndex(minidumpModeIndex >= 0
+        ? minidumpModeIndex
+        : ui.minidumpModeBox->findData(SENTRY_MINIDUMP_MODE_SMART));
     for (QAction* action : ui.databasePathEdit->actions()) {
         if (action->objectName() == "databasePathClearAction")
             action->setEnabled(!ui.databasePathEdit->text().isEmpty());
     }
     updateCrashReporterControls();
+    updateNativeControls();
     ui.initializeButton->setText(Playground::instance()->wasInitialized()
         ? "Re-initialize"
         : "Initialize");
@@ -441,6 +509,8 @@ Options InitPane::optionsFromPage() const
     options.loggerLevel = options.debug ? loggerLevel : SENTRY_LEVEL_DEBUG;
     options.externalCrashReporterEnabled = ui.externalCrashReporterBox->isChecked();
     options.externalCrashReporterPath = ui.crashReporterPathEdit->text();
+    options.crashReportingMode = ui.crashReportingModeBox->currentData().toInt();
+    options.minidumpMode = ui.minidumpModeBox->currentData().toInt();
     return options;
 }
 
@@ -463,6 +533,27 @@ void InitPane::updateCrashReporterControls()
     ui.scrollContents->updateGeometry();
 }
 
+void InitPane::updateNativeControls()
+{
+    const bool nativeSectionVisible = supportsNativeOptions();
+    const bool nativeDetailsVisible = nativeSectionVisible && ui.nativeEditButton->isChecked();
+    const bool usesMinidump = crashReportingModeUsesMinidump(
+        ui.crashReportingModeBox->currentData().toInt());
+
+    if (QWidget* nativeSummaryWidget = findChild<QWidget*>(QStringLiteral("nativeSummaryWidget")))
+        nativeSummaryWidget->setVisible(nativeSectionVisible);
+    ui.crashReporterSectionDivider->setVisible(nativeSectionVisible);
+    ui.nativeSectionDivider->setVisible(nativeSectionVisible);
+    ui.nativeEditButton->setEnabled(nativeSectionVisible);
+
+    ui.nativeDetailsFormLayout->setRowVisible(
+        ui.minidumpModeLabel, nativeDetailsVisible && usesMinidump);
+    ui.minidumpModeBox->setEnabled(usesMinidump);
+
+    ui.rightColumn->invalidate();
+    ui.scrollContents->updateGeometry();
+}
+
 void InitPane::updateDetailsVisibility()
 {
     const bool dsnVisible = ui.dsnEditButton->isChecked();
@@ -472,6 +563,7 @@ void InitPane::updateDetailsVisibility()
     const bool parametersVisible = ui.parametersEditButton->isChecked();
     const bool databaseVisible = ui.databaseEditButton->isChecked();
     const bool crashReporterVisible = ui.crashReporterEditButton->isChecked();
+    const bool nativeVisible = supportsNativeOptions() && ui.nativeEditButton->isChecked();
 
     auto setFormVisible = [](QFormLayout* layout, bool visible) {
         QMargins margins = layout->contentsMargins();
@@ -490,7 +582,9 @@ void InitPane::updateDetailsVisibility()
     setFormVisible(ui.parametersDetailsFormLayout, parametersVisible);
     setFormVisible(ui.databaseDetailsFormLayout, databaseVisible);
     setFormVisible(ui.crashReporterDetailsFormLayout, crashReporterVisible);
+    setFormVisible(ui.nativeDetailsFormLayout, nativeVisible);
     updateCrashReporterControls();
+    updateNativeControls();
 
     ui.rightColumn->invalidate();
     ui.scrollContents->updateGeometry();
@@ -517,6 +611,8 @@ void InitPane::refreshPaletteStyles()
         ui.featuresSectionDivider,
         ui.parametersSectionDivider,
         ui.databaseSectionDivider,
+        ui.crashReporterSectionDivider,
+        ui.nativeSectionDivider,
     };
     for (QWidget* divider : sectionDividers)
         divider->setStyleSheet(dividerStyle);
@@ -648,6 +744,18 @@ void InitPane::updateSummaries()
                                          ? QStringLiteral("N/A")
                                          : crashReporterParts.join(QStringLiteral(", ")));
     setStatus(ui.crashReporterSummaryStatus, !crashReporterParts.isEmpty());
+
+    if (supportsNativeOptions()) {
+        const int crashReportingMode = ui.crashReportingModeBox->currentData().toInt();
+        QStringList nativeParts = { crashReportingModeSummaryText(crashReportingMode) };
+        if (crashReportingModeUsesMinidump(crashReportingMode))
+            nativeParts.append(minidumpModeSummaryText(ui.minidumpModeBox->currentData().toInt()));
+        ui.nativeSummaryLabel->setText(nativeParts.join(QStringLiteral(", ")));
+        setStatus(ui.nativeSummaryStatus, true);
+    } else {
+        ui.nativeSummaryLabel->setText(QStringLiteral("N/A"));
+        setStatus(ui.nativeSummaryStatus, false);
+    }
 }
 
 bool InitPane::eventFilter(QObject* watched, QEvent* event)
@@ -689,6 +797,10 @@ bool InitPane::eventFilter(QObject* watched, QEvent* event)
             }
             if (name == QLatin1String("crashReporterSummaryWidget")) {
                 ui.crashReporterEditButton->toggle();
+                return true;
+            }
+            if (name == QLatin1String("nativeSummaryWidget")) {
+                ui.nativeEditButton->toggle();
                 return true;
             }
         }

@@ -27,6 +27,7 @@ private:
     void rememberEnvironment(const QString& environment);
     Options optionsFromPage() const;
     void updateCrashReporterControls();
+    void updateNativeControls();
     void updateDetailsVisibility();
     void updateSummaries();
 

@@ -36,6 +36,8 @@ struct Options
     int loggerLevel = -1;
     bool externalCrashReporterEnabled = false;
     QString externalCrashReporterPath;
+    int crashReportingMode;
+    int minidumpMode;
 };
 
 #endif // OPTIONS_H
