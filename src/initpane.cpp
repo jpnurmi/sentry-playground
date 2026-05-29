@@ -90,6 +90,7 @@ void InitPane::setupSummaryRows()
     };
     wrapSummaryRow(ui.dsnSummaryLayout, "dsnSummaryWidget");
     wrapSummaryRow(ui.versionSummaryLayout, "versionSummaryWidget");
+    wrapSummaryRow(ui.loggingSummaryLayout, "loggingSummaryWidget");
     wrapSummaryRow(ui.featuresSummaryLayout, "featuresSummaryWidget");
     wrapSummaryRow(ui.parametersSummaryLayout, "parametersSummaryWidget");
     wrapSummaryRow(ui.databaseSummaryLayout, "databaseSummaryWidget");
@@ -120,6 +121,7 @@ void InitPane::setupFormAlignment()
     QLabel* summaryTitles[] = {
         ui.dsnSummaryTitle,
         ui.versionSummaryTitle,
+        ui.loggingSummaryTitle,
         ui.featuresSummaryTitle,
         ui.parametersSummaryTitle,
         ui.databaseSummaryTitle,
@@ -147,6 +149,7 @@ void InitPane::setupFormAlignment()
     };
     alignDetailsForm(ui.dsnDetailsFormLayout);
     alignDetailsForm(ui.versionDetailsFormLayout);
+    alignDetailsForm(ui.loggingDetailsFormLayout);
     alignDetailsForm(ui.featuresDetailsFormLayout);
     alignDetailsForm(ui.parametersDetailsFormLayout);
     alignDetailsForm(ui.databaseDetailsFormLayout);
@@ -163,6 +166,7 @@ void InitPane::setupFormAlignment()
     };
     alignSummaryValue(ui.dsnSummaryLayout, ui.dsnSummaryTitle, ui.dsnSummaryLabel);
     alignSummaryValue(ui.versionSummaryLayout, ui.versionSummaryTitle, ui.versionSummaryLabel);
+    alignSummaryValue(ui.loggingSummaryLayout, ui.loggingSummaryTitle, ui.loggingSummaryLabel);
     alignSummaryValue(ui.featuresSummaryLayout, ui.featuresSummaryTitle, ui.featuresSummaryLabel);
     alignSummaryValue(ui.parametersSummaryLayout, ui.parametersSummaryTitle, ui.parametersSummaryLabel);
     alignSummaryValue(ui.databaseSummaryLayout, ui.databaseSummaryTitle, ui.databaseSummaryLabel);
@@ -171,6 +175,7 @@ void InitPane::setupFormAlignment()
     for (QWidget* widget : {
              ui.dsnSummaryStatus, ui.dsnSummaryTitle, ui.dsnSummaryLabel,
              ui.versionSummaryStatus, ui.versionSummaryTitle, ui.versionSummaryLabel,
+             ui.loggingSummaryStatus, ui.loggingSummaryTitle, ui.loggingSummaryLabel,
              ui.featuresSummaryStatus, ui.featuresSummaryTitle, ui.featuresSummaryLabel,
              ui.parametersSummaryStatus, ui.parametersSummaryTitle, ui.parametersSummaryLabel,
              ui.databaseSummaryStatus, ui.databaseSummaryTitle, ui.databaseSummaryLabel,
@@ -215,6 +220,7 @@ void InitPane::setupControls()
     };
     setupDisclosureButton(ui.versionEditButton, "init/versionExpanded");
     setupDisclosureButton(ui.dsnEditButton, "init/dsnExpanded");
+    setupDisclosureButton(ui.loggingEditButton, "init/debugExpanded");
     setupDisclosureButton(ui.featuresEditButton, "init/featuresExpanded");
     setupDisclosureButton(ui.parametersEditButton, "init/parametersExpanded");
     setupDisclosureButton(ui.databaseEditButton, "init/databaseExpanded");
@@ -461,6 +467,7 @@ void InitPane::updateDetailsVisibility()
 {
     const bool dsnVisible = ui.dsnEditButton->isChecked();
     const bool versionVisible = ui.versionEditButton->isChecked();
+    const bool loggingVisible = ui.loggingEditButton->isChecked();
     const bool featuresVisible = ui.featuresEditButton->isChecked();
     const bool parametersVisible = ui.parametersEditButton->isChecked();
     const bool databaseVisible = ui.databaseEditButton->isChecked();
@@ -478,6 +485,7 @@ void InitPane::updateDetailsVisibility()
     };
     setFormVisible(ui.dsnDetailsFormLayout, dsnVisible);
     setFormVisible(ui.versionDetailsFormLayout, versionVisible);
+    setFormVisible(ui.loggingDetailsFormLayout, loggingVisible);
     setFormVisible(ui.featuresDetailsFormLayout, featuresVisible);
     setFormVisible(ui.parametersDetailsFormLayout, parametersVisible);
     setFormVisible(ui.databaseDetailsFormLayout, databaseVisible);
@@ -505,6 +513,7 @@ void InitPane::refreshPaletteStyles()
     QWidget* const sectionDividers[] = {
         ui.dsnSectionDivider,
         ui.versionSectionDivider,
+        ui.loggingSectionDivider,
         ui.featuresSectionDivider,
         ui.parametersSectionDivider,
         ui.databaseSectionDivider,
@@ -567,6 +576,12 @@ void InitPane::updateSummaries()
             : versionParts.join(QStringLiteral(", ")));
     setStatus(ui.versionSummaryStatus, !versionParts.isEmpty());
 
+    const bool loggingEnabled = ui.loggerLevelBox->currentData().toInt() != kLoggerLevelNone;
+    ui.loggingSummaryLabel->setText(loggingEnabled
+            ? ui.loggerLevelBox->currentText().toLower()
+            : QStringLiteral("N/A"));
+    setStatus(ui.loggingSummaryStatus, loggingEnabled);
+
     QStringList features;
     if (ui.requireUserConsentBox->isChecked())
         features.append(QStringLiteral("consent"));
@@ -582,13 +597,10 @@ void InitPane::updateSummaries()
     setStatus(ui.featuresSummaryStatus, !features.isEmpty());
 
     ui.parametersSummaryLabel->setText(
-        QStringLiteral("sample %1x, %2 crumbs, %3 spans, %4")
+        QStringLiteral("sample %1x, %2 crumbs, %3 spans")
             .arg(QLocale::c().toString(ui.tracesSampleRateBox->value(), 'f', 2))
             .arg(ui.maxBreadcrumbsBox->value())
-            .arg(ui.maxSpansBox->value())
-            .arg(ui.loggerLevelBox->currentData().toInt() != kLoggerLevelNone
-                     ? ui.loggerLevelBox->currentText().toLower()
-                     : QString()));
+            .arg(ui.maxSpansBox->value()));
     setStatus(ui.parametersSummaryStatus, true);
 
     QStringList databaseParts;
@@ -653,6 +665,10 @@ bool InitPane::eventFilter(QObject* watched, QEvent* event)
             const QString name = summaryRow->objectName();
             if (name == QLatin1String("versionSummaryWidget")) {
                 ui.versionEditButton->toggle();
+                return true;
+            }
+            if (name == QLatin1String("loggingSummaryWidget")) {
+                ui.loggingEditButton->toggle();
                 return true;
             }
             if (name == QLatin1String("dsnSummaryWidget")) {
