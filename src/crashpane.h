@@ -6,24 +6,23 @@
 #include "debugfilesdialog.h"
 #include "ui_crashpane.h"
 
-class Playground;
-
 class CrashPane : public QWidget
 {
     Q_OBJECT
 
 public:
     explicit CrashPane(QWidget* parent = nullptr);
-    void uploadDebugFiles();
+
     DebugFilesDialog::UploadStatus debugFilesUploadStatus() const;
+
+public slots:
+    void uploadDebugFiles();
 
 signals:
     void debugFilesUploadStatusChanged(DebugFilesDialog::UploadStatus status);
 
 private:
-    void triggerCrash(void (*crashFunction)());
-
-    Playground* playground() const;
+    void triggerCrash(std::function<void()> crashFunction);
 
     DebugFilesDialog* m_debugFilesDialog = nullptr;
 

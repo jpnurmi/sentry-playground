@@ -1,6 +1,5 @@
 #include "crashpane.h"
 #include "playground.h"
-#include "style.h"
 #include "tracing.h"
 
 #include <QtCore/qdebug.h>
@@ -15,7 +14,7 @@
 
 static void *invalid_mem = (void *)1;
 
-static void segfault()
+static void triggerSegfault()
 {
     TRACE_FUNCTION();
     qDebug() << "segfault";
@@ -27,19 +26,19 @@ static void segfault()
 #pragma warning(push)
 #pragma warning(disable : 4717)
 #endif
-static void stackOverflow()
+static void triggerStackOverflow()
 {
     TRACE_FUNCTION();
     qDebug() << "stack overflow";
 
     alloca(1024);
-    stackOverflow();
+    triggerStackOverflow();
 }
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
-static void fastfail()
+static void triggerFastfail()
 {
 #ifdef Q_OS_WINDOWS
     TRACE_FUNCTION();
@@ -49,10 +48,10 @@ static void fastfail()
 #endif
 }
 
-static void failAssert()
+static void assertFailure()
 {
     TRACE_FUNCTION();
-    qDebug() << "failAssert";
+    qDebug() << "assert failure";
 
     assert(false);
 }
@@ -60,7 +59,7 @@ static void failAssert()
 static void doAbort()
 {
     TRACE_FUNCTION();
-    qDebug() << "doAbort";
+    qDebug() << "abort";
 
     std::abort();
 }
@@ -82,27 +81,22 @@ CrashPane::CrashPane(QWidget* parent)
     ui.fastfailButton->setEnabled(false);
 #endif
 
-    auto* playground = this->playground();
+    Playground* playground = Playground::instance();
     ui.workerBox->setChecked(playground->worker());
     ui.filterBox->setChecked(playground->filter());
 
-    connect(ui.crashButton, &QAbstractButton::clicked, this,
-        [this] { triggerCrash(&segfault); });
-    connect(ui.stackOverflowButton, &QAbstractButton::clicked, this,
-        [this] { triggerCrash(&stackOverflow); });
+    connect(ui.crashButton, &QAbstractButton::clicked, this, [this] { triggerCrash(&triggerSegfault); });
+    connect(ui.stackOverflowButton, &QAbstractButton::clicked, this, [this] { triggerCrash(&triggerStackOverflow); });
     connect(ui.fastfailButton, &QAbstractButton::clicked, this, [this] {
         Tracing::flush();
-        triggerCrash(&fastfail);
+        triggerCrash(&triggerFastfail);
     });
-    connect(ui.assertButton, &QAbstractButton::clicked, this,
-        [this] { triggerCrash(&failAssert); });
-    connect(ui.abortButton, &QAbstractButton::clicked, this,
-        [this] { triggerCrash(&doAbort); });
-    connect(ui.throwButton, &QAbstractButton::clicked, this,
-        [this] { triggerCrash(&throwException); });
+    connect(ui.assertButton, &QAbstractButton::clicked, this, [this] { triggerCrash(&assertFailure); });
+    connect(ui.abortButton, &QAbstractButton::clicked, this, [this] { triggerCrash(&doAbort); });
+    connect(ui.throwButton, &QAbstractButton::clicked, this, [this] { triggerCrash(&throwException); });
+
     m_debugFilesDialog = new DebugFilesDialog(this);
-    connect(m_debugFilesDialog, &DebugFilesDialog::uploadStatusChanged,
-        this, &CrashPane::debugFilesUploadStatusChanged);
+    connect(m_debugFilesDialog, &DebugFilesDialog::uploadStatusChanged, this, &CrashPane::debugFilesUploadStatusChanged);
     m_debugFilesDialog->refreshUploadStatus();
 
     connect(ui.workerBox, &QAbstractButton::toggled, playground, &Playground::setWorker);
@@ -112,23 +106,18 @@ CrashPane::CrashPane(QWidget* parent)
     connect(playground, &Playground::filterChanged, ui.filterBox, &QAbstractButton::setChecked);
 }
 
-void CrashPane::triggerCrash(void (*crashFunction)())
+void CrashPane::triggerCrash(std::function<void()> crashFunction)
 {
-    if (playground()->worker()) {
+    if (Playground::instance()->worker()) {
         QThread::create(crashFunction)->start();
     } else {
         crashFunction();
     }
 }
 
-Playground* CrashPane::playground() const
-{
-    return Playground::instance();
-}
-
 void CrashPane::uploadDebugFiles()
 {
-    m_debugFilesDialog->upload(playground()->options().dsn);
+    m_debugFilesDialog->upload(Playground::instance()->options().dsn);
 }
 
 DebugFilesDialog::UploadStatus CrashPane::debugFilesUploadStatus() const
