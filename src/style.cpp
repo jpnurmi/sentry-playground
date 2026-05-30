@@ -8,7 +8,6 @@
 #include <QtWidgets/qlineedit.h>
 #include <QtWidgets/qstyleoption.h>
 
-#ifdef Q_OS_MACOS
 static bool isComboBoxEditor(const QWidget* widget)
 {
     for (QObject* parent = widget->parent(); parent; parent = parent->parent()) {
@@ -37,7 +36,6 @@ static bool isInputWidget(const QWidget* widget)
         return !isEmbeddedEditor(widget);
     return false;
 }
-#endif
 
 Style::Style(QStyle* style)
     : QProxyStyle(style)
@@ -240,7 +238,21 @@ QIcon Style::makeStatusIcon(bool enabled, qreal dpr)
     return QIcon(pixmap);
 }
 
-#ifdef Q_OS_MACOS
+bool Style::isMacStyle() const
+{
+    auto detectMacStyle = [style = baseStyle()]() {
+        if (!style)
+            return false;
+
+        if (style->objectName().compare(QStringLiteral("macos"), Qt::CaseInsensitive) == 0)
+            return true;
+
+        return QByteArray(style->metaObject()->className()).contains("QMacStyle");
+    };
+    static bool res = detectMacStyle();
+    return res;
+}
+
 int Style::inputHeight(const QWidget* widget) const
 {
     if (qobject_cast<const QAbstractSpinBox*>(widget))
@@ -287,69 +299,65 @@ int Style::nativeSpinBoxHeight(const QStyleOption* option, const QWidget* widget
     const int frameWidth = QProxyStyle::pixelMetric(PM_SpinBoxFrameWidth, &spinOption, widget);
     return nativeComboBoxHeight(option, widget) + frameWidth * 2;
 }
-#endif
 
 void Style::drawPrimitive(PrimitiveElement element, const QStyleOption* option,
     QPainter* painter, const QWidget* widget) const
 {
-#ifdef Q_OS_MACOS
-    if ((element == PE_PanelLineEdit || element == PE_FrameLineEdit)
+    if (isMacStyle()
+        && (element == PE_PanelLineEdit || element == PE_FrameLineEdit)
         && qobject_cast<const QLineEdit*>(widget) && isComboBoxEditor(widget)) {
         return;
     }
-#endif
     QProxyStyle::drawPrimitive(element, option, painter, widget);
 }
 
 QRect Style::subElementRect(SubElement element, const QStyleOption* option,
     const QWidget* widget) const
 {
-#ifdef Q_OS_MACOS
-    switch (element) {
-    case SE_ComboBoxLayoutItem:
-    case SE_SpinBoxLayoutItem:
-        if (option) {
-            QRect rect = QProxyStyle::subElementRect(element, option, widget);
-            rect.setY(option->rect.y());
-            rect.setHeight(option->rect.height());
-            return rect;
+    if (isMacStyle()) {
+        switch (element) {
+        case SE_ComboBoxLayoutItem:
+        case SE_SpinBoxLayoutItem:
+            if (option) {
+                QRect rect = QProxyStyle::subElementRect(element, option, widget);
+                rect.setY(option->rect.y());
+                rect.setHeight(option->rect.height());
+                return rect;
+            }
+            break;
+        default:
+            break;
         }
-        break;
-    default:
-        break;
     }
-#endif
     return QProxyStyle::subElementRect(element, option, widget);
 }
 
 void Style::polish(QWidget* widget)
 {
     QProxyStyle::polish(widget);
-#ifdef Q_OS_MACOS
-    if (isInputWidget(widget)) {
+    if (isMacStyle() && isInputWidget(widget)) {
         const int height = inputHeight(widget);
         widget->setMinimumHeight(height);
         widget->setMaximumHeight(height);
     }
-#endif
 }
 
 QSize Style::sizeFromContents(ContentsType type, const QStyleOption* option,
     const QSize& contentsSize, const QWidget* widget) const
 {
     QSize size = QProxyStyle::sizeFromContents(type, option, contentsSize, widget);
-#ifdef Q_OS_MACOS
-    switch (type) {
-    case CT_LineEdit:
-    case CT_ComboBox:
-        size.setHeight(nativeComboBoxHeight(option, widget));
-        break;
-    case CT_SpinBox:
-        size.setHeight(nativeSpinBoxHeight(option, widget));
-        break;
-    default:
-        break;
+    if (isMacStyle()) {
+        switch (type) {
+        case CT_LineEdit:
+        case CT_ComboBox:
+            size.setHeight(nativeComboBoxHeight(option, widget));
+            break;
+        case CT_SpinBox:
+            size.setHeight(nativeSpinBoxHeight(option, widget));
+            break;
+        default:
+            break;
+        }
     }
-#endif
     return size;
 }

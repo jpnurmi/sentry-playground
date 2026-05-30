@@ -35,11 +35,10 @@ public:
         const QSize& contentsSize, const QWidget* widget) const override;
 
 private:
-#ifdef Q_OS_MACOS
+    bool isMacStyle() const;
     int inputHeight(const QWidget* widget) const;
     int nativeComboBoxHeight(const QStyleOption* option, const QWidget* widget) const;
     int nativeSpinBoxHeight(const QStyleOption* option, const QWidget* widget) const;
-#endif
 };
 
 #endif // STYLE_H
