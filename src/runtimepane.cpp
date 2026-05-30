@@ -18,6 +18,7 @@
 #include <QtWidgets/qheaderview.h>
 #include <QtWidgets/qlineedit.h>
 #include <QtWidgets/qmenu.h>
+#include <QtWidgets/qpushbutton.h>
 #include <QtWidgets/qstackedwidget.h>
 #include <QtWidgets/qtreewidget.h>
 
@@ -113,13 +114,6 @@ RuntimePane::RuntimePane(QWidget* parent)
     categoryGroup->addButton(ui.tagsButton);
     categoryGroup->addButton(ui.contextsButton);
     categoryGroup->addButton(ui.attachmentsButton);
-
-    const auto segmentedButtons = messageGroup->buttons() + categoryGroup->buttons();
-    int segmentedWidth = 0;
-    for (auto* button : segmentedButtons)
-        segmentedWidth = qMax(segmentedWidth, button->sizeHint().width());
-    for (auto* button : segmentedButtons)
-        button->setFixedWidth(segmentedWidth);
 
     ui.tagsButton->setChecked(true);
     ui.categoryStack->setCurrentIndex(0);
@@ -306,12 +300,37 @@ void RuntimePane::refreshPaletteStyles()
         palette(), QStringLiteral("border-left: none;")));
     ui.attachmentsButton->setStyleSheet(Style::segmentedButtonStyle(
         palette(), QStringLiteral("border-left: none; border-top-right-radius: 4px; border-bottom-right-radius: 4px;")));
+    updateSegmentedButtonWidths();
 
     ui.addButton->setStyleSheet(Style::circularButtonStyle(palette()));
     ui.addButton->setIcon(Style::makePlusIcon(palette(), devicePixelRatioF()));
     if (m_messageAction)
         m_messageAction->setIcon(Style::makeArrowIcon(palette(), devicePixelRatioF()));
     updateSessionButton();
+}
+
+void RuntimePane::updateSegmentedButtonWidths()
+{
+    const QList<QPushButton*> buttons = {
+        ui.messageButton,
+        ui.exceptionButton,
+        ui.breadcrumbButton,
+        ui.tagsButton,
+        ui.contextsButton,
+        ui.attachmentsButton,
+    };
+
+    int segmentedWidth = 0;
+    for (auto* button : buttons) {
+        button->setMinimumWidth(0);
+        button->setMaximumWidth(QWIDGETSIZE_MAX);
+        button->ensurePolished();
+        button->updateGeometry();
+        segmentedWidth = qMax(segmentedWidth, button->sizeHint().width());
+    }
+
+    for (auto* button : buttons)
+        button->setFixedWidth(segmentedWidth);
 }
 
 void RuntimePane::refreshAttachments()

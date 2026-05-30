@@ -19,6 +19,7 @@ public:
 
 private:
     void refreshAttachments();
+    void updateSegmentedButtonWidths();
     void updateAddButton();
     void updateMessageAction();
     void updateSessionButton();
