@@ -145,6 +145,7 @@ void InitPane::setupFormAlignment()
         ui.shutdownTimeoutLabel,
         ui.maxBreadcrumbsLabel,
         ui.maxSpansLabel,
+        ui.sampleRateLabel,
         ui.tracesSampleRateLabel,
         ui.loggerLevelLabel,
         ui.databasePathLabel,
@@ -323,6 +324,8 @@ void InitPane::setupControls()
     connect(ui.environmentEdit, &QComboBox::currentTextChanged, this, &InitPane::updateSummaries);
     connect(ui.distEdit, &QLineEdit::textChanged, this, &InitPane::updateSummaries);
     connect(ui.databasePathEdit, &QLineEdit::textChanged, this, &InitPane::updateSummaries);
+    connect(ui.sampleRateBox, qOverload<double>(&QDoubleSpinBox::valueChanged),
+        this, &InitPane::updateSummaries);
     connect(ui.tracesSampleRateBox, qOverload<double>(&QDoubleSpinBox::valueChanged),
         this, &InitPane::updateSummaries);
     connect(ui.maxBreadcrumbsBox, qOverload<int>(&QSpinBox::valueChanged),
@@ -384,6 +387,7 @@ void InitPane::populate()
         ui.releaseEdit,
         ui.environmentEdit,
         ui.distEdit,
+        ui.sampleRateBox,
         ui.tracesSampleRateBox,
         ui.maxBreadcrumbsBox,
         ui.maxSpansBox,
@@ -415,6 +419,7 @@ void InitPane::populate()
     ui.releaseEdit->setText(options.release);
     populateEnvironmentHistory(options.environment);
     ui.distEdit->setText(options.dist);
+    ui.sampleRateBox->setValue(options.sampleRate);
     ui.tracesSampleRateBox->setValue(options.tracesSampleRate);
     ui.maxBreadcrumbsBox->setValue(options.maxBreadcrumbs);
     ui.maxSpansBox->setValue(options.maxSpans);
@@ -491,6 +496,7 @@ Options InitPane::optionsFromPage() const
     options.release = ui.releaseEdit->text().trimmed();
     options.environment = ui.environmentEdit->currentText().trimmed();
     options.dist = ui.distEdit->text().trimmed();
+    options.sampleRate = ui.sampleRateBox->value();
     options.tracesSampleRate = ui.tracesSampleRateBox->value();
     options.maxBreadcrumbs = ui.maxBreadcrumbsBox->value();
     options.maxSpans = ui.maxSpansBox->value();
@@ -693,7 +699,8 @@ void InitPane::updateSummaries()
     setStatus(ui.featuresSummaryStatus, !features.isEmpty());
 
     ui.parametersSummaryLabel->setText(
-        QStringLiteral("sample %1x, %2 crumbs, %3 spans")
+        QStringLiteral("sample %1x, traces %2x, %3 crumbs, %4 spans")
+            .arg(QLocale::c().toString(ui.sampleRateBox->value(), 'f', 2))
             .arg(QLocale::c().toString(ui.tracesSampleRateBox->value(), 'f', 2))
             .arg(ui.maxBreadcrumbsBox->value())
             .arg(ui.maxSpansBox->value()));

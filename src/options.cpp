@@ -105,6 +105,7 @@ bool Options::load(const QByteArray &data)
     environment = values.value("environment", environment).toString();
     dist = values.value("dist", dist).toString();
     attachScreenshot = values.value("attachScreenshot", attachScreenshot).toBool();
+    sampleRate = values.value("sampleRate", sampleRate).toDouble();
     tracesSampleRate = values.value("tracesSampleRate", tracesSampleRate).toDouble();
     maxBreadcrumbs = values.value("maxBreadcrumbs", maxBreadcrumbs).toInt();
     maxSpans = values.value("maxSpans", maxSpans).toInt();
@@ -147,6 +148,7 @@ QByteArray Options::save() const
     values.insert("environment", environment);
     values.insert("dist", dist);
     values.insert("attachScreenshot", attachScreenshot);
+    values.insert("sampleRate", sampleRate);
     values.insert("tracesSampleRate", tracesSampleRate);
     values.insert("maxBreadcrumbs", maxBreadcrumbs);
     values.insert("maxSpans", maxSpans);
@@ -189,6 +191,7 @@ sentry_options_t *Options::toNative() const
     if (externalCrashReporterEnabled && !externalCrashReporterPath.isEmpty())
         sentry_options_set_external_crash_reporter_path(opt, externalCrashReporterPath.toUtf8());
     sentry_options_set_attach_screenshot(opt, attachScreenshot);
+    sentry_options_set_sample_rate(opt, sampleRate);
     sentry_options_set_traces_sample_rate(opt, tracesSampleRate);
     sentry_options_set_max_breadcrumbs(opt, static_cast<size_t>(std::max(0, maxBreadcrumbs)));
     sentry_options_set_max_spans(opt, static_cast<size_t>(std::max(0, maxSpans)));

@@ -20,6 +20,7 @@ struct Options
     QString environment = "playground";
     QString dist;
     bool attachScreenshot = false;
+    double sampleRate = 1.0;
     double tracesSampleRate = 0.0;
     int maxBreadcrumbs = 100;
     int maxSpans = 1000;
