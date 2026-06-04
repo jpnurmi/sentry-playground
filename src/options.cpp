@@ -100,6 +100,7 @@ bool Options::load(const QByteArray &data)
         return false;
 
     dsn = values.value("dsn", dsn).toString();
+    sdkName = values.value("sdkName", sdkName).toString();
     databasePath = values.value("databasePath", databasePath).toString();
     release = values.value("release", release).toString();
     environment = values.value("environment", environment).toString();
@@ -143,6 +144,7 @@ QByteArray Options::save() const
     QVariantMap values;
     values.insert("version", kOptionsSchemaVersion);
     values.insert("dsn", dsn);
+    values.insert("sdkName", sdkName);
     values.insert("databasePath", databasePath);
     values.insert("release", release);
     values.insert("environment", environment);
@@ -180,6 +182,8 @@ sentry_options_t *Options::toNative() const
     sentry_options_t *opt = sentry_options_new();
     if (!dsn.isEmpty())
         sentry_options_set_dsn(opt, dsn.toUtf8());
+    if (!sdkName.isEmpty())
+        sentry_options_set_sdk_name(opt, sdkName.toUtf8());
     if (!databasePath.isEmpty())
         sentry_options_set_database_path(opt, databasePath.toUtf8());
     if (!release.isEmpty())

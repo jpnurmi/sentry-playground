@@ -95,7 +95,7 @@
              <x>0</x>
              <y>0</y>
              <width>500</width>
-             <height>1126</height>
+             <height>1162</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="rightColumn">
@@ -162,7 +162,7 @@
                 <number>0</number>
                </property>
                <item>
-                <layout class="QHBoxLayout" name="dsnSummaryLayout">
+                <layout class="QHBoxLayout" name="sdkSummaryLayout">
                  <property name="spacing">
                   <number>7</number>
                  </property>
@@ -179,7 +179,7 @@
                   <number>5</number>
                  </property>
                  <item>
-                  <widget class="QLabel" name="dsnSummaryStatus">
+                  <widget class="QLabel" name="sdkSummaryStatus">
                    <property name="minimumSize">
                     <size>
                      <width>14</width>
@@ -204,17 +204,17 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QLabel" name="dsnSummaryTitle">
+                  <widget class="QLabel" name="sdkSummaryTitle">
                    <property name="styleSheet">
                     <string notr="true">color: palette(text); font-weight: bold;</string>
                    </property>
                    <property name="text">
-                    <string>DSN</string>
+                    <string>SDK</string>
                    </property>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QLabel" name="dsnSummaryLabel">
+                  <widget class="QLabel" name="sdkSummaryLabel">
                    <property name="sizePolicy">
                     <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
                      <horstretch>0</horstretch>
@@ -230,7 +230,7 @@
                   </widget>
                  </item>
                  <item>
-                  <spacer name="dsnSummarySpacer">
+                  <spacer name="sdkSummarySpacer">
                    <property name="orientation">
                     <enum>Qt::Orientation::Horizontal</enum>
                    </property>
@@ -243,9 +243,9 @@
                   </spacer>
                  </item>
                  <item>
-                  <widget class="QToolButton" name="dsnEditButton">
+                  <widget class="QToolButton" name="sdkEditButton">
                    <property name="toolTip">
-                    <string>Expand DSN options</string>
+                    <string>Expand SDK options</string>
                    </property>
                    <property name="text">
                     <string/>
@@ -261,7 +261,7 @@
                 </layout>
                </item>
                <item>
-                <layout class="QFormLayout" name="dsnDetailsFormLayout">
+                <layout class="QFormLayout" name="sdkDetailsFormLayout">
                  <property name="fieldGrowthPolicy">
                   <enum>QFormLayout::FieldGrowthPolicy::AllNonFixedFieldsGrow</enum>
                  </property>
@@ -295,7 +295,7 @@
                     <string notr="true">color: palette(placeholder-text); font-size: 10px;</string>
                    </property>
                    <property name="text">
-                    <string>URL</string>
+                    <string>DSN</string>
                    </property>
                   </widget>
                  </item>
@@ -309,10 +309,47 @@
                    </property>
                   </widget>
                  </item>
+                 <item row="1" column="0">
+                  <widget class="QLabel" name="sdkNameLabel">
+                   <property name="styleSheet">
+                    <string notr="true">color: palette(placeholder-text); font-size: 10px;</string>
+                   </property>
+                   <property name="text">
+                    <string>SDK name</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="1">
+                  <widget class="QLineEdit" name="sdkNameEdit">
+                   <property name="placeholderText">
+                    <string>sentry.native</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="0">
+                  <widget class="QLabel" name="shutdownTimeoutLabel">
+                   <property name="styleSheet">
+                    <string notr="true">color: palette(placeholder-text); font-size: 10px;</string>
+                   </property>
+                   <property name="text">
+                    <string>Shutdown timeout</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="1">
+                  <widget class="QSpinBox" name="shutdownTimeoutBox">
+                   <property name="suffix">
+                    <string> ms</string>
+                   </property>
+                   <property name="maximum">
+                    <number>600000</number>
+                   </property>
+                  </widget>
+                 </item>
                 </layout>
                </item>
                <item>
-                <widget class="QFrame" name="dsnSectionDivider">
+                <widget class="QFrame" name="sdkSectionDivider">
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
@@ -1068,26 +1105,6 @@
                  <property name="bottomMargin">
                   <number>10</number>
                  </property>
-                 <item row="4" column="0">
-                  <widget class="QLabel" name="shutdownTimeoutLabel">
-                   <property name="styleSheet">
-                    <string notr="true">color: palette(placeholder-text); font-size: 10px;</string>
-                   </property>
-                   <property name="text">
-                    <string>Shutdown timeout</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="4" column="1">
-                  <widget class="QSpinBox" name="shutdownTimeoutBox">
-                   <property name="suffix">
-                    <string> ms</string>
-                   </property>
-                   <property name="maximum">
-                    <number>600000</number>
-                   </property>
-                  </widget>
-                 </item>
                  <item row="0" column="0">
                   <widget class="QLabel" name="sampleRateLabel">
                    <property name="styleSheet">

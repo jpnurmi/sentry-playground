@@ -124,7 +124,7 @@ void InitPane::setupSummaryRows()
             delete item;
         return row;
     };
-    wrapSummaryRow(ui.dsnSummaryLayout, "dsnSummaryWidget");
+    wrapSummaryRow(ui.sdkSummaryLayout, "sdkSummaryWidget");
     wrapSummaryRow(ui.versionSummaryLayout, "versionSummaryWidget");
     wrapSummaryRow(ui.loggingSummaryLayout, "loggingSummaryWidget");
     wrapSummaryRow(ui.featuresSummaryLayout, "featuresSummaryWidget");
@@ -138,6 +138,7 @@ void InitPane::setupFormAlignment()
 {
     QLabel* formLabels[] = {
         ui.dsnLabel,
+        ui.sdkNameLabel,
         ui.releaseLabel,
         ui.environmentLabel,
         ui.distLabel,
@@ -159,7 +160,7 @@ void InitPane::setupFormAlignment()
         ui.minidumpModeLabel,
     };
     QLabel* summaryTitles[] = {
-        ui.dsnSummaryTitle,
+        ui.sdkSummaryTitle,
         ui.versionSummaryTitle,
         ui.loggingSummaryTitle,
         ui.featuresSummaryTitle,
@@ -179,16 +180,16 @@ void InitPane::setupFormAlignment()
     }
     const int formHorizontalSpacing = 12;
     const int summaryHorizontalSpacing = formHorizontalSpacing;
-    const int summaryIconWidth = ui.dsnSummaryStatus->minimumWidth();
+    const int summaryIconWidth = ui.sdkSummaryStatus->minimumWidth();
     const int summaryLabelLeftMargin =
-        ui.dsnSummaryLayout->contentsMargins().left() + summaryIconWidth + summaryHorizontalSpacing;
+        ui.sdkSummaryLayout->contentsMargins().left() + summaryIconWidth + summaryHorizontalSpacing;
     auto alignDetailsForm = [summaryLabelLeftMargin, formHorizontalSpacing](QFormLayout* layout) {
         const QMargins margins = layout->contentsMargins();
         layout->setContentsMargins(summaryLabelLeftMargin, margins.top(), margins.right(), margins.bottom());
         layout->setHorizontalSpacing(formHorizontalSpacing);
         layout->setProperty("visibleVerticalSpacing", layout->verticalSpacing());
     };
-    alignDetailsForm(ui.dsnDetailsFormLayout);
+    alignDetailsForm(ui.sdkDetailsFormLayout);
     alignDetailsForm(ui.versionDetailsFormLayout);
     alignDetailsForm(ui.loggingDetailsFormLayout);
     alignDetailsForm(ui.featuresDetailsFormLayout);
@@ -206,7 +207,7 @@ void InitPane::setupFormAlignment()
         title->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
         summary->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     };
-    alignSummaryValue(ui.dsnSummaryLayout, ui.dsnSummaryTitle, ui.dsnSummaryLabel);
+    alignSummaryValue(ui.sdkSummaryLayout, ui.sdkSummaryTitle, ui.sdkSummaryLabel);
     alignSummaryValue(ui.versionSummaryLayout, ui.versionSummaryTitle, ui.versionSummaryLabel);
     alignSummaryValue(ui.loggingSummaryLayout, ui.loggingSummaryTitle, ui.loggingSummaryLabel);
     alignSummaryValue(ui.featuresSummaryLayout, ui.featuresSummaryTitle, ui.featuresSummaryLabel);
@@ -216,7 +217,7 @@ void InitPane::setupFormAlignment()
     alignSummaryValue(ui.nativeSummaryLayout, ui.nativeSummaryTitle, ui.nativeSummaryLabel);
 
     for (QWidget* widget : {
-             ui.dsnSummaryStatus, ui.dsnSummaryTitle, ui.dsnSummaryLabel,
+             ui.sdkSummaryStatus, ui.sdkSummaryTitle, ui.sdkSummaryLabel,
              ui.versionSummaryStatus, ui.versionSummaryTitle, ui.versionSummaryLabel,
              ui.loggingSummaryStatus, ui.loggingSummaryTitle, ui.loggingSummaryLabel,
              ui.featuresSummaryStatus, ui.featuresSummaryTitle, ui.featuresSummaryLabel,
@@ -269,7 +270,7 @@ void InitPane::setupControls()
             });
     };
     setupDisclosureButton(ui.versionEditButton, "init/versionExpanded");
-    setupDisclosureButton(ui.dsnEditButton, "init/dsnExpanded");
+    setupDisclosureButton(ui.sdkEditButton, "init/sdkExpanded");
     setupDisclosureButton(ui.loggingEditButton, "init/debugExpanded");
     setupDisclosureButton(ui.featuresEditButton, "init/featuresExpanded");
     setupDisclosureButton(ui.parametersEditButton, "init/parametersExpanded");
@@ -562,7 +563,7 @@ void InitPane::updateNativeControls()
 
 void InitPane::updateDetailsVisibility()
 {
-    const bool dsnVisible = ui.dsnEditButton->isChecked();
+    const bool dsnVisible = ui.sdkEditButton->isChecked();
     const bool versionVisible = ui.versionEditButton->isChecked();
     const bool loggingVisible = ui.loggingEditButton->isChecked();
     const bool featuresVisible = ui.featuresEditButton->isChecked();
@@ -581,7 +582,7 @@ void InitPane::updateDetailsVisibility()
             layout->setRowVisible(row, visible);
         layout->invalidate();
     };
-    setFormVisible(ui.dsnDetailsFormLayout, dsnVisible);
+    setFormVisible(ui.sdkDetailsFormLayout, dsnVisible);
     setFormVisible(ui.versionDetailsFormLayout, versionVisible);
     setFormVisible(ui.loggingDetailsFormLayout, loggingVisible);
     setFormVisible(ui.featuresDetailsFormLayout, featuresVisible);
@@ -611,7 +612,7 @@ void InitPane::refreshPaletteStyles()
     const QString dividerStyle = QStringLiteral(
         "QFrame { background-color: %1; border: none; }").arg(Style::cssRgba(textColor, 26));
     QWidget* const sectionDividers[] = {
-        ui.dsnSectionDivider,
+        ui.sdkSectionDivider,
         ui.versionSectionDivider,
         ui.loggingSectionDivider,
         ui.featuresSectionDivider,
@@ -653,15 +654,18 @@ void InitPane::updateSummaries()
             : inactiveStatusStyle);
     };
 
-    QString dsnSummary;
+    QStringList sdkParts;
     const QUrl dsnUrl(ui.dsnEdit->text().trimmed());
-    dsnSummary = dsnUrl.host();
-    if (!dsnSummary.isEmpty() && dsnUrl.port() >= 0)
-        dsnSummary += QStringLiteral(":%1").arg(dsnUrl.port());
-    ui.dsnSummaryLabel->setText(dsnSummary.isEmpty()
-                                    ? QStringLiteral("N/A")
-                                    : dsnSummary);
-    setStatus(ui.dsnSummaryStatus, !dsnSummary.isEmpty());
+    if (!dsnUrl.host().isEmpty()) {
+        QString dsnSummary = dsnUrl.host();
+        if (dsnUrl.port() >= 0)
+            dsnSummary += QStringLiteral(":%1").arg(dsnUrl.port());
+        sdkParts.append(dsnSummary);
+    }
+    ui.sdkSummaryLabel->setText(sdkParts.isEmpty()
+            ? QStringLiteral("N/A")
+            : sdkParts.join(QStringLiteral(", ")));
+    setStatus(ui.sdkSummaryStatus, !dsnUrl.host().isEmpty());
 
     QStringList versionParts;
     const QString release = ui.releaseEdit->text().trimmed();
@@ -786,8 +790,8 @@ bool InitPane::eventFilter(QObject* watched, QEvent* event)
                 ui.loggingEditButton->toggle();
                 return true;
             }
-            if (name == QLatin1String("dsnSummaryWidget")) {
-                ui.dsnEditButton->toggle();
+            if (name == QLatin1String("sdkSummaryWidget")) {
+                ui.sdkEditButton->toggle();
                 return true;
             }
             if (name == QLatin1String("featuresSummaryWidget")) {
