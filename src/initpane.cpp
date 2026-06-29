@@ -125,7 +125,7 @@ void InitPane::setupSummaryRows()
         return row;
     };
     wrapSummaryRow(ui.sdkSummaryLayout, "sdkSummaryWidget");
-    wrapSummaryRow(ui.versionSummaryLayout, "versionSummaryWidget");
+    wrapSummaryRow(ui.appSummaryLayout, "appSummaryWidget");
     wrapSummaryRow(ui.loggingSummaryLayout, "loggingSummaryWidget");
     wrapSummaryRow(ui.featuresSummaryLayout, "featuresSummaryWidget");
     wrapSummaryRow(ui.parametersSummaryLayout, "parametersSummaryWidget");
@@ -161,7 +161,7 @@ void InitPane::setupFormAlignment()
     };
     QLabel* summaryTitles[] = {
         ui.sdkSummaryTitle,
-        ui.versionSummaryTitle,
+        ui.appSummaryTitle,
         ui.loggingSummaryTitle,
         ui.featuresSummaryTitle,
         ui.parametersSummaryTitle,
@@ -190,7 +190,7 @@ void InitPane::setupFormAlignment()
         layout->setProperty("visibleVerticalSpacing", layout->verticalSpacing());
     };
     alignDetailsForm(ui.sdkDetailsFormLayout);
-    alignDetailsForm(ui.versionDetailsFormLayout);
+    alignDetailsForm(ui.appDetailsFormLayout);
     alignDetailsForm(ui.loggingDetailsFormLayout);
     alignDetailsForm(ui.featuresDetailsFormLayout);
     alignDetailsForm(ui.parametersDetailsFormLayout);
@@ -208,7 +208,7 @@ void InitPane::setupFormAlignment()
         summary->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     };
     alignSummaryValue(ui.sdkSummaryLayout, ui.sdkSummaryTitle, ui.sdkSummaryLabel);
-    alignSummaryValue(ui.versionSummaryLayout, ui.versionSummaryTitle, ui.versionSummaryLabel);
+    alignSummaryValue(ui.appSummaryLayout, ui.appSummaryTitle, ui.appSummaryLabel);
     alignSummaryValue(ui.loggingSummaryLayout, ui.loggingSummaryTitle, ui.loggingSummaryLabel);
     alignSummaryValue(ui.featuresSummaryLayout, ui.featuresSummaryTitle, ui.featuresSummaryLabel);
     alignSummaryValue(ui.parametersSummaryLayout, ui.parametersSummaryTitle, ui.parametersSummaryLabel);
@@ -218,7 +218,7 @@ void InitPane::setupFormAlignment()
 
     for (QWidget* widget : {
              ui.sdkSummaryStatus, ui.sdkSummaryTitle, ui.sdkSummaryLabel,
-             ui.versionSummaryStatus, ui.versionSummaryTitle, ui.versionSummaryLabel,
+             ui.appSummaryStatus, ui.appSummaryTitle, ui.appSummaryLabel,
              ui.loggingSummaryStatus, ui.loggingSummaryTitle, ui.loggingSummaryLabel,
              ui.featuresSummaryStatus, ui.featuresSummaryTitle, ui.featuresSummaryLabel,
              ui.parametersSummaryStatus, ui.parametersSummaryTitle, ui.parametersSummaryLabel,
@@ -269,9 +269,9 @@ void InitPane::setupControls()
                 updateDetailsVisibility();
             });
     };
-    setupDisclosureButton(ui.versionEditButton, "init/versionExpanded");
     setupDisclosureButton(ui.sdkEditButton, "init/sdkExpanded");
-    setupDisclosureButton(ui.loggingEditButton, "init/debugExpanded");
+    setupDisclosureButton(ui.appEditButton, "init/appExpanded");
+    setupDisclosureButton(ui.loggingEditButton, "init/loggingExpanded");
     setupDisclosureButton(ui.featuresEditButton, "init/featuresExpanded");
     setupDisclosureButton(ui.parametersEditButton, "init/parametersExpanded");
     setupDisclosureButton(ui.databaseEditButton, "init/databaseExpanded");
@@ -564,7 +564,7 @@ void InitPane::updateNativeControls()
 void InitPane::updateDetailsVisibility()
 {
     const bool dsnVisible = ui.sdkEditButton->isChecked();
-    const bool versionVisible = ui.versionEditButton->isChecked();
+    const bool appVisible = ui.appEditButton->isChecked();
     const bool loggingVisible = ui.loggingEditButton->isChecked();
     const bool featuresVisible = ui.featuresEditButton->isChecked();
     const bool parametersVisible = ui.parametersEditButton->isChecked();
@@ -583,7 +583,7 @@ void InitPane::updateDetailsVisibility()
         layout->invalidate();
     };
     setFormVisible(ui.sdkDetailsFormLayout, dsnVisible);
-    setFormVisible(ui.versionDetailsFormLayout, versionVisible);
+    setFormVisible(ui.appDetailsFormLayout, appVisible);
     setFormVisible(ui.loggingDetailsFormLayout, loggingVisible);
     setFormVisible(ui.featuresDetailsFormLayout, featuresVisible);
     setFormVisible(ui.parametersDetailsFormLayout, parametersVisible);
@@ -613,7 +613,7 @@ void InitPane::refreshPaletteStyles()
         "QFrame { background-color: %1; border: none; }").arg(Style::cssRgba(textColor, 26));
     QWidget* const sectionDividers[] = {
         ui.sdkSectionDivider,
-        ui.versionSectionDivider,
+        ui.appSectionDivider,
         ui.loggingSectionDivider,
         ui.featuresSectionDivider,
         ui.parametersSectionDivider,
@@ -667,20 +667,20 @@ void InitPane::updateSummaries()
             : sdkParts.join(QStringLiteral(", ")));
     setStatus(ui.sdkSummaryStatus, !dsnUrl.host().isEmpty());
 
-    QStringList versionParts;
+    QStringList appParts;
     const QString release = ui.releaseEdit->text().trimmed();
     const QString environment = ui.environmentEdit->currentText().trimmed();
     const QString dist = ui.distEdit->text().trimmed();
     if (!release.isEmpty())
-        versionParts.append(release);
+        appParts.append(release);
     if (!environment.isEmpty())
-        versionParts.append(environment);
+        appParts.append(environment);
     if (!dist.isEmpty())
-        versionParts.append(dist);
-    ui.versionSummaryLabel->setText(versionParts.isEmpty()
+        appParts.append(dist);
+    ui.appSummaryLabel->setText(appParts.isEmpty()
             ? QStringLiteral("N/A")
-            : versionParts.join(QStringLiteral(", ")));
-    setStatus(ui.versionSummaryStatus, !versionParts.isEmpty());
+            : appParts.join(QStringLiteral(", ")));
+    setStatus(ui.appSummaryStatus, !appParts.isEmpty());
 
     const bool loggingEnabled = ui.loggerLevelBox->currentData().toInt() != kLoggerLevelNone;
     ui.loggingSummaryLabel->setText(loggingEnabled
@@ -782,8 +782,8 @@ bool InitPane::eventFilter(QObject* watched, QEvent* event)
             summaryRow->setAutoFillBackground(hovered);
         } else if (event->type() == QEvent::MouseButtonRelease) {
             const QString name = summaryRow->objectName();
-            if (name == QLatin1String("versionSummaryWidget")) {
-                ui.versionEditButton->toggle();
+            if (name == QLatin1String("appSummaryWidget")) {
+                ui.appEditButton->toggle();
                 return true;
             }
             if (name == QLatin1String("loggingSummaryWidget")) {

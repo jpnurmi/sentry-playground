@@ -371,7 +371,7 @@
                 </widget>
                </item>
                <item>
-                <layout class="QHBoxLayout" name="versionSummaryLayout">
+                <layout class="QHBoxLayout" name="appSummaryLayout">
                  <property name="spacing">
                   <number>7</number>
                  </property>
@@ -388,7 +388,7 @@
                   <number>5</number>
                  </property>
                  <item>
-                  <widget class="QLabel" name="versionSummaryStatus">
+                  <widget class="QLabel" name="appSummaryStatus">
                    <property name="minimumSize">
                     <size>
                      <width>14</width>
@@ -413,17 +413,17 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QLabel" name="versionSummaryTitle">
+                  <widget class="QLabel" name="appSummaryTitle">
                    <property name="styleSheet">
                     <string notr="true">color: palette(text); font-weight: bold;</string>
                    </property>
                    <property name="text">
-                    <string>Version</string>
+                    <string>App</string>
                    </property>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QLabel" name="versionSummaryLabel">
+                  <widget class="QLabel" name="appSummaryLabel">
                    <property name="sizePolicy">
                     <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
                      <horstretch>0</horstretch>
@@ -439,7 +439,7 @@
                   </widget>
                  </item>
                  <item>
-                  <spacer name="versionSummarySpacer">
+                  <spacer name="appSummarySpacer">
                    <property name="orientation">
                     <enum>Qt::Orientation::Horizontal</enum>
                    </property>
@@ -452,7 +452,7 @@
                   </spacer>
                  </item>
                  <item>
-                  <widget class="QToolButton" name="versionEditButton">
+                  <widget class="QToolButton" name="appEditButton">
                    <property name="toolTip">
                     <string>Expand version options</string>
                    </property>
@@ -470,7 +470,7 @@
                 </layout>
                </item>
                <item>
-                <layout class="QFormLayout" name="versionDetailsFormLayout">
+                <layout class="QFormLayout" name="appDetailsFormLayout">
                  <property name="fieldGrowthPolicy">
                   <enum>QFormLayout::FieldGrowthPolicy::AllNonFixedFieldsGrow</enum>
                  </property>
@@ -555,7 +555,7 @@
                 </layout>
                </item>
                <item>
-                <widget class="QFrame" name="versionSectionDivider">
+                <widget class="QFrame" name="appSectionDivider">
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
