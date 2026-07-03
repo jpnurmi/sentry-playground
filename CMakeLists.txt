@@ -53,6 +53,42 @@ set_target_properties(sentry-playground PROPERTIES
     WIN32_EXECUTABLE TRUE
 )
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    option(SEPARATE_DEBUG_INFO "Create a separate Linux debug info file" OFF)
+
+    if(SEPARATE_DEBUG_INFO)
+        if(CMAKE_OBJCOPY)
+            set(SENTRY_PLAYGROUND_OBJCOPY "${CMAKE_OBJCOPY}")
+        else()
+            find_program(SENTRY_PLAYGROUND_OBJCOPY NAMES objcopy llvm-objcopy)
+        endif()
+        if(NOT SENTRY_PLAYGROUND_OBJCOPY)
+            message(FATAL_ERROR "SEPARATE_DEBUG_INFO requires objcopy or llvm-objcopy")
+        endif()
+
+        target_compile_options(sentry-playground PRIVATE -g)
+        target_link_options(sentry-playground PRIVATE -Wl,--build-id=sha1)
+
+        # Qt's qt_enable_separate_debug_info() uses --strip-debug, which keeps
+        # .symtab in the main ELF. Use --strip-all so symbol lookup has to go
+        # through the .gnu_debuglink companion.
+        add_custom_command(TARGET sentry-playground POST_BUILD
+            COMMAND "${SENTRY_PLAYGROUND_OBJCOPY}"
+                --only-keep-debug
+                "$<TARGET_FILE_NAME:sentry-playground>"
+                "$<TARGET_FILE_NAME:sentry-playground>.debug"
+            COMMAND "${SENTRY_PLAYGROUND_OBJCOPY}"
+                --strip-all
+                "$<TARGET_FILE_NAME:sentry-playground>"
+            COMMAND "${SENTRY_PLAYGROUND_OBJCOPY}"
+                --add-gnu-debuglink=$<TARGET_FILE_NAME:sentry-playground>.debug
+                "$<TARGET_FILE_NAME:sentry-playground>"
+            WORKING_DIRECTORY "$<TARGET_FILE_DIR:sentry-playground>"
+            VERBATIM
+        )
+    endif()
+endif()
+
 include(GNUInstallDirs)
 install(TARGETS sentry-playground
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
