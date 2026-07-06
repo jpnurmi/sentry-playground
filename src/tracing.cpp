@@ -1,5 +1,9 @@
 #include "tracing.h"
 
+#include <QDebug>
+
+#include <cmath>
+
 std::atomic_bool Tracing::s_enabled = false;
 std::mutex Tracing::s_mutex;
 sentry_transaction_t *Tracing::s_tx = nullptr;
@@ -77,6 +81,38 @@ void Tracing::flush()
     }
     if (!sentry_uuid_is_nil(&uuid))
         sentry_flush(2000);
+}
+
+Tracing::Benchmark::Benchmark(const char *name, int &count, double &avg,
+    double &m2, double &min, double &max)
+    : m_name(name)
+    , m_count(count)
+    , m_avg(avg)
+    , m_m2(m2)
+    , m_min(min)
+    , m_max(max)
+{
+    m_timer.start();
+}
+
+Tracing::Benchmark::~Benchmark()
+{
+    const double ms = m_timer.nsecsElapsed() / 1000000.0;
+
+    m_count++;
+    if (m_count == 1 || ms < m_min)
+        m_min = ms;
+    if (m_count == 1 || ms > m_max)
+        m_max = ms;
+
+    const double delta = ms - m_avg;
+    m_avg += delta / m_count;
+    m_m2 += delta * (ms - m_avg);
+    const double stddev
+        = m_count > 1 ? std::sqrt(m_m2 / (m_count - 1)) : 0.0;
+
+    qDebug("BENCHMARK %s %.3f - %dx: %.3f +/- %.3f [%.3f..%.3f]",
+        m_name ? m_name : "", ms, m_count, m_avg, stddev, m_min, m_max);
 }
 
 Tracing::Scope::Scope(const char *op, const char *description)
