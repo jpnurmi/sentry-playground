@@ -17,6 +17,7 @@ qt_add_executable(sentry-playground
     MANUAL_FINALIZATION
     main.cpp
     assets/assets.qrc
+    include/crashplugininterface.h
     src/app.h
     src/app.cpp
     src/crashpane.h
@@ -45,9 +46,27 @@ qt_add_executable(sentry-playground
     src/tracing.cpp
 )
 
+add_library(crashplugin MODULE
+    plugins/crashplugin.cpp
+    plugins/crashplugin.h
+    include/crashplugininterface.h
+)
+
+target_link_libraries(crashplugin PRIVATE Qt6::Core)
+target_include_directories(crashplugin PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+add_dependencies(sentry-playground crashplugin)
+
+set_target_properties(crashplugin PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+)
+
 target_link_libraries(sentry-playground PRIVATE Qt6::Gui Qt6::CorePrivate Qt6::Widgets)
 
-target_include_directories(sentry-playground PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(sentry-playground PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
 
 set_target_properties(sentry-playground PROPERTIES
     WIN32_EXECUTABLE TRUE
@@ -90,8 +109,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 
 include(GNUInstallDirs)
-install(TARGETS sentry-playground
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+install(TARGETS sentry-playground crashplugin
+    LIBRARY DESTINATION ${CMAKE_INSTALL_BINDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
@@ -108,6 +127,7 @@ target_link_libraries(sentry-playground PRIVATE sentry)
 
 target_compile_definitions(sentry-playground PRIVATE
     NOMINMAX
+    CRASH_PLUGIN_FILENAME="$<TARGET_FILE_NAME:crashplugin>"
     SENTRY_BACKEND="${SENTRY_BACKEND}"
     SENTRY_RELEASE="${PROJECT_NAME}@${PROJECT_VERSION}"
 )

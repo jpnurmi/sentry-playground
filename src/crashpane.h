@@ -3,6 +3,8 @@
 
 #include <QWidget>
 
+#include <QtCore/qpluginloader.h>
+
 #include "debugfilesdialog.h"
 #include "ui_crashpane.h"
 
@@ -22,9 +24,11 @@ signals:
     void debugFilesUploadStatusChanged(DebugFilesDialog::UploadStatus status);
 
 private:
+    void triggerPluginCrash();
     void triggerCrash(std::function<void()> crashFunction);
 
     DebugFilesDialog* m_debugFilesDialog = nullptr;
+    QPluginLoader m_crashPlugin;
 
     Ui::CrashPane ui;
 };

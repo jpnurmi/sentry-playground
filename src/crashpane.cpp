@@ -1,10 +1,14 @@
 #include "crashpane.h"
+#include "crashplugininterface.h"
 #include "playground.h"
 #include "tracing.h"
 
+#include <QtCore/qcoreapplication.h>
 #include <QtCore/qdebug.h>
+#include <QtCore/qdir.h>
 #include <QtCore/qthread.h>
 #include <QtWidgets/qabstractbutton.h>
+#include <QtWidgets/qmessagebox.h>
 
 #include <stdexcept>
 
@@ -94,6 +98,7 @@ CrashPane::CrashPane(QWidget* parent)
     connect(ui.assertButton, &QAbstractButton::clicked, this, [this] { triggerCrash(&assertFailure); });
     connect(ui.abortButton, &QAbstractButton::clicked, this, [this] { triggerCrash(&doAbort); });
     connect(ui.throwButton, &QAbstractButton::clicked, this, [this] { triggerCrash(&throwException); });
+    connect(ui.pluginButton, &QAbstractButton::clicked, this, &CrashPane::triggerPluginCrash);
 
     m_debugFilesDialog = new DebugFilesDialog(this);
     connect(m_debugFilesDialog, &DebugFilesDialog::uploadStatusChanged, this, &CrashPane::debugFilesUploadStatusChanged);
@@ -104,6 +109,21 @@ CrashPane::CrashPane(QWidget* parent)
 
     connect(ui.filterBox, &QAbstractButton::toggled, playground, &Playground::setFilter);
     connect(playground, &Playground::filterChanged, ui.filterBox, &QAbstractButton::setChecked);
+}
+
+void CrashPane::triggerPluginCrash()
+{
+    if (m_crashPlugin.fileName().isEmpty()) {
+        m_crashPlugin.setFileName(QDir(QCoreApplication::applicationDirPath()).filePath(CRASH_PLUGIN_FILENAME));
+    }
+
+    CrashPluginInterface* plugin = qobject_cast<CrashPluginInterface*>(m_crashPlugin.instance());
+    if (!plugin) {
+        QMessageBox::critical(this, tr("Plugin error"), m_crashPlugin.errorString());
+        return;
+    }
+
+    triggerCrash([plugin] { plugin->crash(); });
 }
 
 void CrashPane::triggerCrash(std::function<void()> crashFunction)
