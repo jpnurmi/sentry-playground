@@ -16,6 +16,29 @@
 #include <unistd.h>
 #endif
 
+namespace {
+
+constexpr int kThreadStressWorkerCount = 100;
+constexpr int kThreadStressStackDepth = 128;
+
+Q_NEVER_INLINE void holdThreadStressStack(int depth, QMutex* mutex,
+                                          QWaitCondition* waitCondition, bool* running)
+{
+    volatile int keepFrame = depth;
+    if (depth > 0) {
+        holdThreadStressStack(depth - 1, mutex, waitCondition, running);
+    } else {
+        QMutexLocker locker(mutex);
+        while (*running)
+            waitCondition->wait(mutex);
+    }
+
+    if (keepFrame < 0)
+        qFatal("invalid thread stress stack depth");
+}
+
+} // namespace
+
 static void *invalid_mem = (void *)1;
 
 static void triggerSegfault()
@@ -109,6 +132,14 @@ CrashPane::CrashPane(QWidget* parent)
 
     connect(ui.filterBox, &QAbstractButton::toggled, playground, &Playground::setFilter);
     connect(playground, &Playground::filterChanged, ui.filterBox, &QAbstractButton::setChecked);
+
+    connect(ui.threadStressBox, &QAbstractButton::toggled,
+            this, &CrashPane::setThreadStressEnabled);
+}
+
+CrashPane::~CrashPane()
+{
+    setThreadStressEnabled(false);
 }
 
 void CrashPane::triggerPluginCrash()
@@ -133,6 +164,41 @@ void CrashPane::triggerCrash(std::function<void()> crashFunction)
     } else {
         crashFunction();
     }
+}
+
+void CrashPane::setThreadStressEnabled(bool enabled)
+{
+    if (enabled == m_threadStressRunning)
+        return;
+
+    if (enabled) {
+        {
+            QMutexLocker locker(&m_threadStressMutex);
+            m_threadStressRunning = true;
+        }
+        m_threadStressWorkers.reserve(kThreadStressWorkerCount);
+        for (int i = 0; i < kThreadStressWorkerCount; ++i) {
+            QThread* worker = QThread::create([this] {
+                holdThreadStressStack(kThreadStressStackDepth, &m_threadStressMutex,
+                                      &m_threadStressWaitCondition, &m_threadStressRunning);
+            });
+            worker->setObjectName(QStringLiteral("crash-stress-%1").arg(i + 1));
+            m_threadStressWorkers.push_back(worker);
+            worker->start();
+        }
+        return;
+    }
+
+    {
+        QMutexLocker locker(&m_threadStressMutex);
+        m_threadStressRunning = false;
+        m_threadStressWaitCondition.wakeAll();
+    }
+    for (QThread* worker : m_threadStressWorkers) {
+        worker->wait();
+        delete worker;
+    }
+    m_threadStressWorkers.clear();
 }
 
 void CrashPane::uploadDebugFiles()

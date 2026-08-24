@@ -109,6 +109,16 @@
     </spacer>
    </item>
    <item>
+    <widget class="QCheckBox" name="threadStressBox">
+     <property name="toolTip">
+      <string>Keep 100 worker threads alive with 128 stack frames each</string>
+     </property>
+     <property name="text">
+      <string>Threads</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <layout class="QHBoxLayout" name="togglesLayout">
      <item>
       <widget class="QCheckBox" name="filterBox">
