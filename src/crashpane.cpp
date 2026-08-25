@@ -39,13 +39,12 @@ Q_NEVER_INLINE void holdThreadStressStack(int depth, QMutex* mutex,
 
 } // namespace
 
-static void *invalid_mem = (void *)1;
-
 static void triggerSegfault()
 {
     TRACE_FUNCTION();
     qDebug() << "segfault";
 
+    void *volatile invalid_mem = (void *)1;
     memset((char *)invalid_mem, 1, 100);
 }
 
