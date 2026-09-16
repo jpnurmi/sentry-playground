@@ -7,6 +7,8 @@
 #include <QtCore/qvariant.h>
 #include <QtGui/qguiapplication.h>
 
+#include <sentry.h>
+
 #include "options.h"
 
 class Playground : public QObject
@@ -103,7 +105,7 @@ private:
     bool m_wasInitialized = false;
     Options m_options;
     Qt::CheckState m_consent = Qt::PartiallyChecked;
-    QMap<QString, void*> m_attachments;
+    QMap<QString, sentry_uuid_t> m_attachments;
     QVariantMap m_tags;
     QVariantMap m_contexts;
     QVariantMap m_user;

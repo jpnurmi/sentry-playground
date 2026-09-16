@@ -1,8 +1,6 @@
 #include "playground.h"
 #include "tracing.h"
 
-#include <sentry.h>
-
 #include <QtCore/qdebug.h>
 #include <QtCore/qsettings.h>
 
@@ -197,10 +195,10 @@ void Playground::addAttachment(const QString& path)
 
     if (path.isEmpty() || m_attachments.contains(path))
         return;
-    sentry_attachment_t *handle = nullptr;
+    sentry_uuid_t uuid = sentry_uuid_nil();
     if (m_initialized)
-        handle = sentry_attach_file(path.toUtf8().constData());
-    m_attachments.insert(path, handle);
+        uuid = sentry_attach_file(path.toUtf8().constData());
+    m_attachments.insert(path, uuid);
     emit attachmentsChanged(attachments());
 }
 
@@ -211,8 +209,8 @@ void Playground::removeAttachment(const QString& path)
     auto it = m_attachments.find(path);
     if (it == m_attachments.end())
         return;
-    if (m_initialized && it.value())
-        sentry_remove_attachment(static_cast<sentry_attachment_t *>(it.value()));
+    if (m_initialized && !sentry_uuid_is_nil(&it.value()))
+        sentry_remove_attachment(it.value());
     m_attachments.erase(it);
     emit attachmentsChanged(attachments());
 }
@@ -454,11 +452,11 @@ void Playground::reapplyScope()
     if (!m_environment.isEmpty())
         sentry_set_environment(m_environment.toUtf8().constData());
     applyConsent();
-    QMap<QString, void*> previous = m_attachments;
+    QMap<QString, sentry_uuid_t> previous = m_attachments;
     m_attachments.clear();
     for (auto it = previous.constBegin(); it != previous.constEnd(); ++it) {
-        sentry_attachment_t* handle = sentry_attach_file(it.key().toUtf8().constData());
-        m_attachments.insert(it.key(), handle);
+        sentry_uuid_t uuid = sentry_attach_file(it.key().toUtf8().constData());
+        m_attachments.insert(it.key(), uuid);
     }
     if (!m_session)
         sentry_end_session();
