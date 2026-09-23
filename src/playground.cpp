@@ -32,7 +32,7 @@ void Playground::open(const Options& options)
     QSettings().setValue(kOptionsSettingsKey, options.save());
 
     sentry_options_t *opt = playground->m_options.toNative();
-    sentry_options_set_before_send(opt, [](sentry_value_t event, void *hint, void *userdata) {
+    sentry_options_set_before_send(opt, [](sentry_value_t event, sentry_hint_t *hint, void *userdata) {
         if (Playground::instance()->filter()) {
             sentry_value_decref(event);
             return sentry_value_new_null();
@@ -40,7 +40,7 @@ void Playground::open(const Options& options)
         return event;
     }, NULL);
 
-    sentry_options_set_on_crash(opt, [](const sentry_ucontext_t *uctx, sentry_value_t event, void *userdata) {
+    sentry_options_set_on_crash(opt, [](const sentry_ucontext_t *uctx, sentry_value_t event, sentry_hint_t *hint, void *userdata) {
         if (Playground::instance()->filter()) {
             sentry_value_decref(event);
             return sentry_value_new_null();
