@@ -96,7 +96,7 @@ void Playground::open(const Options& options)
 
     playground->m_initialized = true;
     playground->m_wasInitialized = true;
-    Tracing::setEnabled(true);
+    Tracing::setEnabled(options.tracesSampleRate > 0.0);
 
     sentry_uuid_t uuid = sentry_uuid_new_v4();
     char buf[37];
