@@ -4,9 +4,39 @@
 #include <QtCore/qdebug.h>
 #include <QtCore/qsettings.h>
 
+#include <cmath>
+
 namespace {
 
 static constexpr auto kOptionsSettingsKey = "init/options";
+
+sentry_value_t makeAttributes(const QJsonObject& attributes)
+{
+    sentry_value_t result = sentry_value_new_object();
+    for (auto it = attributes.constBegin(); it != attributes.constEnd(); ++it) {
+        const QVariant value = it.value().toVariant();
+        sentry_value_t native;
+        switch (value.typeId()) {
+        case QMetaType::Bool:
+            native = sentry_value_new_bool(value.toBool());
+            break;
+        case QMetaType::LongLong:
+            native = sentry_value_new_int64(value.toLongLong());
+            break;
+        case QMetaType::Double:
+            native = sentry_value_new_double(value.toDouble());
+            break;
+        case QMetaType::QString:
+            native = sentry_value_new_string(value.toString().toUtf8().constData());
+            break;
+        default:
+            continue;
+        }
+        sentry_value_set_by_key(result, it.key().toUtf8().constData(),
+            sentry_value_new_attribute(native, nullptr));
+    }
+    return result;
+}
 
 } // namespace
 
@@ -47,6 +77,21 @@ void Playground::open(const Options& options)
         }
         return event;
     }, NULL);
+
+    sentry_options_set_before_send_log(opt, [](sentry_value_t log, void*) {
+        if (Playground::instance()->filter()) {
+            sentry_value_decref(log);
+            return sentry_value_new_null();
+        }
+        return log;
+    }, nullptr);
+    sentry_options_set_before_send_metric(opt, [](sentry_value_t metric, void*) {
+        if (Playground::instance()->filter()) {
+            sentry_value_decref(metric);
+            return sentry_value_new_null();
+        }
+        return metric;
+    }, nullptr);
     sentry_init(opt);
 
     playground->m_initialized = true;
@@ -484,4 +529,40 @@ void Playground::addBreadcrumb(const QString& type, int level, const QString& me
     if (levelStr)
         sentry_value_set_by_key(crumb, "level", sentry_value_new_string(levelStr));
     sentry_add_breadcrumb(crumb);
+}
+
+void Playground::captureLog(int level, const QString& message, const QJsonObject& attributes)
+{
+    TRACE_FUNCTION();
+    if (!m_initialized || message.trimmed().isEmpty())
+        return;
+
+    sentry_log(static_cast<sentry_level_t>(level), message.toUtf8().constData(),
+        makeAttributes(attributes));
+}
+
+void Playground::captureMetric(int type, const QString& name, double value, const QString& unit,
+    const QJsonObject& attributes)
+{
+    TRACE_FUNCTION();
+    if (!m_initialized || name.trimmed().isEmpty() || !std::isfinite(value))
+        return;
+
+    const QByteArray metricName = name.trimmed().toUtf8();
+    const QByteArray metricUnit = unit.trimmed().toUtf8();
+    const char* unitName = metricUnit.isEmpty() ? nullptr : metricUnit.constData();
+    switch (type) {
+    case SENTRY_METRIC_COUNT:
+        if (std::trunc(value) != value || value < -0x1p63 || value >= 0x1p63)
+            return;
+        sentry_metrics_count(metricName.constData(), static_cast<int64_t>(value),
+            makeAttributes(attributes));
+        break;
+    case SENTRY_METRIC_GAUGE:
+        sentry_metrics_gauge(metricName.constData(), value, unitName, makeAttributes(attributes));
+        break;
+    case SENTRY_METRIC_DISTRIBUTION:
+        sentry_metrics_distribution(metricName.constData(), value, unitName, makeAttributes(attributes));
+        break;
+    }
 }

@@ -7,6 +7,8 @@
 #include <functional>
 
 #include <QtCore/qfileinfo.h>
+#include <QtCore/qjsondocument.h>
+#include <QtCore/qjsonobject.h>
 #include <QtCore/qlocale.h>
 #include <QtCore/qobject.h>
 #include <QtCore/qsettings.h>
@@ -41,6 +43,41 @@ static void addEmptyRow(QTreeWidget* tree)
     auto* item = new QTreeWidgetItem(tree);
     item->setFlags(item->flags() | Qt::ItemIsEditable);
     tree->editItem(item, 0);
+}
+
+static bool parseAttributes(QLineEdit* edit, QJsonObject* attributes = nullptr)
+{
+    const QString hint = "Optional JSON object with string, number, or boolean values";
+    const QByteArray text = edit->text().trimmed().toUtf8();
+    if (text.isEmpty()) {
+        edit->setToolTip(hint);
+        if (attributes)
+            *attributes = {};
+        return true;
+    }
+
+    QJsonParseError error;
+    const QJsonDocument document = QJsonDocument::fromJson(text, &error);
+    if (error.error != QJsonParseError::NoError) {
+        edit->setToolTip(error.errorString());
+        return false;
+    }
+    if (!document.isObject()) {
+        edit->setToolTip(hint);
+        return false;
+    }
+    const QJsonObject object = document.object();
+    for (auto it = object.constBegin(); it != object.constEnd(); ++it) {
+        if (it.key().trimmed().isEmpty()
+            || !(it.value().isString() || it.value().isDouble() || it.value().isBool())) {
+            edit->setToolTip("Attributes need non-empty keys and string, number, or boolean values");
+            return false;
+        }
+    }
+    edit->setToolTip(hint);
+    if (attributes)
+        *attributes = object;
+    return true;
 }
 
 RuntimePane::RuntimePane(QWidget* parent)
@@ -280,7 +317,92 @@ RuntimePane::RuntimePane(QWidget* parent)
             const QString path = item->data(0, Qt::UserRole).toString();
             menu.addAction("Remove", [playground, path]() { playground->removeAttachment(path); });
             menu.exec(ui.attachmentTable->viewport()->mapToGlobal(pos));
-        });
+    });
+
+    ui.logLevelBox->addItem("Trace", SENTRY_LEVEL_TRACE);
+    ui.logLevelBox->addItem("Debug", SENTRY_LEVEL_DEBUG);
+    ui.logLevelBox->addItem("Info", SENTRY_LEVEL_INFO);
+    ui.logLevelBox->addItem("Warning", SENTRY_LEVEL_WARNING);
+    ui.logLevelBox->addItem("Error", SENTRY_LEVEL_ERROR);
+    ui.logLevelBox->addItem("Fatal", SENTRY_LEVEL_FATAL);
+    ui.logLevelBox->setCurrentIndex(2);
+
+    m_logAction = ui.logText->addAction(
+        Style::makeArrowIcon(palette(), devicePixelRatioF()), QLineEdit::TrailingPosition);
+    auto captureLog = [this, playground]() {
+        QJsonObject attributes;
+        if (m_logAction->isEnabled() && parseAttributes(ui.logAttributesEdit, &attributes))
+            playground->captureLog(ui.logLevelBox->currentData().toInt(),
+                ui.logText->text(), attributes);
+    };
+    connect(m_logAction, &QAction::triggered, this, captureLog);
+    for (QLineEdit* edit : { ui.logText, ui.logAttributesEdit }) {
+        connect(edit, &QLineEdit::returnPressed, this, captureLog);
+        connect(edit, &QLineEdit::textChanged, this, &RuntimePane::updateLogAction);
+    }
+    connect(playground, &Playground::initializedChanged, this, &RuntimePane::updateLogAction);
+    updateLogAction();
+
+    ui.metricTypeBox->addItem("Count", SENTRY_METRIC_COUNT);
+    ui.metricTypeBox->addItem("Gauge", SENTRY_METRIC_GAUGE);
+    ui.metricTypeBox->addItem("Distribution", SENTRY_METRIC_DISTRIBUTION);
+
+    const QList<QComboBox*> headerBoxes = { ui.messageLevelBox, ui.logLevelBox, ui.metricTypeBox };
+    int headerWidth = 0;
+    for (QComboBox* box : headerBoxes) {
+        box->ensurePolished();
+        headerWidth = qMax(headerWidth, box->sizeHint().width());
+    }
+    for (QComboBox* box : headerBoxes)
+        box->setFixedWidth(headerWidth);
+
+    ui.metricUnitBox->addItem("", "");
+    for (const char* unit : { SENTRY_UNIT_NANOSECOND, SENTRY_UNIT_MICROSECOND,
+             SENTRY_UNIT_MILLISECOND, SENTRY_UNIT_SECOND, SENTRY_UNIT_BYTE,
+             SENTRY_UNIT_KIBIBYTE, SENTRY_UNIT_MEBIBYTE, SENTRY_UNIT_RATIO, SENTRY_UNIT_PERCENT })
+        ui.metricUnitBox->addItem(unit);
+    ui.metricUnitBox->lineEdit()->setPlaceholderText("Unit (optional)");
+    auto updateMetricType = [this]() {
+        const bool count = ui.metricTypeBox->currentData().toInt() == SENTRY_METRIC_COUNT;
+        ui.metricValueBox->setDecimals(count ? 0 : 6);
+        ui.metricUnitBox->setEnabled(!count);
+    };
+    connect(ui.metricTypeBox, &QComboBox::currentIndexChanged, this, updateMetricType);
+    updateMetricType();
+
+    m_metricAction = ui.metricNameEdit->addAction(
+        Style::makeArrowIcon(palette(), devicePixelRatioF()), QLineEdit::TrailingPosition);
+    auto captureMetric = [this, playground]() {
+        QJsonObject attributes;
+        if (m_metricAction->isEnabled() && parseAttributes(ui.metricAttributesEdit, &attributes)) {
+            ui.metricValueBox->interpretText();
+            playground->captureMetric(ui.metricTypeBox->currentData().toInt(),
+                ui.metricNameEdit->text(), ui.metricValueBox->value(),
+                ui.metricUnitBox->currentText(), attributes);
+        }
+    };
+    connect(m_metricAction, &QAction::triggered, this, captureMetric);
+    for (QLineEdit* edit : { ui.metricNameEdit, ui.metricAttributesEdit }) {
+        connect(edit, &QLineEdit::returnPressed, this, captureMetric);
+        connect(edit, &QLineEdit::textChanged, this, &RuntimePane::updateMetricAction);
+    }
+    connect(playground, &Playground::initializedChanged, this, &RuntimePane::updateMetricAction);
+    updateMetricAction();
+
+    auto* telemetryGroup = new QButtonGroup(this);
+    telemetryGroup->setExclusive(true);
+    telemetryGroup->addButton(ui.logsButton);
+    telemetryGroup->addButton(ui.metricsButton);
+    auto updateTelemetry = [this]() {
+        const bool logs = ui.logsButton->isChecked();
+        ui.telemetryStack->setCurrentIndex(logs ? 0 : 1);
+        ui.logLevelBox->setVisible(logs);
+        ui.logAttributesEdit->setVisible(logs);
+        ui.metricTypeBox->setVisible(!logs);
+        ui.metricAttributesEdit->setVisible(!logs);
+    };
+    connect(ui.logsButton, &QAbstractButton::toggled, this, updateTelemetry);
+    updateTelemetry();
 
     refreshPaletteStyles();
 }
@@ -292,6 +414,11 @@ void RuntimePane::refreshPaletteStyles()
     ui.exceptionButton->setStyleSheet(Style::segmentedButtonStyle(
         palette(), QStringLiteral("border-left: none;")));
     ui.breadcrumbButton->setStyleSheet(Style::segmentedButtonStyle(
+        palette(), QStringLiteral("border-left: none; border-top-right-radius: 4px; border-bottom-right-radius: 4px;")));
+
+    ui.logsButton->setStyleSheet(Style::segmentedButtonStyle(
+        palette(), QStringLiteral("border-top-left-radius: 4px; border-bottom-left-radius: 4px;")));
+    ui.metricsButton->setStyleSheet(Style::segmentedButtonStyle(
         palette(), QStringLiteral("border-left: none; border-top-right-radius: 4px; border-bottom-right-radius: 4px;")));
 
     ui.tagsButton->setStyleSheet(Style::segmentedButtonStyle(
@@ -306,6 +433,10 @@ void RuntimePane::refreshPaletteStyles()
     ui.addButton->setIcon(Style::makePlusIcon(palette(), devicePixelRatioF()));
     if (m_messageAction)
         m_messageAction->setIcon(Style::makeArrowIcon(palette(), devicePixelRatioF()));
+    if (m_logAction)
+        m_logAction->setIcon(Style::makeArrowIcon(palette(), devicePixelRatioF()));
+    if (m_metricAction)
+        m_metricAction->setIcon(Style::makeArrowIcon(palette(), devicePixelRatioF()));
     updateSessionButton();
 }
 
@@ -318,6 +449,8 @@ void RuntimePane::updateSegmentedButtonWidths()
         ui.tagsButton,
         ui.contextsButton,
         ui.attachmentsButton,
+        ui.logsButton,
+        ui.metricsButton,
     };
 
     int segmentedWidth = 0;
@@ -386,4 +519,20 @@ void RuntimePane::updateSessionButton()
         ui.sessionButton->setStyleSheet(Style::circularButtonStyle(
             palette(), QStringLiteral("font-size: 16px;")));
     }
+}
+
+void RuntimePane::updateLogAction()
+{
+    const bool valid = parseAttributes(ui.logAttributesEdit);
+    m_logAction->setEnabled(Playground::instance()->isInitialized()
+        && !ui.logText->text().trimmed().isEmpty() && valid);
+    m_logAction->setToolTip(valid ? "Capture log" : ui.logAttributesEdit->toolTip());
+}
+
+void RuntimePane::updateMetricAction()
+{
+    const bool valid = parseAttributes(ui.metricAttributesEdit);
+    m_metricAction->setEnabled(Playground::instance()->isInitialized()
+        && !ui.metricNameEdit->text().trimmed().isEmpty() && valid);
+    m_metricAction->setToolTip(valid ? "Capture metric" : ui.metricAttributesEdit->toolTip());
 }

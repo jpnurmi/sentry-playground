@@ -2,6 +2,7 @@
 #define PLAYGROUND_H
 
 #include <QtCore/qmap.h>
+#include <QtCore/qjsonobject.h>
 #include <QtCore/qobject.h>
 #include <QtCore/qstack.h>
 #include <QtCore/qvariant.h>
@@ -95,6 +96,10 @@ public slots:
     void removeContext(const QString& name);
 
     void updateUser(const QString& field, const QString& value);
+
+    void captureLog(int level, const QString& message, const QJsonObject& attributes);
+    void captureMetric(int type, const QString& name, double value, const QString& unit,
+        const QJsonObject& attributes);
 
 private:
     void reapplyScope();

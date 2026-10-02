@@ -23,8 +23,12 @@ private:
     void updateAddButton();
     void updateMessageAction();
     void updateSessionButton();
+    void updateLogAction();
+    void updateMetricAction();
 
     QAction* m_messageAction = nullptr;
+    QAction* m_logAction = nullptr;
+    QAction* m_metricAction = nullptr;
 
     Ui::RuntimePane ui;
 };
