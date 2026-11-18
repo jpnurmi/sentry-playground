@@ -117,6 +117,15 @@ if(APPLE)
             "$<TARGET_FILE:sentry-playground>"
         VERBATIM
     )
+
+    # Collect the DWARF that the linker leaves in the object files into a
+    # .dSYM next to each binary for debug file uploads.
+    foreach(target sentry-playground crashplugin)
+        add_custom_command(TARGET ${target} POST_BUILD
+            COMMAND dsymutil "$<TARGET_FILE:${target}>"
+            VERBATIM
+        )
+    endforeach()
 endif()
 
 include(GNUInstallDirs)
