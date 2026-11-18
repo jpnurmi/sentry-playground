@@ -44,6 +44,9 @@ static void triggerSegfault()
     TRACE_FUNCTION();
     qDebug() << "segfault";
 
+    const char *volatile marker = "sentry-playground-rodata-marker";
+    (void)marker;
+
     void *volatile invalid_mem = (void *)1;
     memset((char *)invalid_mem, 1, 100);
 }
