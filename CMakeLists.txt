@@ -109,14 +109,18 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 
 if(APPLE)
-    # Let the sentry-crash daemon read the crashed process memory via
-    # task_for_pid. The linker signs ad hoc without entitlements.
-    add_custom_command(TARGET sentry-playground POST_BUILD
-        COMMAND codesign --force --sign -
-            --entitlements "${CMAKE_CURRENT_SOURCE_DIR}/sentry-playground.entitlements"
-            "$<TARGET_FILE:sentry-playground>"
-        VERBATIM
-    )
+    option(GET_TASK_ALLOW "Sign with the get-task-allow entitlement" ON)
+
+    if(GET_TASK_ALLOW)
+        # Let the sentry-crash daemon read the crashed process memory via
+        # task_for_pid. The linker signs ad hoc without entitlements.
+        add_custom_command(TARGET sentry-playground POST_BUILD
+            COMMAND codesign --force --sign -
+                --entitlements "${CMAKE_CURRENT_SOURCE_DIR}/sentry-playground.entitlements"
+                "$<TARGET_FILE:sentry-playground>"
+            VERBATIM
+        )
+    endif()
 
     # Collect the DWARF that the linker leaves in the object files into a
     # .dSYM next to each binary for debug file uploads.
