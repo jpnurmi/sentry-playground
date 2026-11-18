@@ -108,6 +108,17 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     endif()
 endif()
 
+if(APPLE)
+    # Let the sentry-crash daemon read the crashed process memory via
+    # task_for_pid. The linker signs ad hoc without entitlements.
+    add_custom_command(TARGET sentry-playground POST_BUILD
+        COMMAND codesign --force --sign -
+            --entitlements "${CMAKE_CURRENT_SOURCE_DIR}/sentry-playground.entitlements"
+            "$<TARGET_FILE:sentry-playground>"
+        VERBATIM
+    )
+endif()
+
 include(GNUInstallDirs)
 install(TARGETS sentry-playground crashplugin
     LIBRARY DESTINATION ${CMAKE_INSTALL_BINDIR}
