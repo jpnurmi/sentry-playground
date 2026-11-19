@@ -29,6 +29,8 @@ signals:
     void uploadStatusChanged(DebugFilesDialog::UploadStatus status);
 
 private:
+    void runUpload(QStringList variables, const QString& org, const QString& project);
+    QProcess* startSentry(const QStringList& variables, const QStringList& arguments);
     void appendOutput(const QString& text);
     void finishUpload(int exitCode);
     void setUploadStatus(UploadStatus status);
