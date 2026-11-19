@@ -294,6 +294,7 @@ void DebugFilesDialog::runUpload(QStringList variables, const QString& org, cons
     QProcess* process = startSentry(variables, {
         QStringLiteral("debug-files"),
         QStringLiteral("upload"),
+        QStringLiteral("--include-sources"),
         QStringLiteral("."),
     });
     connect(process, &QProcess::readyReadStandardOutput, this, [this, process]() {
