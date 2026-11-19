@@ -47,8 +47,7 @@ static void triggerSegfault()
     const char *volatile marker = "sentry-playground-rodata-marker";
     (void)marker;
 
-    void *volatile invalid_mem = (void *)1;
-    memset((char *)invalid_mem, 1, 100);
+    sentry_crash();
 }
 
 #if defined(_MSC_VER)
