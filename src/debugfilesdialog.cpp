@@ -1,10 +1,12 @@
 #include "debugfilesdialog.h"
 
 #include <QtCore/qcoreapplication.h>
+#include <QtCore/qdir.h>
 #include <QtCore/qjsonarray.h>
 #include <QtCore/qjsondocument.h>
 #include <QtCore/qjsonobject.h>
 #include <QtCore/qjsonvalue.h>
+#include <QtCore/qlibraryinfo.h>
 #include <QtCore/qprocess.h>
 #include <QtCore/qregularexpression.h>
 #include <QtCore/qsettings.h>
@@ -12,7 +14,11 @@
 #include <QtGui/qfontdatabase.h>
 #include <QtGui/qtextcursor.h>
 #include <QtWidgets/qboxlayout.h>
+#include <QtWidgets/qlabel.h>
 #include <QtWidgets/qplaintextedit.h>
+#include <QtWidgets/qpushbutton.h>
+#include <QtWidgets/qtabwidget.h>
+#include <sentry.h>
 
 static constexpr auto kUploadedDebugIdsSettingsKey = "debugFiles/uploadedDebugIds";
 static constexpr auto kUploadedDebugIdsHistorySettingsKey = "debugFiles/uploadedDebugIdsHistory";
@@ -160,28 +166,57 @@ DebugFilesDialog::DebugFilesDialog(QWidget* parent)
     : QDialog(parent)
 {
     setWindowTitle("Upload Debug Files");
-    resize(760, 360);
+    resize(760, 480);
 
     auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(12, 12, 12, 12);
     layout->setSpacing(0);
 
-    m_output = new QPlainTextEdit(this);
-    m_output->setReadOnly(true);
-    m_output->setLineWrapMode(QPlainTextEdit::NoWrap);
-    m_output->setMaximumBlockCount(2000);
-    m_output->setPlaceholderText("sentry output");
-    m_output->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-    m_output->setStyleSheet(
-        "QPlainTextEdit {"
-        " background: #111318;"
-        " color: #e6edf3;"
-        " border: 1px solid #4b5563;"
-        " border-radius: 4px;"
-        " padding: 6px;"
-        " selection-background-color: #3b82f6;"
-        " }");
-    layout->addWidget(m_output);
+    auto* tabs = new QTabWidget(this);
+    layout->addWidget(tabs);
+
+    auto addSection = [this, tabs](Section& section, const QString& title) {
+        auto* page = new QWidget(tabs);
+        auto* pageLayout = new QVBoxLayout(page);
+        auto* headerLayout = new QHBoxLayout;
+        section.summary = new QLabel(page);
+        section.summary->setWordWrap(true);
+        headerLayout->addWidget(section.summary, 1);
+        section.button = new QPushButton("Upload", page);
+        headerLayout->addWidget(section.button);
+        pageLayout->addLayout(headerLayout);
+        connect(section.button, &QPushButton::clicked, this, [this, &section]() { startUpload(section); });
+
+        section.output = new QPlainTextEdit(page);
+        section.output->setReadOnly(true);
+        section.output->setLineWrapMode(QPlainTextEdit::NoWrap);
+        section.output->setMaximumBlockCount(2000);
+        section.output->setPlaceholderText("sentry output");
+        section.output->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+        section.output->setStyleSheet(
+            "QPlainTextEdit {"
+            " background: #111318;"
+            " color: #e6edf3;"
+            " border: 1px solid #4b5563;"
+            " border-radius: 4px;"
+            " padding: 6px;"
+            " selection-background-color: #3b82f6;"
+            " }");
+        pageLayout->addWidget(section.output);
+        tabs->addTab(page, title);
+    };
+
+    addSection(m_app, "App");
+    m_app.arguments = {
+        QStringLiteral("debug-files"),
+        QStringLiteral("upload"),
+        QStringLiteral("--include-sources"),
+        QStringLiteral("."),
+    };
+    m_app.directory = QCoreApplication::applicationDirPath();
+    m_app.summary->setText(QDir::toNativeSeparators(m_app.directory));
+
+    addSection(m_qt, "Qt");
 }
 
 DebugFilesDialog::UploadStatus DebugFilesDialog::uploadStatus() const
@@ -191,55 +226,115 @@ DebugFilesDialog::UploadStatus DebugFilesDialog::uploadStatus() const
 
 void DebugFilesDialog::refreshUploadStatus()
 {
-    m_currentDebugIds = checkedDebugIds(QCoreApplication::applicationFilePath());
-    setUploadStatus(uploadedDebugIdsHistoryContains(m_currentDebugIds)
+    const QStringList debugIds = checkedDebugIds(QCoreApplication::applicationFilePath());
+    setUploadStatus(uploadedDebugIdsHistoryContains(debugIds)
         ? UploadStatus::UpToDate
         : UploadStatus::OutOfDate);
 }
 
-void DebugFilesDialog::upload(const QString& dsn)
+void DebugFilesDialog::prepareUpload(const QString& dsn)
 {
+    m_dsn = dsn;
+    if (!m_qt.process)
+        refreshQtUpload();
+    for (Section* section : { &m_app, &m_qt }) {
+        if (!section->process)
+            previewUpload(*section);
+    }
+
     show();
     raise();
     activateWindow();
+}
 
-    if (m_uploadProcess)
+void DebugFilesDialog::refreshQtUpload()
+{
+    // only the Qt libraries and plugins loaded in this process, matched by
+    // debug ID so that their separate debug files are found too
+    const QString prefix = QLibraryInfo::path(QLibraryInfo::PrefixPath);
+    QStringList ids;
+    QStringList paths;
+
+    const sentry_value_t modules = sentry_get_modules_list();
+    for (size_t i = 0; i < sentry_value_get_length(modules); ++i) {
+        const sentry_value_t module = sentry_value_get_by_index(modules, i);
+        const QString codeFile = QDir::fromNativeSeparators(QString::fromUtf8(
+            sentry_value_as_string(sentry_value_get_by_key(module, "code_file"))));
+        if (!codeFile.startsWith(prefix + '/'))
+            continue;
+
+        ids += {
+            QStringLiteral("--id"),
+            QString::fromUtf8(sentry_value_as_string(sentry_value_get_by_key(module, "debug_id"))),
+        };
+        const QString path = codeFile.mid(prefix.size() + 1).section('/', 0, 0);
+        if (!paths.contains(path))
+            paths.append(path);
+    }
+    sentry_value_decref(modules);
+
+    m_qt.directory = prefix;
+    m_qt.summary->setText(QDir::toNativeSeparators(prefix));
+    if (ids.isEmpty())
+        m_qt.arguments.clear();
+    else
+        m_qt.arguments = QStringList{ QStringLiteral("debug-files"), QStringLiteral("upload") } + ids + paths;
+    m_qt.button->setEnabled(!m_qt.arguments.isEmpty());
+}
+
+void DebugFilesDialog::previewUpload(Section& section)
+{
+    section.output->clear();
+    if (section.arguments.isEmpty())
         return;
 
-    const UploadTarget target = uploadTargetFromDsn(dsn);
-    const QString workingDirectory = QCoreApplication::applicationDirPath();
-    m_currentDebugIds = checkedDebugIds(QCoreApplication::applicationFilePath());
+    section.button->setEnabled(false);
+    appendOutput(section, QStringLiteral("$ cd %1\n").arg(section.directory));
+    streamSentry(section, {}, section.arguments + QStringList{ QStringLiteral("--no-upload") });
+}
 
-    m_output->clear();
-    appendOutput(QStringLiteral("$ cd %1\n").arg(workingDirectory));
+void DebugFilesDialog::startUpload(Section& section)
+{
+    if (section.process)
+        return;
+
+    const UploadTarget target = uploadTargetFromDsn(m_dsn);
+    // the upload status tracks the app's own debug IDs
+    if (&section == &m_app)
+        section.debugIds = checkedDebugIds(QCoreApplication::applicationFilePath());
+
+    section.output->clear();
+    appendOutput(section, QStringLiteral("$ cd %1\n").arg(section.directory));
 
     if (target.project.isEmpty()) {
-        appendOutput(
+        appendOutput(section,
             "error: initialize with a DSN that includes a project ID before uploading debug files\n");
         return;
     }
 
+    section.button->setEnabled(false);
+
     if (!target.org.isEmpty()) {
-        runUpload({}, target.org, target.project);
+        runUpload(section, {}, target.org, target.project);
         return;
     }
     if (target.url.isEmpty()) {
-        detectOrg({}, target.key, target.project);
+        detectOrg(section, {}, target.key, target.project);
         return;
     }
 
     // DSNs may point to an ingest host such as Relay, so prefer the server
     // of a stored login with the same host name
-    QProcess* process = startSentry({}, {
+    QProcess* process = startSentry(section, {}, {
         QStringLiteral("auth"),
         QStringLiteral("list"),
         QStringLiteral("--json"),
     });
-    connect(process, &QProcess::finished, this, [this, process, target](int, QProcess::ExitStatus) {
-        if (process != m_uploadProcess)
+    connect(process, &QProcess::finished, this, [this, &section, process, target](int, QProcess::ExitStatus) {
+        if (process != section.process)
             return;
 
-        appendOutput(QString::fromLocal8Bit(process->readAllStandardError()));
+        appendOutput(section, QString::fromLocal8Bit(process->readAllStandardError()));
         QString url = target.url;
         const QJsonArray accounts = QJsonDocument::fromJson(process->readAllStandardOutput()).array();
         for (const QJsonValue& account : accounts) {
@@ -251,68 +346,67 @@ void DebugFilesDialog::upload(const QString& dsn)
         }
 
         process->deleteLater();
-        m_uploadProcess = nullptr;
-        detectOrg({ QStringLiteral("SENTRY_HOST=%1").arg(url) }, target.key, target.project);
+        section.process = nullptr;
+        detectOrg(section, { QStringLiteral("SENTRY_HOST=%1").arg(url) }, target.key, target.project);
     });
 }
 
-void DebugFilesDialog::detectOrg(const QStringList& variables, const QString& key, const QString& project)
+void DebugFilesDialog::detectOrg(Section& section, const QStringList& variables, const QString& key, const QString& project)
 {
     // self-hosted DSNs don't carry the org, so ask the server which org has the DSN key
-    QProcess* process = startSentry(variables, {
+    QProcess* process = startSentry(section, variables, {
         QStringLiteral("api"),
         QStringLiteral("projects/"),
         QStringLiteral("-f"),
         QStringLiteral("query=dsn:%1").arg(key),
     });
     connect(process, &QProcess::finished, this,
-        [this, process, variables, project](int exitCode, QProcess::ExitStatus) {
-            if (process != m_uploadProcess)
+        [this, &section, process, variables, project](int exitCode, QProcess::ExitStatus) {
+            if (process != section.process)
                 return;
 
-            appendOutput(QString::fromLocal8Bit(process->readAllStandardError()));
+            appendOutput(section, QString::fromLocal8Bit(process->readAllStandardError()));
             const QJsonArray projects = QJsonDocument::fromJson(process->readAllStandardOutput()).array();
             const QString org = projects.at(0).toObject().value("organization").toObject().value("slug").toString();
             if (org.isEmpty()) {
                 if (exitCode == 0)
-                    appendOutput("error: no organization found for the DSN\n");
-                finishUpload(exitCode != 0 ? exitCode : -1);
+                    appendOutput(section, "error: no organization found for the DSN\n");
+                finishUpload(section, exitCode != 0 ? exitCode : -1);
                 return;
             }
 
             process->deleteLater();
-            m_uploadProcess = nullptr;
-            runUpload(variables, org, project);
+            section.process = nullptr;
+            runUpload(section, variables, org, project);
         });
 }
 
-void DebugFilesDialog::runUpload(QStringList variables, const QString& org, const QString& project)
+void DebugFilesDialog::runUpload(Section& section, QStringList variables, const QString& org, const QString& project)
 {
     variables.append(QStringLiteral("SENTRY_ORG=%1").arg(org));
     variables.append(QStringLiteral("SENTRY_PROJECT=%1").arg(project));
+    streamSentry(section, variables, section.arguments);
+}
 
-    QProcess* process = startSentry(variables, {
-        QStringLiteral("debug-files"),
-        QStringLiteral("upload"),
-        QStringLiteral("--include-sources"),
-        QStringLiteral("."),
+void DebugFilesDialog::streamSentry(Section& section, const QStringList& variables, const QStringList& arguments)
+{
+    QProcess* process = startSentry(section, variables, arguments);
+    connect(process, &QProcess::readyReadStandardOutput, this, [this, &section, process]() {
+        appendOutput(section, QString::fromLocal8Bit(process->readAllStandardOutput()));
     });
-    connect(process, &QProcess::readyReadStandardOutput, this, [this, process]() {
-        appendOutput(QString::fromLocal8Bit(process->readAllStandardOutput()));
-    });
-    connect(process, &QProcess::finished, this, [this, process](int exitCode, QProcess::ExitStatus) {
-        if (process != m_uploadProcess)
+    connect(process, &QProcess::finished, this, [this, &section, process](int exitCode, QProcess::ExitStatus) {
+        if (process != section.process)
             return;
 
-        appendOutput(QString::fromLocal8Bit(process->readAllStandardOutput()));
-        appendOutput(QString::fromLocal8Bit(process->readAllStandardError()));
-        finishUpload(exitCode);
+        appendOutput(section, QString::fromLocal8Bit(process->readAllStandardOutput()));
+        appendOutput(section, QString::fromLocal8Bit(process->readAllStandardError()));
+        finishUpload(section, exitCode);
     });
 }
 
-QProcess* DebugFilesDialog::startSentry(const QStringList& variables, const QStringList& arguments)
+QProcess* DebugFilesDialog::startSentry(Section& section, const QStringList& variables, const QStringList& arguments)
 {
-    appendOutput(QStringLiteral("$ %1\n\n").arg((variables + QStringList{ "sentry" } + arguments).join(' ')));
+    appendOutput(section, QStringLiteral("$ %1\n\n").arg((variables + QStringList{ "sentry" } + arguments).join(' ')));
 
     QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
     for (const QString& variable : variables) {
@@ -321,52 +415,58 @@ QProcess* DebugFilesDialog::startSentry(const QStringList& variables, const QStr
     }
 
     auto* process = new QProcess(this);
-    m_uploadProcess = process;
+    section.process = process;
     process->setProgram("sentry");
     process->setArguments(arguments);
     process->setProcessEnvironment(environment);
-    process->setWorkingDirectory(QCoreApplication::applicationDirPath());
+    process->setWorkingDirectory(section.directory);
     process->setProcessChannelMode(QProcess::SeparateChannels);
 
-    connect(process, &QProcess::readyReadStandardError, this, [this, process]() {
-        appendOutput(QString::fromLocal8Bit(process->readAllStandardError()));
+    connect(process, &QProcess::readyReadStandardError, this, [this, &section, process]() {
+        appendOutput(section, QString::fromLocal8Bit(process->readAllStandardError()));
     });
-    connect(process, &QProcess::errorOccurred, this, [this, process](QProcess::ProcessError error) {
-        if (process != m_uploadProcess)
+    connect(process, &QProcess::errorOccurred, this, [this, &section, process](QProcess::ProcessError error) {
+        if (process != section.process)
             return;
 
-        appendOutput(QStringLiteral("error: %1\n").arg(process->errorString()));
+        appendOutput(section, QStringLiteral("error: %1\n").arg(process->errorString()));
         if (error == QProcess::FailedToStart)
-            finishUpload(-1);
+            finishUpload(section, -1);
     });
 
     process->start();
     return process;
 }
 
-void DebugFilesDialog::appendOutput(const QString& text)
+void DebugFilesDialog::appendOutput(Section& section, const QString& text)
 {
     if (text.isEmpty())
         return;
 
-    QTextCursor cursor = m_output->textCursor();
+    QTextCursor cursor = section.output->textCursor();
     cursor.movePosition(QTextCursor::End);
     cursor.insertText(text);
-    m_output->setTextCursor(cursor);
-    m_output->ensureCursorVisible();
+    section.output->setTextCursor(cursor);
+    section.output->ensureCursorVisible();
 }
 
-void DebugFilesDialog::finishUpload(int exitCode)
+void DebugFilesDialog::finishUpload(Section& section, int exitCode)
 {
-    if (!m_uploadProcess)
+    if (!section.process)
         return;
 
-    appendOutput(QStringLiteral("\nexit code: %1\n").arg(exitCode));
-    m_uploadProcess->deleteLater();
-    m_uploadProcess = nullptr;
+    appendOutput(section, QStringLiteral("\nexit code: %1\n").arg(exitCode));
+    section.process->deleteLater();
+    section.process = nullptr;
+    section.button->setEnabled(!section.arguments.isEmpty());
 
-    if (exitCode == 0 && !m_currentDebugIds.isEmpty()) {
-        rememberUploadedDebugIds(m_currentDebugIds);
+    const QStringList debugIds = section.debugIds;
+    section.debugIds.clear();
+    if (debugIds.isEmpty())
+        return;
+
+    if (exitCode == 0) {
+        rememberUploadedDebugIds(debugIds);
         setUploadStatus(UploadStatus::UpToDate);
     } else {
         refreshUploadStatus();

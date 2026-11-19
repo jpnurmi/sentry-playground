@@ -4,8 +4,10 @@
 #include <QtCore/qstringlist.h>
 #include <QtWidgets/qdialog.h>
 
+class QLabel;
 class QPlainTextEdit;
 class QProcess;
+class QPushButton;
 class QString;
 
 class DebugFilesDialog : public QDialog
@@ -23,22 +25,37 @@ public:
 
     UploadStatus uploadStatus() const;
     void refreshUploadStatus();
-    void upload(const QString& dsn);
+    void prepareUpload(const QString& dsn);
 
 signals:
     void uploadStatusChanged(DebugFilesDialog::UploadStatus status);
 
 private:
-    void detectOrg(const QStringList& variables, const QString& key, const QString& project);
-    void runUpload(QStringList variables, const QString& org, const QString& project);
-    QProcess* startSentry(const QStringList& variables, const QStringList& arguments);
-    void appendOutput(const QString& text);
-    void finishUpload(int exitCode);
+    struct Section
+    {
+        QLabel* summary = nullptr;
+        QPushButton* button = nullptr;
+        QPlainTextEdit* output = nullptr;
+        QProcess* process = nullptr;
+        QString directory;
+        QStringList arguments;
+        QStringList debugIds;
+    };
+
+    void refreshQtUpload();
+    void previewUpload(Section& section);
+    void startUpload(Section& section);
+    void detectOrg(Section& section, const QStringList& variables, const QString& key, const QString& project);
+    void runUpload(Section& section, QStringList variables, const QString& org, const QString& project);
+    void streamSentry(Section& section, const QStringList& variables, const QStringList& arguments);
+    QProcess* startSentry(Section& section, const QStringList& variables, const QStringList& arguments);
+    void appendOutput(Section& section, const QString& text);
+    void finishUpload(Section& section, int exitCode);
     void setUploadStatus(UploadStatus status);
 
-    QStringList m_currentDebugIds;
-    QPlainTextEdit* m_output = nullptr;
-    QProcess* m_uploadProcess = nullptr;
+    QString m_dsn;
+    Section m_app;
+    Section m_qt;
     UploadStatus m_uploadStatus = UploadStatus::OutOfDate;
 };
 

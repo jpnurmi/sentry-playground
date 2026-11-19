@@ -204,7 +204,7 @@ void CrashPane::setThreadStressEnabled(bool enabled)
 
 void CrashPane::uploadDebugFiles()
 {
-    m_debugFilesDialog->upload(Playground::instance()->options().dsn);
+    m_debugFilesDialog->prepareUpload(Playground::instance()->options().dsn);
 }
 
 DebugFilesDialog::UploadStatus CrashPane::debugFilesUploadStatus() const
