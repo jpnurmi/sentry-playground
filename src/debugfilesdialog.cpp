@@ -219,24 +219,54 @@ void DebugFilesDialog::upload(const QString& dsn)
         return;
     }
 
-    QStringList variables;
-    if (!target.url.isEmpty())
-        variables.append(QStringLiteral("SENTRY_HOST=%1").arg(target.url));
-
     if (!target.org.isEmpty()) {
-        runUpload(variables, target.org, target.project);
+        runUpload({}, target.org, target.project);
+        return;
+    }
+    if (target.url.isEmpty()) {
+        detectOrg({}, target.key, target.project);
         return;
     }
 
+    // DSNs may point to an ingest host such as Relay, so prefer the server
+    // of a stored login with the same host name
+    QProcess* process = startSentry({}, {
+        QStringLiteral("auth"),
+        QStringLiteral("list"),
+        QStringLiteral("--json"),
+    });
+    connect(process, &QProcess::finished, this, [this, process, target](int, QProcess::ExitStatus) {
+        if (process != m_uploadProcess)
+            return;
+
+        appendOutput(QString::fromLocal8Bit(process->readAllStandardError()));
+        QString url = target.url;
+        const QJsonArray accounts = QJsonDocument::fromJson(process->readAllStandardOutput()).array();
+        for (const QJsonValue& account : accounts) {
+            const QString host = account.toObject().value("host").toString();
+            if (QUrl(host).host() == QUrl(target.url).host()) {
+                url = host;
+                break;
+            }
+        }
+
+        process->deleteLater();
+        m_uploadProcess = nullptr;
+        detectOrg({ QStringLiteral("SENTRY_HOST=%1").arg(url) }, target.key, target.project);
+    });
+}
+
+void DebugFilesDialog::detectOrg(const QStringList& variables, const QString& key, const QString& project)
+{
     // self-hosted DSNs don't carry the org, so ask the server which org has the DSN key
     QProcess* process = startSentry(variables, {
         QStringLiteral("api"),
         QStringLiteral("projects/"),
         QStringLiteral("-f"),
-        QStringLiteral("query=dsn:%1").arg(target.key),
+        QStringLiteral("query=dsn:%1").arg(key),
     });
     connect(process, &QProcess::finished, this,
-        [this, process, variables, target](int exitCode, QProcess::ExitStatus) {
+        [this, process, variables, project](int exitCode, QProcess::ExitStatus) {
             if (process != m_uploadProcess)
                 return;
 
@@ -252,7 +282,7 @@ void DebugFilesDialog::upload(const QString& dsn)
 
             process->deleteLater();
             m_uploadProcess = nullptr;
-            runUpload(variables, org, target.project);
+            runUpload(variables, org, project);
         });
 }
 
