@@ -10,6 +10,7 @@
 #include <QtCore/qprocess.h>
 #include <QtCore/qregularexpression.h>
 #include <QtCore/qsettings.h>
+#include <QtCore/qstandardpaths.h>
 #include <QtCore/qurl.h>
 #include <QtGui/qfontdatabase.h>
 #include <QtGui/qtextcursor.h>
@@ -31,6 +32,14 @@ struct UploadTarget
     QString org;
     QString project;
 };
+
+static QString sentryProgram()
+{
+    // QProcess doesn't apply PATHEXT on Windows, so a bare "sentry" would
+    // only match sentry.exe and miss the npm-installed sentry.cmd shim
+    const QString program = QStandardPaths::findExecutable(QStringLiteral("sentry"));
+    return program.isEmpty() ? QStringLiteral("sentry") : program;
+}
 
 static QStringList normalizedDebugIds(QStringList debugIds)
 {
@@ -78,7 +87,7 @@ static UploadTarget uploadTargetFromDsn(const QString& dsn)
 static QStringList checkedDebugIds(const QString& path)
 {
     QProcess process;
-    process.setProgram("sentry");
+    process.setProgram(sentryProgram());
     process.setArguments({
         QStringLiteral("debug-files"),
         QStringLiteral("check"),
@@ -416,7 +425,7 @@ QProcess* DebugFilesDialog::startSentry(Section& section, const QStringList& var
 
     auto* process = new QProcess(this);
     section.process = process;
-    process->setProgram("sentry");
+    process->setProgram(sentryProgram());
     process->setArguments(arguments);
     process->setProcessEnvironment(environment);
     process->setWorkingDirectory(section.directory);
