@@ -343,7 +343,7 @@ void DebugFilesDialog::startUpload(Section& section)
         if (process != section.process)
             return;
 
-        appendOutput(section, QString::fromLocal8Bit(process->readAllStandardError()));
+        appendOutput(section, section.stderrDecoder.decode(process->readAllStandardError()));
         QString url = target.url;
         const QJsonArray accounts = QJsonDocument::fromJson(process->readAllStandardOutput()).array();
         for (const QJsonValue& account : accounts) {
@@ -374,7 +374,7 @@ void DebugFilesDialog::detectOrg(Section& section, const QStringList& variables,
             if (process != section.process)
                 return;
 
-            appendOutput(section, QString::fromLocal8Bit(process->readAllStandardError()));
+            appendOutput(section, section.stderrDecoder.decode(process->readAllStandardError()));
             const QJsonArray projects = QJsonDocument::fromJson(process->readAllStandardOutput()).array();
             const QString org = projects.at(0).toObject().value("organization").toObject().value("slug").toString();
             if (org.isEmpty()) {
@@ -401,14 +401,14 @@ void DebugFilesDialog::streamSentry(Section& section, const QStringList& variabl
 {
     QProcess* process = startSentry(section, variables, arguments);
     connect(process, &QProcess::readyReadStandardOutput, this, [this, &section, process]() {
-        appendOutput(section, QString::fromLocal8Bit(process->readAllStandardOutput()));
+        appendOutput(section, section.stdoutDecoder.decode(process->readAllStandardOutput()));
     });
     connect(process, &QProcess::finished, this, [this, &section, process](int exitCode, QProcess::ExitStatus) {
         if (process != section.process)
             return;
 
-        appendOutput(section, QString::fromLocal8Bit(process->readAllStandardOutput()));
-        appendOutput(section, QString::fromLocal8Bit(process->readAllStandardError()));
+        appendOutput(section, section.stdoutDecoder.decode(process->readAllStandardOutput()));
+        appendOutput(section, section.stderrDecoder.decode(process->readAllStandardError()));
         finishUpload(section, exitCode);
     });
 }
@@ -425,6 +425,8 @@ QProcess* DebugFilesDialog::startSentry(Section& section, const QStringList& var
 
     auto* process = new QProcess(this);
     section.process = process;
+    section.stdoutDecoder.resetState();
+    section.stderrDecoder.resetState();
     process->setProgram(sentryProgram());
     process->setArguments(arguments);
     process->setProcessEnvironment(environment);
@@ -432,7 +434,7 @@ QProcess* DebugFilesDialog::startSentry(Section& section, const QStringList& var
     process->setProcessChannelMode(QProcess::SeparateChannels);
 
     connect(process, &QProcess::readyReadStandardError, this, [this, &section, process]() {
-        appendOutput(section, QString::fromLocal8Bit(process->readAllStandardError()));
+        appendOutput(section, section.stderrDecoder.decode(process->readAllStandardError()));
     });
     connect(process, &QProcess::errorOccurred, this, [this, &section, process](QProcess::ProcessError error) {
         if (process != section.process)

@@ -1,6 +1,7 @@
 #ifndef DEBUGFILESDIALOG_H
 #define DEBUGFILESDIALOG_H
 
+#include <QtCore/qstringconverter.h>
 #include <QtCore/qstringlist.h>
 #include <QtWidgets/qdialog.h>
 
@@ -40,6 +41,10 @@ private:
         QString directory;
         QStringList arguments;
         QStringList debugIds;
+        // the CLI writes UTF-8 regardless of the locale, and streamed reads
+        // may split multi-byte characters, so decode with state
+        QStringDecoder stdoutDecoder{ QStringDecoder::Utf8 };
+        QStringDecoder stderrDecoder{ QStringDecoder::Utf8 };
     };
 
     void refreshQtUpload();
