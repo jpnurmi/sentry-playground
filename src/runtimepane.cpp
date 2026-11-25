@@ -221,6 +221,7 @@ RuntimePane::RuntimePane(QWidget* parent)
         [this]() { refreshAttachments(); });
 
     ui.addButton->setFixedSize(22, 22);
+    ui.addButton->setIconSize(QSize(12, 12));
     ui.addButton->setText("");
     connect(ui.categoryStack, &QStackedWidget::currentChanged, this,
         [this](int) { updateAddButton(); });
@@ -275,6 +276,7 @@ RuntimePane::RuntimePane(QWidget* parent)
     ui.releaseEdit->setText(playground->release());
     ui.environmentEdit->setText(playground->environment());
     ui.sessionButton->setFixedSize(22, 22);
+    ui.sessionButton->setIconSize(QSize(12, 12));
     connect(ui.releaseEdit, &QLineEdit::textChanged, this,
         [this](const QString&) { updateSessionButton(); });
     connect(ui.environmentEdit, &QLineEdit::textChanged, this,
