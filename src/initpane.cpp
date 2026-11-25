@@ -89,8 +89,13 @@ static QStringList historyWith(QStringList history, const QString& current)
 
 static void populateHistory(QComboBox* box, const QString& key, const QString& current)
 {
+    QStringList items;
+    for (int i = 0; i < box->count(); ++i)
+        items.append(box->itemText(i));
+    items.append(QSettings().value(key).toStringList());
+
     box->clear();
-    box->addItems(historyWith(QSettings().value(key).toStringList(), current));
+    box->addItems(historyWith(items, current));
     box->setEditText(current);
 }
 
