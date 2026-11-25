@@ -5,6 +5,7 @@
 #include <QtCore/qjsonobject.h>
 #include <QtCore/qobject.h>
 #include <QtCore/qstack.h>
+#include <QtCore/qtimer.h>
 #include <QtCore/qvariant.h>
 #include <QtGui/qguiapplication.h>
 
@@ -117,6 +118,7 @@ private:
     QString m_release;
     QString m_environment;
     bool m_session = true;
+    QTimer m_appHangTimer;
 };
 
 #endif // PLAYGROUND_H

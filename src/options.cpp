@@ -78,12 +78,24 @@ int normalizeMinidumpMode(int mode)
     }
 }
 
+int normalizeAppHangThreadStackwalkMode(int mode)
+{
+    switch (mode) {
+    case SENTRY_THREAD_STACKWALK_MODE_HUNG_ONLY:
+    case SENTRY_THREAD_STACKWALK_MODE_ALL:
+        return mode;
+    default:
+        return SENTRY_THREAD_STACKWALK_MODE_HUNG_ONLY;
+    }
+}
+
 } // namespace
 
 Options::Options()
     : debug(resolveDebug())
     , crashReportingMode(SENTRY_CRASH_REPORTING_MODE_NATIVE_WITH_MINIDUMP)
     , minidumpMode(SENTRY_MINIDUMP_MODE_SMART)
+    , appHangThreadStackwalkMode(SENTRY_THREAD_STACKWALK_MODE_HUNG_ONLY)
 {
 }
 
@@ -125,6 +137,9 @@ bool Options::load(const QByteArray &data)
     externalCrashReporterPath = values.value("externalCrashReporterPath", externalCrashReporterPath).toString();
     crashReportingMode = values.value("crashReportingMode", crashReportingMode).toInt();
     minidumpMode = values.value("minidumpMode", minidumpMode).toInt();
+    enableAppHangTracking = values.value("enableAppHangTracking", enableAppHangTracking).toBool();
+    appHangTimeout = values.value("appHangTimeout", appHangTimeout).toInt();
+    appHangThreadStackwalkMode = values.value("appHangThreadStackwalkMode", appHangThreadStackwalkMode).toInt();
 
     maxBreadcrumbs = std::max(0, maxBreadcrumbs);
     maxSpans = std::max(0, maxSpans);
@@ -136,6 +151,8 @@ bool Options::load(const QByteArray &data)
     loggerLevel = normalizeLoggerLevel(loggerLevel);
     crashReportingMode = normalizeCrashReportingMode(crashReportingMode);
     minidumpMode = normalizeMinidumpMode(minidumpMode);
+    appHangTimeout = std::max(0, appHangTimeout);
+    appHangThreadStackwalkMode = normalizeAppHangThreadStackwalkMode(appHangThreadStackwalkMode);
     return true;
 }
 
@@ -169,6 +186,9 @@ QByteArray Options::save() const
     values.insert("externalCrashReporterPath", externalCrashReporterPath);
     values.insert("crashReportingMode", normalizeCrashReportingMode(crashReportingMode));
     values.insert("minidumpMode", normalizeMinidumpMode(minidumpMode));
+    values.insert("enableAppHangTracking", enableAppHangTracking);
+    values.insert("appHangTimeout", appHangTimeout);
+    values.insert("appHangThreadStackwalkMode", normalizeAppHangThreadStackwalkMode(appHangThreadStackwalkMode));
 
     QByteArray data;
     QDataStream stream(&data, QIODevice::WriteOnly);
@@ -217,5 +237,10 @@ sentry_options_t *Options::toNative() const
     sentry_options_set_minidump_mode(
         opt,
         static_cast<sentry_minidump_mode_t>(normalizeMinidumpMode(minidumpMode)));
+    sentry_options_set_enable_app_hang_tracking(opt, enableAppHangTracking);
+    sentry_options_set_app_hang_timeout(opt, static_cast<uint64_t>(std::max(0, appHangTimeout)));
+    sentry_options_set_app_hang_thread_stackwalk_mode(
+        opt,
+        static_cast<sentry_thread_stackwalk_mode_t>(normalizeAppHangThreadStackwalkMode(appHangThreadStackwalkMode)));
     return opt;
 }

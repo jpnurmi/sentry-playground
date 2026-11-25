@@ -130,6 +130,7 @@ void InitPane::setupSummaryRows()
     wrapSummaryRow(ui.featuresSummaryLayout, "featuresSummaryWidget");
     wrapSummaryRow(ui.parametersSummaryLayout, "parametersSummaryWidget");
     wrapSummaryRow(ui.databaseSummaryLayout, "databaseSummaryWidget");
+    wrapSummaryRow(ui.appHangSummaryLayout, "appHangSummaryWidget");
     wrapSummaryRow(ui.crashReporterSummaryLayout, "crashReporterSummaryWidget");
     wrapSummaryRow(ui.nativeSummaryLayout, "nativeSummaryWidget");
 }
@@ -154,6 +155,8 @@ void InitPane::setupFormAlignment()
         ui.cacheMaxItemsLabel,
         ui.cacheMaxSizeLabel,
         ui.cacheMaxAgeLabel,
+        ui.appHangTimeoutLabel,
+        ui.appHangThreadStackwalkModeLabel,
         ui.crashReporterSpacerLabel,
         ui.crashReporterPathLabel,
         ui.crashReportingModeLabel,
@@ -166,6 +169,7 @@ void InitPane::setupFormAlignment()
         ui.featuresSummaryTitle,
         ui.parametersSummaryTitle,
         ui.databaseSummaryTitle,
+        ui.appHangSummaryTitle,
         ui.crashReporterSummaryTitle,
         ui.nativeSummaryTitle,
     };
@@ -195,6 +199,7 @@ void InitPane::setupFormAlignment()
     alignDetailsForm(ui.featuresDetailsFormLayout);
     alignDetailsForm(ui.parametersDetailsFormLayout);
     alignDetailsForm(ui.databaseDetailsFormLayout);
+    alignDetailsForm(ui.appHangDetailsFormLayout);
     alignDetailsForm(ui.crashReporterDetailsFormLayout);
     alignDetailsForm(ui.nativeDetailsFormLayout);
 
@@ -213,6 +218,7 @@ void InitPane::setupFormAlignment()
     alignSummaryValue(ui.featuresSummaryLayout, ui.featuresSummaryTitle, ui.featuresSummaryLabel);
     alignSummaryValue(ui.parametersSummaryLayout, ui.parametersSummaryTitle, ui.parametersSummaryLabel);
     alignSummaryValue(ui.databaseSummaryLayout, ui.databaseSummaryTitle, ui.databaseSummaryLabel);
+    alignSummaryValue(ui.appHangSummaryLayout, ui.appHangSummaryTitle, ui.appHangSummaryLabel);
     alignSummaryValue(ui.crashReporterSummaryLayout, ui.crashReporterSummaryTitle, ui.crashReporterSummaryLabel);
     alignSummaryValue(ui.nativeSummaryLayout, ui.nativeSummaryTitle, ui.nativeSummaryLabel);
 
@@ -223,6 +229,7 @@ void InitPane::setupFormAlignment()
              ui.featuresSummaryStatus, ui.featuresSummaryTitle, ui.featuresSummaryLabel,
              ui.parametersSummaryStatus, ui.parametersSummaryTitle, ui.parametersSummaryLabel,
              ui.databaseSummaryStatus, ui.databaseSummaryTitle, ui.databaseSummaryLabel,
+             ui.appHangSummaryStatus, ui.appHangSummaryTitle, ui.appHangSummaryLabel,
              ui.crashReporterSummaryStatus, ui.crashReporterSummaryTitle, ui.crashReporterSummaryLabel,
              ui.nativeSummaryStatus, ui.nativeSummaryTitle, ui.nativeSummaryLabel,
          }) {
@@ -251,6 +258,8 @@ void InitPane::setupControls()
     ui.minidumpModeBox->addItem("Stack only", SENTRY_MINIDUMP_MODE_STACK_ONLY);
     ui.minidumpModeBox->addItem("Smart", SENTRY_MINIDUMP_MODE_SMART);
     ui.minidumpModeBox->addItem("Full", SENTRY_MINIDUMP_MODE_FULL);
+    ui.appHangThreadStackwalkModeBox->addItem("Hung thread", SENTRY_THREAD_STACKWALK_MODE_HUNG_ONLY);
+    ui.appHangThreadStackwalkModeBox->addItem("All threads", SENTRY_THREAD_STACKWALK_MODE_ALL);
 
     const char* kDisclosureButton =
         "QToolButton { background: transparent; border: none; padding: 0; }";
@@ -275,6 +284,7 @@ void InitPane::setupControls()
     setupDisclosureButton(ui.featuresEditButton, "init/featuresExpanded");
     setupDisclosureButton(ui.parametersEditButton, "init/parametersExpanded");
     setupDisclosureButton(ui.databaseEditButton, "init/databaseExpanded");
+    setupDisclosureButton(ui.appHangEditButton, "init/appHangExpanded");
     setupDisclosureButton(ui.crashReporterEditButton, "init/crashReporterExpanded");
     setupDisclosureButton(ui.nativeEditButton, "init/nativeExpanded");
 
@@ -343,6 +353,10 @@ void InitPane::setupControls()
         this, &InitPane::updateSummaries);
     connect(ui.cacheMaxAgeBox, qOverload<int>(&QSpinBox::valueChanged),
         this, &InitPane::updateSummaries);
+    connect(ui.appHangTimeoutBox, qOverload<int>(&QSpinBox::valueChanged),
+        this, &InitPane::updateSummaries);
+    connect(ui.appHangThreadStackwalkModeBox, qOverload<int>(&QComboBox::currentIndexChanged),
+        this, &InitPane::updateSummaries);
     connect(ui.loggerLevelBox, qOverload<int>(&QComboBox::currentIndexChanged),
         this, &InitPane::updateSummaries);
     connect(ui.crashReportingModeBox, qOverload<int>(&QComboBox::currentIndexChanged),
@@ -357,6 +371,7 @@ void InitPane::setupControls()
              ui.externalCrashReporterBox,
              ui.enableLargeAttachmentsBox,
              ui.httpRetryBox,
+             ui.enableAppHangTrackingBox,
          }) {
         connect(box, &QAbstractButton::toggled, this, &InitPane::updateSummaries);
     }
@@ -407,6 +422,9 @@ void InitPane::populate()
         ui.crashReporterPathEdit,
         ui.crashReportingModeBox,
         ui.minidumpModeBox,
+        ui.enableAppHangTrackingBox,
+        ui.appHangTimeoutBox,
+        ui.appHangThreadStackwalkModeBox,
     };
     std::vector<std::unique_ptr<QSignalBlocker>> blockers;
     blockers.reserve(widgets.size());
@@ -453,6 +471,13 @@ void InitPane::populate()
     ui.minidumpModeBox->setCurrentIndex(minidumpModeIndex >= 0
         ? minidumpModeIndex
         : ui.minidumpModeBox->findData(SENTRY_MINIDUMP_MODE_SMART));
+    ui.enableAppHangTrackingBox->setChecked(options.enableAppHangTracking);
+    ui.appHangTimeoutBox->setValue(options.appHangTimeout);
+    const int appHangThreadStackwalkModeIndex =
+        ui.appHangThreadStackwalkModeBox->findData(options.appHangThreadStackwalkMode);
+    ui.appHangThreadStackwalkModeBox->setCurrentIndex(appHangThreadStackwalkModeIndex >= 0
+        ? appHangThreadStackwalkModeIndex
+        : ui.appHangThreadStackwalkModeBox->findData(SENTRY_THREAD_STACKWALK_MODE_HUNG_ONLY));
     for (QAction* action : ui.databasePathEdit->actions()) {
         if (action->objectName() == "databasePathClearAction")
             action->setEnabled(!ui.databasePathEdit->text().isEmpty());
@@ -518,6 +543,9 @@ Options InitPane::optionsFromPage() const
     options.externalCrashReporterPath = ui.crashReporterPathEdit->text();
     options.crashReportingMode = ui.crashReportingModeBox->currentData().toInt();
     options.minidumpMode = ui.minidumpModeBox->currentData().toInt();
+    options.enableAppHangTracking = ui.enableAppHangTrackingBox->isChecked();
+    options.appHangTimeout = ui.appHangTimeoutBox->value();
+    options.appHangThreadStackwalkMode = ui.appHangThreadStackwalkModeBox->currentData().toInt();
     return options;
 }
 
@@ -569,6 +597,7 @@ void InitPane::updateDetailsVisibility()
     const bool featuresVisible = ui.featuresEditButton->isChecked();
     const bool parametersVisible = ui.parametersEditButton->isChecked();
     const bool databaseVisible = ui.databaseEditButton->isChecked();
+    const bool appHangVisible = ui.appHangEditButton->isChecked();
     const bool crashReporterVisible = ui.crashReporterEditButton->isChecked();
     const bool nativeVisible = supportsNativeOptions() && ui.nativeEditButton->isChecked();
 
@@ -588,6 +617,7 @@ void InitPane::updateDetailsVisibility()
     setFormVisible(ui.featuresDetailsFormLayout, featuresVisible);
     setFormVisible(ui.parametersDetailsFormLayout, parametersVisible);
     setFormVisible(ui.databaseDetailsFormLayout, databaseVisible);
+    setFormVisible(ui.appHangDetailsFormLayout, appHangVisible);
     setFormVisible(ui.crashReporterDetailsFormLayout, crashReporterVisible);
     setFormVisible(ui.nativeDetailsFormLayout, nativeVisible);
     updateCrashReporterControls();
@@ -618,6 +648,7 @@ void InitPane::refreshPaletteStyles()
         ui.featuresSectionDivider,
         ui.parametersSectionDivider,
         ui.databaseSectionDivider,
+        ui.appHangSectionDivider,
         ui.crashReporterSectionDivider,
         ui.nativeSectionDivider,
     };
@@ -742,6 +773,14 @@ void InitPane::updateSummaries()
     ui.databaseSummaryLabel->setText(databaseParts.join(", "));
     setStatus(ui.databaseSummaryStatus, true);
 
+    const bool appHangEnabled = ui.enableAppHangTrackingBox->isChecked();
+    ui.appHangSummaryLabel->setText(appHangEnabled
+            ? QStringLiteral("%1 ms, %2")
+                  .arg(ui.appHangTimeoutBox->value())
+                  .arg(ui.appHangThreadStackwalkModeBox->currentText().toLower())
+            : QStringLiteral("N/A"));
+    setStatus(ui.appHangSummaryStatus, appHangEnabled);
+
     QStringList crashReporterParts;
     if (ui.systemCrashReporterBox->isChecked())
         crashReporterParts.append(QStringLiteral("system"));
@@ -804,6 +843,10 @@ bool InitPane::eventFilter(QObject* watched, QEvent* event)
             }
             if (name == QLatin1String("databaseSummaryWidget")) {
                 ui.databaseEditButton->toggle();
+                return true;
+            }
+            if (name == QLatin1String("appHangSummaryWidget")) {
+                ui.appHangEditButton->toggle();
                 return true;
             }
             if (name == QLatin1String("crashReporterSummaryWidget")) {

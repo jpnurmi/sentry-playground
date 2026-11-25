@@ -31,6 +31,7 @@ signals:
 
 private:
     void triggerPluginCrash();
+    void triggerAppHang();
     void triggerCrash(std::function<void()> crashFunction);
     void setThreadStressEnabled(bool enabled);
 

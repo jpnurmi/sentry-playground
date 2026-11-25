@@ -40,6 +40,9 @@ struct Options
     QString externalCrashReporterPath;
     int crashReportingMode;
     int minidumpMode;
+    bool enableAppHangTracking = false;
+    int appHangTimeout = 5000;
+    int appHangThreadStackwalkMode;
 };
 
 #endif // OPTIONS_H

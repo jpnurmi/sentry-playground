@@ -20,6 +20,8 @@ namespace {
 
 constexpr int kThreadStressWorkerCount = 100;
 constexpr int kThreadStressStackDepth = 128;
+// outlast the app hang watchdog's poll interval and stackwalk
+constexpr int kAppHangMargin = 2000;
 
 Q_NEVER_INLINE void holdThreadStressStack(int depth, QMutex* mutex,
                                           QWaitCondition* waitCondition, bool* running)
@@ -100,6 +102,14 @@ static void throwException()
     throw std::runtime_error("uncaught C++ exception");
 }
 
+static void doHang()
+{
+    TRACE_FUNCTION();
+    qDebug() << "app hang";
+
+    QThread::msleep(Playground::instance()->options().appHangTimeout + kAppHangMargin);
+}
+
 CrashPane::CrashPane(QWidget* parent)
     : QWidget(parent)
 {
@@ -123,6 +133,7 @@ CrashPane::CrashPane(QWidget* parent)
     connect(ui.abortButton, &QAbstractButton::clicked, this, [this] { triggerCrash(&doAbort); });
     connect(ui.throwButton, &QAbstractButton::clicked, this, [this] { triggerCrash(&throwException); });
     connect(ui.pluginButton, &QAbstractButton::clicked, this, &CrashPane::triggerPluginCrash);
+    connect(ui.appHangButton, &QAbstractButton::clicked, this, &CrashPane::triggerAppHang);
 
     m_debugFilesDialog = new DebugFilesDialog(this);
     connect(m_debugFilesDialog, &DebugFilesDialog::uploadStatusChanged, this, &CrashPane::debugFilesUploadStatusChanged);
@@ -156,6 +167,19 @@ void CrashPane::triggerPluginCrash()
     }
 
     triggerCrash([plugin] { plugin->crash(); });
+}
+
+void CrashPane::triggerAppHang()
+{
+    if (Playground::instance()->worker()) {
+        // block the watched main thread on a hung worker
+        QThread* worker = QThread::create(&doHang);
+        worker->start();
+        worker->wait();
+        delete worker;
+    } else {
+        doHang();
+    }
 }
 
 void CrashPane::triggerCrash(std::function<void()> crashFunction)

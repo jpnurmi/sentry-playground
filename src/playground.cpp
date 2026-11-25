@@ -9,6 +9,7 @@
 namespace {
 
 static constexpr auto kOptionsSettingsKey = "init/options";
+static constexpr int kAppHangHeartbeatInterval = 100;
 
 sentry_value_t makeAttributes(const QJsonObject& attributes)
 {
@@ -48,6 +49,8 @@ Playground::Playground(QObject *parent) : QObject{parent}
     m_user.insert("email", "nobody@example.com");
     m_release = m_options.release;
     m_environment = m_options.environment;
+    m_appHangTimer.setInterval(kAppHangHeartbeatInterval);
+    connect(&m_appHangTimer, &QTimer::timeout, &sentry_app_hang_heartbeat);
 }
 
 void Playground::open(const Options& options)
@@ -97,6 +100,8 @@ void Playground::open(const Options& options)
     playground->m_initialized = true;
     playground->m_wasInitialized = true;
     Tracing::setEnabled(options.tracesSampleRate > 0.0);
+    if (options.enableAppHangTracking)
+        playground->m_appHangTimer.start();
 
     sentry_uuid_t uuid = sentry_uuid_new_v4();
     char buf[37];
@@ -119,6 +124,7 @@ void Playground::close()
 
     Tracing::setEnabled(false);
     Tracing::flush();
+    playground->m_appHangTimer.stop();
     sentry_close();
     playground->m_initialized = false;
     emit playground->initializedChanged(false);
