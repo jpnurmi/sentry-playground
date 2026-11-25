@@ -186,7 +186,7 @@ bool Options::load(const QByteArray &data)
     return true;
 }
 
-QByteArray Options::save() const
+QVariantMap Options::toMap() const
 {
     QVariantMap values;
     values.insert("version", kOptionsSchemaVersion);
@@ -222,11 +222,15 @@ QByteArray Options::save() const
     values.insert("threadStackwalkMode", normalizeThreadStackwalkMode(threadStackwalkMode));
     values.insert("crashUploadMode", normalizeCrashUploadMode(crashUploadMode));
     values.insert("maxStackCaptureSize", maxStackCaptureSize);
+    return values;
+}
 
+QByteArray Options::save() const
+{
     QByteArray data;
     QDataStream stream(&data, QIODevice::WriteOnly);
     stream.setVersion(QDataStream::Qt_6_0);
-    stream << values;
+    stream << toMap();
     return data;
 }
 

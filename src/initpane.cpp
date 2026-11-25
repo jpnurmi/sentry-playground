@@ -860,6 +860,12 @@ void InitPane::updateSummaries()
         ui.nativeSummaryLabel->setText(QStringLiteral("N/A"));
         setStatus(ui.nativeSummaryStatus, false);
     }
+
+    const Options options = optionsFromPage();
+    Options defaults;
+    // not on the page, so Reset keeps it
+    defaults.sdkName = options.sdkName;
+    ui.resetButton->setEnabled(options.toMap() != defaults.toMap());
 }
 
 bool InitPane::eventFilter(QObject* watched, QEvent* event)

@@ -3,6 +3,7 @@
 
 #include <QtCore/qbytearray.h>
 #include <QtCore/qstring.h>
+#include <QtCore/qvariant.h>
 
 typedef struct sentry_options_s sentry_options_t;
 
@@ -12,6 +13,7 @@ struct Options
 
     bool load(const QByteArray &data);
     QByteArray save() const;
+    QVariantMap toMap() const;
     sentry_options_t *toNative() const;
 
     QString dsn = qEnvironmentVariable("SENTRY_DSN");
