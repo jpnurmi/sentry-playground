@@ -89,6 +89,28 @@ int normalizeAppHangThreadStackwalkMode(int mode)
     }
 }
 
+int normalizeThreadStackwalkMode(int mode)
+{
+    switch (mode) {
+    case SENTRY_THREAD_STACKWALK_MODE_CRASHED_ONLY:
+    case SENTRY_THREAD_STACKWALK_MODE_ALL:
+        return mode;
+    default:
+        return SENTRY_THREAD_STACKWALK_MODE_ALL;
+    }
+}
+
+int normalizeCrashUploadMode(int mode)
+{
+    switch (mode) {
+    case SENTRY_CRASH_UPLOAD_MODE_SYNC:
+    case SENTRY_CRASH_UPLOAD_MODE_ASYNC:
+        return mode;
+    default:
+        return SENTRY_CRASH_UPLOAD_MODE_SYNC;
+    }
+}
+
 } // namespace
 
 Options::Options()
@@ -96,6 +118,8 @@ Options::Options()
     , crashReportingMode(SENTRY_CRASH_REPORTING_MODE_NATIVE_WITH_MINIDUMP)
     , minidumpMode(SENTRY_MINIDUMP_MODE_SMART)
     , appHangThreadStackwalkMode(SENTRY_THREAD_STACKWALK_MODE_HUNG_ONLY)
+    , threadStackwalkMode(SENTRY_THREAD_STACKWALK_MODE_ALL)
+    , crashUploadMode(SENTRY_CRASH_UPLOAD_MODE_SYNC)
 {
 }
 
@@ -140,6 +164,9 @@ bool Options::load(const QByteArray &data)
     enableAppHangTracking = values.value("enableAppHangTracking", enableAppHangTracking).toBool();
     appHangTimeout = values.value("appHangTimeout", appHangTimeout).toInt();
     appHangThreadStackwalkMode = values.value("appHangThreadStackwalkMode", appHangThreadStackwalkMode).toInt();
+    threadStackwalkMode = values.value("threadStackwalkMode", threadStackwalkMode).toInt();
+    crashUploadMode = values.value("crashUploadMode", crashUploadMode).toInt();
+    maxStackCaptureSize = values.value("maxStackCaptureSize", maxStackCaptureSize).toInt();
 
     maxBreadcrumbs = std::max(0, maxBreadcrumbs);
     maxSpans = std::max(0, maxSpans);
@@ -153,6 +180,9 @@ bool Options::load(const QByteArray &data)
     minidumpMode = normalizeMinidumpMode(minidumpMode);
     appHangTimeout = std::max(0, appHangTimeout);
     appHangThreadStackwalkMode = normalizeAppHangThreadStackwalkMode(appHangThreadStackwalkMode);
+    threadStackwalkMode = normalizeThreadStackwalkMode(threadStackwalkMode);
+    crashUploadMode = normalizeCrashUploadMode(crashUploadMode);
+    maxStackCaptureSize = std::max(0, maxStackCaptureSize);
     return true;
 }
 
@@ -189,6 +219,9 @@ QByteArray Options::save() const
     values.insert("enableAppHangTracking", enableAppHangTracking);
     values.insert("appHangTimeout", appHangTimeout);
     values.insert("appHangThreadStackwalkMode", normalizeAppHangThreadStackwalkMode(appHangThreadStackwalkMode));
+    values.insert("threadStackwalkMode", normalizeThreadStackwalkMode(threadStackwalkMode));
+    values.insert("crashUploadMode", normalizeCrashUploadMode(crashUploadMode));
+    values.insert("maxStackCaptureSize", maxStackCaptureSize);
 
     QByteArray data;
     QDataStream stream(&data, QIODevice::WriteOnly);
@@ -242,5 +275,12 @@ sentry_options_t *Options::toNative() const
     sentry_options_set_app_hang_thread_stackwalk_mode(
         opt,
         static_cast<sentry_thread_stackwalk_mode_t>(normalizeAppHangThreadStackwalkMode(appHangThreadStackwalkMode)));
+    sentry_options_set_thread_stackwalk_mode(
+        opt,
+        static_cast<sentry_thread_stackwalk_mode_t>(normalizeThreadStackwalkMode(threadStackwalkMode)));
+    sentry_options_set_crash_upload_mode(
+        opt,
+        static_cast<sentry_crash_upload_mode_t>(normalizeCrashUploadMode(crashUploadMode)));
+    sentry_options_set_max_stack_capture_size(opt, static_cast<uint32_t>(std::max(0, maxStackCaptureSize)));
     return opt;
 }

@@ -2045,6 +2045,52 @@
                  <item row="1" column="1">
                   <widget class="QComboBox" name="minidumpModeBox"/>
                  </item>
+                 <item row="2" column="0">
+                  <widget class="QLabel" name="threadStackwalkModeLabel">
+                   <property name="styleSheet">
+                    <string notr="true">color: palette(placeholder-text); font-size: 10px;</string>
+                   </property>
+                   <property name="text">
+                    <string>Stackwalk</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="1">
+                  <widget class="QComboBox" name="threadStackwalkModeBox"/>
+                 </item>
+                 <item row="3" column="0">
+                  <widget class="QLabel" name="crashUploadModeLabel">
+                   <property name="styleSheet">
+                    <string notr="true">color: palette(placeholder-text); font-size: 10px;</string>
+                   </property>
+                   <property name="text">
+                    <string>Upload</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="3" column="1">
+                  <widget class="QComboBox" name="crashUploadModeBox"/>
+                 </item>
+                 <item row="4" column="0">
+                  <widget class="QLabel" name="maxStackCaptureSizeLabel">
+                   <property name="styleSheet">
+                    <string notr="true">color: palette(placeholder-text); font-size: 10px;</string>
+                   </property>
+                   <property name="text">
+                    <string>Max stack</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="4" column="1">
+                  <widget class="QSpinBox" name="maxStackCaptureSizeBox">
+                   <property name="suffix">
+                    <string> B</string>
+                   </property>
+                   <property name="maximum">
+                    <number>2147483647</number>
+                   </property>
+                  </widget>
+                 </item>
                 </layout>
                </item>
                <item>

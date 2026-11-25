@@ -40,6 +40,11 @@ bool crashReportingModeUsesMinidump(int mode)
     return mode != SENTRY_CRASH_REPORTING_MODE_NATIVE;
 }
 
+bool crashReportingModeUsesStackwalk(int mode)
+{
+    return mode != SENTRY_CRASH_REPORTING_MODE_MINIDUMP;
+}
+
 QString crashReportingModeSummaryText(int mode)
 {
     switch (mode) {
@@ -161,6 +166,9 @@ void InitPane::setupFormAlignment()
         ui.crashReporterPathLabel,
         ui.crashReportingModeLabel,
         ui.minidumpModeLabel,
+        ui.threadStackwalkModeLabel,
+        ui.crashUploadModeLabel,
+        ui.maxStackCaptureSizeLabel,
     };
     QLabel* summaryTitles[] = {
         ui.sdkSummaryTitle,
@@ -260,6 +268,10 @@ void InitPane::setupControls()
     ui.minidumpModeBox->addItem("Full", SENTRY_MINIDUMP_MODE_FULL);
     ui.appHangThreadStackwalkModeBox->addItem("Hung thread", SENTRY_THREAD_STACKWALK_MODE_HUNG_ONLY);
     ui.appHangThreadStackwalkModeBox->addItem("All threads", SENTRY_THREAD_STACKWALK_MODE_ALL);
+    ui.threadStackwalkModeBox->addItem("Crashed thread", SENTRY_THREAD_STACKWALK_MODE_CRASHED_ONLY);
+    ui.threadStackwalkModeBox->addItem("All threads", SENTRY_THREAD_STACKWALK_MODE_ALL);
+    ui.crashUploadModeBox->addItem("Sync", SENTRY_CRASH_UPLOAD_MODE_SYNC);
+    ui.crashUploadModeBox->addItem("Async", SENTRY_CRASH_UPLOAD_MODE_ASYNC);
 
     const char* kDisclosureButton =
         "QToolButton { background: transparent; border: none; padding: 0; }";
@@ -363,6 +375,12 @@ void InitPane::setupControls()
         this, &InitPane::updateSummaries);
     connect(ui.minidumpModeBox, qOverload<int>(&QComboBox::currentIndexChanged),
         this, &InitPane::updateSummaries);
+    connect(ui.threadStackwalkModeBox, qOverload<int>(&QComboBox::currentIndexChanged),
+        this, &InitPane::updateSummaries);
+    connect(ui.crashUploadModeBox, qOverload<int>(&QComboBox::currentIndexChanged),
+        this, &InitPane::updateSummaries);
+    connect(ui.maxStackCaptureSizeBox, qOverload<int>(&QSpinBox::valueChanged),
+        this, &InitPane::updateSummaries);
     connect(ui.crashReporterPathEdit, &QLineEdit::textChanged, this, &InitPane::updateSummaries);
     for (QCheckBox* box : {
              ui.attachScreenshotBox,
@@ -425,6 +443,9 @@ void InitPane::populate()
         ui.enableAppHangTrackingBox,
         ui.appHangTimeoutBox,
         ui.appHangThreadStackwalkModeBox,
+        ui.threadStackwalkModeBox,
+        ui.crashUploadModeBox,
+        ui.maxStackCaptureSizeBox,
     };
     std::vector<std::unique_ptr<QSignalBlocker>> blockers;
     blockers.reserve(widgets.size());
@@ -478,6 +499,15 @@ void InitPane::populate()
     ui.appHangThreadStackwalkModeBox->setCurrentIndex(appHangThreadStackwalkModeIndex >= 0
         ? appHangThreadStackwalkModeIndex
         : ui.appHangThreadStackwalkModeBox->findData(SENTRY_THREAD_STACKWALK_MODE_HUNG_ONLY));
+    const int threadStackwalkModeIndex = ui.threadStackwalkModeBox->findData(options.threadStackwalkMode);
+    ui.threadStackwalkModeBox->setCurrentIndex(threadStackwalkModeIndex >= 0
+        ? threadStackwalkModeIndex
+        : ui.threadStackwalkModeBox->findData(SENTRY_THREAD_STACKWALK_MODE_ALL));
+    const int crashUploadModeIndex = ui.crashUploadModeBox->findData(options.crashUploadMode);
+    ui.crashUploadModeBox->setCurrentIndex(crashUploadModeIndex >= 0
+        ? crashUploadModeIndex
+        : ui.crashUploadModeBox->findData(SENTRY_CRASH_UPLOAD_MODE_SYNC));
+    ui.maxStackCaptureSizeBox->setValue(options.maxStackCaptureSize);
     for (QAction* action : ui.databasePathEdit->actions()) {
         if (action->objectName() == "databasePathClearAction")
             action->setEnabled(!ui.databasePathEdit->text().isEmpty());
@@ -546,6 +576,9 @@ Options InitPane::optionsFromPage() const
     options.enableAppHangTracking = ui.enableAppHangTrackingBox->isChecked();
     options.appHangTimeout = ui.appHangTimeoutBox->value();
     options.appHangThreadStackwalkMode = ui.appHangThreadStackwalkModeBox->currentData().toInt();
+    options.threadStackwalkMode = ui.threadStackwalkModeBox->currentData().toInt();
+    options.crashUploadMode = ui.crashUploadModeBox->currentData().toInt();
+    options.maxStackCaptureSize = ui.maxStackCaptureSizeBox->value();
     return options;
 }
 
@@ -574,6 +607,8 @@ void InitPane::updateNativeControls()
     const bool nativeDetailsVisible = nativeSectionVisible && ui.nativeEditButton->isChecked();
     const bool usesMinidump = crashReportingModeUsesMinidump(
         ui.crashReportingModeBox->currentData().toInt());
+    const bool usesStackwalk = crashReportingModeUsesStackwalk(
+        ui.crashReportingModeBox->currentData().toInt());
 
     if (QWidget* nativeSummaryWidget = findChild<QWidget*>(QStringLiteral("nativeSummaryWidget")))
         nativeSummaryWidget->setVisible(nativeSectionVisible);
@@ -584,6 +619,7 @@ void InitPane::updateNativeControls()
     ui.nativeDetailsFormLayout->setRowVisible(
         ui.minidumpModeLabel, nativeDetailsVisible && usesMinidump);
     ui.minidumpModeBox->setEnabled(usesMinidump);
+    ui.threadStackwalkModeBox->setEnabled(usesStackwalk);
 
     ui.rightColumn->invalidate();
     ui.scrollContents->updateGeometry();
@@ -800,6 +836,11 @@ void InitPane::updateSummaries()
         QStringList nativeParts = { crashReportingModeSummaryText(crashReportingMode) };
         if (crashReportingModeUsesMinidump(crashReportingMode))
             nativeParts.append(minidumpModeSummaryText(ui.minidumpModeBox->currentData().toInt()));
+        if (crashReportingModeUsesStackwalk(crashReportingMode))
+            nativeParts.append(ui.threadStackwalkModeBox->currentText().toLower());
+        nativeParts.append(ui.crashUploadModeBox->currentText().toLower());
+        if (ui.maxStackCaptureSizeBox->value() > 0)
+            nativeParts.append(QLocale().formattedDataSize(ui.maxStackCaptureSizeBox->value()));
         ui.nativeSummaryLabel->setText(nativeParts.join(QStringLiteral(", ")));
         setStatus(ui.nativeSummaryStatus, true);
     } else {

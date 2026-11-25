@@ -43,6 +43,9 @@ struct Options
     bool enableAppHangTracking = false;
     int appHangTimeout = 5000;
     int appHangThreadStackwalkMode;
+    int threadStackwalkMode;
+    int crashUploadMode;
+    int maxStackCaptureSize = 0;
 };
 
 #endif // OPTIONS_H
