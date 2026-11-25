@@ -280,10 +280,8 @@ void InitPane::setupControls()
     if (QLineEdit* edit = ui.environmentEdit->lineEdit())
         edit->setPlaceholderText("production");
     ui.dsnEdit->setInsertPolicy(QComboBox::NoInsert);
-    if (QLineEdit* edit = ui.dsnEdit->lineEdit()) {
+    if (QLineEdit* edit = ui.dsnEdit->lineEdit())
         edit->setPlaceholderText("https://public@example.ingest.sentry.io/project-id");
-        edit->setClearButtonEnabled(true);
-    }
     ui.loggerLevelBox->addItem("None", kLoggerLevelNone);
     ui.loggerLevelBox->addItem("Trace", SENTRY_LEVEL_TRACE);
     ui.loggerLevelBox->addItem("Debug", SENTRY_LEVEL_DEBUG);
