@@ -23,6 +23,7 @@ private:
     void setupSummaryRows();
     void setupFormAlignment();
     void setupControls();
+    void populate(const Options& options);
     void populateEnvironmentHistory(const QString& currentEnvironment);
     void rememberEnvironment(const QString& environment);
     Options optionsFromPage() const;

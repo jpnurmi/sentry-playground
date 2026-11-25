@@ -2129,6 +2129,9 @@
    </item>
    <item>
     <layout class="QHBoxLayout" name="footerLayout">
+     <property name="spacing">
+      <number>8</number>
+     </property>
      <property name="topMargin">
       <number>16</number>
      </property>
@@ -2144,6 +2147,16 @@
         </size>
        </property>
       </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="resetButton">
+       <property name="toolTip">
+        <string>Reset options to defaults</string>
+       </property>
+       <property name="text">
+        <string>Reset</string>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QPushButton" name="initializeButton">

@@ -410,11 +410,16 @@ void InitPane::setupControls()
         rememberEnvironment(options.environment);
         Playground::open(options);
     });
+    connect(ui.resetButton, &QAbstractButton::clicked, this, [this]() { populate(Options()); });
 }
 
 void InitPane::populate()
 {
-    const Options options = Playground::instance()->options();
+    populate(Playground::instance()->options());
+}
+
+void InitPane::populate(const Options& options)
+{
     const QList<QWidget*> widgets = {
         ui.dsnEdit,
         ui.databasePathEdit,
