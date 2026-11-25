@@ -20,11 +20,16 @@ public:
     static QString segmentedButtonStyle(const QPalette& palette, const QString& extra);
     static QIcon makeArrowIcon(const QPalette& palette, qreal dpr);
     static QIcon makeBackIcon(const QPalette& palette, qreal dpr);
+    static QIcon makeCheckIcon(const QColor& color, qreal dpr);
     static QIcon makeChevronIcon(const QPalette& palette, qreal dpr, bool expanded);
     static QIcon makeClearIcon(const QPalette& palette, qreal dpr);
     static QIcon makeEllipsisIcon(const QPalette& palette, qreal dpr);
+    static QIcon makePlayIcon(const QPalette& palette, qreal dpr);
     static QIcon makePlusIcon(const QPalette& palette, qreal dpr);
+    static QIcon makeRestartIcon(const QPalette& palette, qreal dpr);
     static QIcon makeStatusIcon(bool enabled, qreal dpr);
+    static QIcon makeStopIcon(const QPalette& palette, qreal dpr);
+    static QIcon makeWarningIcon(const QColor& color, qreal dpr);
 
     void drawPrimitive(PrimitiveElement element, const QStyleOption* option,
         QPainter* painter, const QWidget* widget = nullptr) const override;
@@ -33,6 +38,10 @@ public:
     void polish(QWidget* widget) override;
     QSize sizeFromContents(ContentsType type, const QStyleOption* option,
         const QSize& contentsSize, const QWidget* widget) const override;
+    QIcon standardIcon(StandardPixmap standardIcon, const QStyleOption* option = nullptr,
+        const QWidget* widget = nullptr) const override;
+    int styleHint(StyleHint hint, const QStyleOption* option = nullptr,
+        const QWidget* widget = nullptr, QStyleHintReturn* returnData = nullptr) const override;
 
 private:
     bool isMacStyle() const;

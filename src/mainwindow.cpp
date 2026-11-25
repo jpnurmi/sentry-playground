@@ -36,8 +36,7 @@ static QString statusBarStyle(const QString& backgroundColor)
     return QStringLiteral(
         "QStatusBar { background-color: %1; }"
         "QStatusBar QPushButton#consentButton { border: none; background: transparent; }"
-        "QStatusBar QLabel { color: white; font-weight: bold; background: transparent; }"
-        "QStatusBar QLabel#consentIcon { font-size: 18px; }")
+        "QStatusBar QLabel { color: white; font-weight: bold; background: transparent; }")
         .arg(backgroundColor);
 }
 
@@ -264,19 +263,19 @@ void MainWindow::updateConsentStatus(Qt::CheckState state)
     switch (state) {
     case Qt::Checked:
         statusBar()->setStyleSheet(statusBarStyle(QStringLiteral("#2ecc71")));
-        consentIcon->setText("✓");
+        consentIcon->setPixmap(Style::makeCheckIcon(Qt::white, devicePixelRatioF()).pixmap(QSize(16, 16), devicePixelRatioF()));
         consentText->setText("Consent given — events will be captured and sent to Sentry");
         consentButton->setChecked(true);
         break;
     case Qt::Unchecked:
         statusBar()->setStyleSheet(statusBarStyle(QStringLiteral("#e74c3c")));
-        consentIcon->setText("⚠");
+        consentIcon->setPixmap(Style::makeWarningIcon(Qt::white, devicePixelRatioF()).pixmap(QSize(16, 16), devicePixelRatioF()));
         consentText->setText("Consent revoked — events will be discarded and not sent to Sentry");
         consentButton->setChecked(false);
         break;
     case Qt::PartiallyChecked:
         statusBar()->setStyleSheet(statusBarStyle(QStringLiteral("#f39c12")));
-        consentIcon->setText("⚠");
+        consentIcon->setPixmap(Style::makeWarningIcon(Qt::white, devicePixelRatioF()).pixmap(QSize(16, 16), devicePixelRatioF()));
         consentText->setText("Consent unknown — events will be discarded until consent is given");
         consentButton->setChecked(false);
         break;

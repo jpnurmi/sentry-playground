@@ -509,16 +509,15 @@ void RuntimePane::updateSessionButton()
     ui.environmentEdit->setPalette(envPending ? editPendingPalette : editDefaultPalette);
 
     if (pending) {
-        ui.sessionButton->setText("⟳");
+        ui.sessionButton->setIcon(Style::makeRestartIcon(editPendingPalette, devicePixelRatioF()));
         ui.sessionButton->setToolTip("Apply and restart session");
-        ui.sessionButton->setStyleSheet(Style::circularButtonStyle(
-            palette(), QStringLiteral("font-size: 16px; font-weight: bold; color: #ff3b30;")));
     } else {
-        ui.sessionButton->setText(active ? "⏹" : "▶");
+        ui.sessionButton->setIcon(active
+            ? Style::makeStopIcon(palette(), devicePixelRatioF())
+            : Style::makePlayIcon(palette(), devicePixelRatioF()));
         ui.sessionButton->setToolTip(active ? "End session" : "Start session");
-        ui.sessionButton->setStyleSheet(Style::circularButtonStyle(
-            palette(), QStringLiteral("font-size: 16px;")));
     }
+    ui.sessionButton->setStyleSheet(Style::circularButtonStyle(palette()));
 }
 
 void RuntimePane::updateLogAction()

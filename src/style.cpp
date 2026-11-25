@@ -1,6 +1,7 @@
 #include "style.h"
 
 #include <QtCore/qmath.h>
+#include <QtGui/qguiapplication.h>
 #include <QtGui/qpainter.h>
 #include <QtGui/qpixmap.h>
 #include <QtWidgets/qabstractspinbox.h>
@@ -146,6 +147,20 @@ QIcon Style::makeBackIcon(const QPalette& palette, qreal dpr)
     return QIcon(pixmap);
 }
 
+QIcon Style::makeCheckIcon(const QColor& color, qreal dpr)
+{
+    const int size = 16;
+    QPixmap pixmap(size * dpr, size * dpr);
+    pixmap.setDevicePixelRatio(dpr);
+    pixmap.fill(Qt::transparent);
+    QPainter p(&pixmap);
+    p.setRenderHint(QPainter::Antialiasing);
+    p.setPen(QPen(color, 2.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    p.drawLine(QPointF(3.5, 8.5), QPointF(6.5, 11.5));
+    p.drawLine(QPointF(6.5, 11.5), QPointF(12.5, 4.5));
+    return QIcon(pixmap);
+}
+
 QIcon Style::makeChevronIcon(const QPalette& palette, qreal dpr, bool expanded)
 {
     const int size = 12;
@@ -200,6 +215,22 @@ QIcon Style::makeEllipsisIcon(const QPalette& palette, qreal dpr)
     return QIcon(pixmap);
 }
 
+QIcon Style::makePlayIcon(const QPalette& palette, qreal dpr)
+{
+    const int size = 12;
+    const QColor color = palette.color(QPalette::Text);
+    QPixmap pixmap(size * dpr, size * dpr);
+    pixmap.setDevicePixelRatio(dpr);
+    pixmap.fill(Qt::transparent);
+    QPainter p(&pixmap);
+    p.setRenderHint(QPainter::Antialiasing);
+    p.setPen(QPen(color, 1.5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    p.setBrush(color);
+    const QPointF triangle[] = { QPointF(4.5, 3), QPointF(9.5, 6), QPointF(4.5, 9) };
+    p.drawPolygon(triangle, 3);
+    return QIcon(pixmap);
+}
+
 QIcon Style::makePlusIcon(const QPalette& palette, qreal dpr)
 {
     const int size = 12;
@@ -211,6 +242,21 @@ QIcon Style::makePlusIcon(const QPalette& palette, qreal dpr)
     p.setPen(QPen(palette.color(QPalette::Text), 1.5, Qt::SolidLine, Qt::RoundCap));
     p.drawLine(QPointF(size / 2.0, 2), QPointF(size / 2.0, size - 2));
     p.drawLine(QPointF(2, size / 2.0), QPointF(size - 2, size / 2.0));
+    return QIcon(pixmap);
+}
+
+QIcon Style::makeRestartIcon(const QPalette& palette, qreal dpr)
+{
+    const int size = 12;
+    QPixmap pixmap(size * dpr, size * dpr);
+    pixmap.setDevicePixelRatio(dpr);
+    pixmap.fill(Qt::transparent);
+    QPainter p(&pixmap);
+    p.setRenderHint(QPainter::Antialiasing);
+    p.setPen(QPen(palette.color(QPalette::Text), 1.5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    p.drawArc(QRectF(2.25, 2.5, 7.5, 7.5), 90 * 16, 300 * 16);
+    p.drawLine(QPointF(4.25, 0.75), QPointF(6, 2.5));
+    p.drawLine(QPointF(6, 2.5), QPointF(4.25, 4.25));
     return QIcon(pixmap);
 }
 
@@ -235,6 +281,39 @@ QIcon Style::makeStatusIcon(bool enabled, qreal dpr)
         p.drawLine(QPointF(4.0, 4.0), QPointF(10.0, 10.0));
         p.drawLine(QPointF(10.0, 4.0), QPointF(4.0, 10.0));
     }
+    return QIcon(pixmap);
+}
+
+QIcon Style::makeStopIcon(const QPalette& palette, qreal dpr)
+{
+    const int size = 12;
+    const QColor color = palette.color(QPalette::Text);
+    QPixmap pixmap(size * dpr, size * dpr);
+    pixmap.setDevicePixelRatio(dpr);
+    pixmap.fill(Qt::transparent);
+    QPainter p(&pixmap);
+    p.setRenderHint(QPainter::Antialiasing);
+    p.setPen(QPen(color, 1.5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    p.setBrush(color);
+    p.drawRect(QRectF(3.75, 3.75, 4.5, 4.5));
+    return QIcon(pixmap);
+}
+
+QIcon Style::makeWarningIcon(const QColor& color, qreal dpr)
+{
+    const int size = 16;
+    QPixmap pixmap(size * dpr, size * dpr);
+    pixmap.setDevicePixelRatio(dpr);
+    pixmap.fill(Qt::transparent);
+    QPainter p(&pixmap);
+    p.setRenderHint(QPainter::Antialiasing);
+    p.setPen(QPen(color, 1.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    const QPointF triangle[] = { QPointF(8, 2.5), QPointF(14, 13), QPointF(2, 13) };
+    p.drawPolygon(triangle, 3);
+    p.drawLine(QPointF(8, 6.5), QPointF(8, 9));
+    p.setPen(Qt::NoPen);
+    p.setBrush(color);
+    p.drawEllipse(QPointF(8, 11), 0.9, 0.9);
     return QIcon(pixmap);
 }
 
@@ -360,4 +439,22 @@ QSize Style::sizeFromContents(ContentsType type, const QStyleOption* option,
         }
     }
     return size;
+}
+
+QIcon Style::standardIcon(StandardPixmap standardIcon, const QStyleOption* option,
+    const QWidget* widget) const
+{
+    if (standardIcon == SP_LineEditClearButton) {
+        const QPalette palette = option ? option->palette : widget ? widget->palette() : QPalette();
+        return makeClearIcon(palette, widget ? widget->devicePixelRatioF() : qGuiApp->devicePixelRatio());
+    }
+    return QProxyStyle::standardIcon(standardIcon, option, widget);
+}
+
+int Style::styleHint(StyleHint hint, const QStyleOption* option,
+    const QWidget* widget, QStyleHintReturn* returnData) const
+{
+    if (hint == SH_DialogButtonBox_ButtonsHaveIcons)
+        return 0;
+    return QProxyStyle::styleHint(hint, option, widget, returnData);
 }
