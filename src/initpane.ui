@@ -300,12 +300,15 @@
                   </widget>
                  </item>
                  <item row="0" column="1">
-                  <widget class="QLineEdit" name="dsnEdit">
+                  <widget class="QComboBox" name="dsnEdit">
+                   <property name="editable">
+                    <bool>true</bool>
+                   </property>
+                   <property name="sizeAdjustPolicy">
+                    <enum>QComboBox::SizeAdjustPolicy::AdjustToMinimumContentsLengthWithIcon</enum>
+                   </property>
                    <property name="placeholderText">
                     <string>https://public@example.ingest.sentry.io/project-id</string>
-                   </property>
-                   <property name="clearButtonEnabled">
-                    <bool>true</bool>
                    </property>
                   </widget>
                  </item>

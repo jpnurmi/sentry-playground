@@ -27,7 +27,7 @@
 #include <QtWidgets/qspinbox.h>
 #include <QtWidgets/qtoolbutton.h>
 
-static constexpr int kMaxEnvironmentHistoryItems = 12;
+static constexpr int kMaxHistoryItems = 12;
 static constexpr int kLoggerLevelNone = -1000;
 
 bool supportsNativeOptions()
@@ -71,7 +71,7 @@ QString minidumpModeSummaryText(int mode)
     }
 }
 
-static QStringList environmentHistoryWith(QStringList history, const QString& environment)
+static QStringList historyWith(QStringList history, const QString& current)
 {
     QStringList normalized;
     auto add = [&normalized](const QString& value) {
@@ -79,12 +79,33 @@ static QStringList environmentHistoryWith(QStringList history, const QString& en
         if (!trimmed.isEmpty() && !normalized.contains(trimmed, Qt::CaseSensitive))
             normalized.append(trimmed);
     };
-    add(environment);
+    add(current);
     for (const QString& value : std::as_const(history))
         add(value);
-    while (normalized.size() > kMaxEnvironmentHistoryItems)
+    while (normalized.size() > kMaxHistoryItems)
         normalized.removeLast();
     return normalized;
+}
+
+static void populateHistory(QComboBox* box, const QString& key, const QString& current)
+{
+    box->clear();
+    box->addItems(historyWith(QSettings().value(key).toStringList(), current));
+    box->setEditText(current);
+}
+
+static void rememberHistory(QComboBox* box, const QString& key, const QString& current)
+{
+    QStringList items;
+    for (int i = 0; i < box->count(); ++i)
+        items.append(box->itemText(i));
+    const QStringList history = historyWith(items, current);
+    QSettings().setValue(key, history);
+
+    QSignalBlocker blocker(box);
+    box->clear();
+    box->addItems(history);
+    box->setEditText(current);
 }
 
 InitPane::InitPane(QWidget* parent)
@@ -253,6 +274,11 @@ void InitPane::setupControls()
     ui.environmentEdit->setInsertPolicy(QComboBox::NoInsert);
     if (QLineEdit* edit = ui.environmentEdit->lineEdit())
         edit->setPlaceholderText("production");
+    ui.dsnEdit->setInsertPolicy(QComboBox::NoInsert);
+    if (QLineEdit* edit = ui.dsnEdit->lineEdit()) {
+        edit->setPlaceholderText("https://public@example.ingest.sentry.io/project-id");
+        edit->setClearButtonEnabled(true);
+    }
     ui.loggerLevelBox->addItem("None", kLoggerLevelNone);
     ui.loggerLevelBox->addItem("Trace", SENTRY_LEVEL_TRACE);
     ui.loggerLevelBox->addItem("Debug", SENTRY_LEVEL_DEBUG);
@@ -343,6 +369,7 @@ void InitPane::setupControls()
     updateCrashReporterControls();
     updateNativeControls();
 
+    connect(ui.dsnEdit, &QComboBox::currentTextChanged, this, &InitPane::updateSummaries);
     connect(ui.releaseEdit, &QLineEdit::textChanged, this, &InitPane::updateSummaries);
     connect(ui.environmentEdit, &QComboBox::currentTextChanged, this, &InitPane::updateSummaries);
     connect(ui.distEdit, &QLineEdit::textChanged, this, &InitPane::updateSummaries);
@@ -407,7 +434,8 @@ void InitPane::setupControls()
 
     connect(ui.initializeButton, &QAbstractButton::clicked, this, [this]() {
         const Options options = optionsFromPage();
-        rememberEnvironment(options.environment);
+        rememberHistory(ui.dsnEdit, "init/dsnHistory", options.dsn);
+        rememberHistory(ui.environmentEdit, "init/environmentHistory", options.environment);
         Playground::open(options);
     });
     connect(ui.resetButton, &QAbstractButton::clicked, this, [this]() { populate(Options()); });
@@ -457,12 +485,12 @@ void InitPane::populate(const Options& options)
     for (QWidget* widget : widgets)
         blockers.push_back(std::make_unique<QSignalBlocker>(widget));
 
-    ui.dsnEdit->setText(options.dsn);
-    ui.dsnEdit->setCursorPosition(0);
+    populateHistory(ui.dsnEdit, "init/dsnHistory", options.dsn);
+    ui.dsnEdit->lineEdit()->setCursorPosition(0);
     ui.databasePathEdit->setText(options.databasePath);
     ui.databasePathEdit->setCursorPosition(0);
     ui.releaseEdit->setText(options.release);
-    populateEnvironmentHistory(options.environment);
+    populateHistory(ui.environmentEdit, "init/environmentHistory", options.environment);
     ui.distEdit->setText(options.dist);
     ui.sampleRateBox->setValue(options.sampleRate);
     ui.tracesSampleRateBox->setValue(options.tracesSampleRate);
@@ -526,33 +554,10 @@ void InitPane::populate(const Options& options)
     updateDetailsVisibility();
 }
 
-void InitPane::populateEnvironmentHistory(const QString& currentEnvironment)
-{
-    ui.environmentEdit->clear();
-    ui.environmentEdit->addItems(environmentHistoryWith(
-        QSettings().value("init/environmentHistory").toStringList(),
-        currentEnvironment));
-    ui.environmentEdit->setEditText(currentEnvironment);
-}
-
-void InitPane::rememberEnvironment(const QString& environment)
-{
-    QSettings settings;
-    const QStringList history = environmentHistoryWith(
-        settings.value("init/environmentHistory").toStringList(),
-        environment);
-    settings.setValue("init/environmentHistory", history);
-
-    QSignalBlocker blocker(ui.environmentEdit);
-    ui.environmentEdit->clear();
-    ui.environmentEdit->addItems(history);
-    ui.environmentEdit->setEditText(environment);
-}
-
 Options InitPane::optionsFromPage() const
 {
     Options options = Playground::instance()->options();
-    options.dsn = ui.dsnEdit->text().trimmed();
+    options.dsn = ui.dsnEdit->currentText().trimmed();
     options.databasePath = ui.databasePathEdit->text();
     options.release = ui.releaseEdit->text().trimmed();
     options.environment = ui.environmentEdit->currentText().trimmed();
@@ -727,7 +732,7 @@ void InitPane::updateSummaries()
     };
 
     QStringList sdkParts;
-    const QUrl dsnUrl(ui.dsnEdit->text().trimmed());
+    const QUrl dsnUrl(ui.dsnEdit->currentText().trimmed());
     if (!dsnUrl.host().isEmpty()) {
         QString dsnSummary = dsnUrl.host();
         if (dsnUrl.port() >= 0)
