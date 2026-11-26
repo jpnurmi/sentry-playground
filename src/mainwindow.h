@@ -28,11 +28,11 @@ private:
     void updateStatusBarVisibility();
     void updateConsentStatus(Qt::CheckState state);
     void applyLeftPanelStyles();
+    void updateDebugFilesStatus();
     void updateLogo();
     QString debugFilesUploadToolTip() const;
 
     Ui::MainWindow ui;
-    DebugFilesDialog::UploadStatus m_debugFilesUploadStatus = DebugFilesDialog::UploadStatus::OutOfDate;
-};
+    DebugFilesDialog::UploadStatus m_debugFilesUploadStatus = DebugFilesDialog::UploadStatus::OutOfDate;};
 
 #endif // MAINWINDOW_H

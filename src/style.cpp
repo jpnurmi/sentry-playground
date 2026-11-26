@@ -299,6 +299,22 @@ QIcon Style::makeStopIcon(const QPalette& palette, qreal dpr)
     return QIcon(pixmap);
 }
 
+QIcon Style::makeUploadIcon(const QPalette& palette, qreal dpr)
+{
+    const int size = 16;
+    QPixmap pixmap(size * dpr, size * dpr);
+    pixmap.setDevicePixelRatio(dpr);
+    pixmap.fill(Qt::transparent);
+    QPainter p(&pixmap);
+    p.setRenderHint(QPainter::Antialiasing);
+    p.setPen(QPen(palette.color(QPalette::ButtonText), 1.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    p.drawLine(QPointF(8, 10), QPointF(8, 3.5));
+    p.drawLine(QPointF(4.5, 7), QPointF(8, 3.5));
+    p.drawLine(QPointF(8, 3.5), QPointF(11.5, 7));
+    p.drawLine(QPointF(4.5, 12.5), QPointF(11.5, 12.5));
+    return QIcon(pixmap);
+}
+
 QIcon Style::makeWarningIcon(const QColor& color, qreal dpr)
 {
     const int size = 16;

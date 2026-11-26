@@ -90,14 +90,16 @@ MainWindow::MainWindow(QWidget* parent)
     ui.backendLabel->setText(Playground::backend());
 
     Playground* playground = Playground::instance();
-    QObject::connect(ui.sentryLogoButton, &QAbstractButton::clicked, this, [this]() {
-        if (Playground::instance()->isInitialized() && ui.pages->currentWidget() == ui.runtimePage)
-            ui.crashPane->uploadDebugFiles();
+    QObject::connect(ui.sentryLogoButton, &QAbstractButton::clicked, this, [this, playground]() {
+        if (playground->isInitialized() && ui.pages->currentWidget() == ui.runtimePage)
+            playground->setOffline(!playground->offline());
     });
+    QObject::connect(ui.debugFilesButton, &QAbstractButton::clicked,
+        ui.crashPane, &CrashPane::uploadDebugFiles);
     QObject::connect(ui.crashPane, &CrashPane::debugFilesUploadStatusChanged, this,
         [this](DebugFilesDialog::UploadStatus status) {
             m_debugFilesUploadStatus = status;
-            updateLogo();
+            updateDebugFilesStatus();
         });
     m_debugFilesUploadStatus = ui.crashPane->debugFilesUploadStatus();
     updateLogo();
@@ -107,6 +109,8 @@ MainWindow::MainWindow(QWidget* parent)
     QObject::connect(ui.runtimeOptionsButton, &QAbstractButton::clicked, this, []() {
         Playground::close();
     });
+    ui.debugFilesButton->setIconSize(QSize(14, 14));
+    ui.debugFilesButton->hide();
     applyLeftPanelStyles();
 
     QObject::connect(ui.actionQuit, &QAction::triggered, qApp, &QCoreApplication::quit);
@@ -162,6 +166,7 @@ MainWindow::MainWindow(QWidget* parent)
         this, &MainWindow::updateConsentStatus);
     QObject::connect(playground, &Playground::optionsChanged, this,
         [this](const Options&) { updateStatusBarVisibility(); });
+    QObject::connect(playground, &Playground::offlineChanged, this, &MainWindow::updateLogo);
     QObject::connect(playground, &Playground::initializedChanged, this,
         [this](bool initialized) {
             if (initialized)
@@ -201,6 +206,7 @@ void MainWindow::showInitPage()
     ui.initPage->populate();
     ui.crashPane->hide();
     ui.runtimeOptionsButton->hide();
+    ui.debugFilesButton->hide();
     ui.pages->setCurrentWidget(ui.initPage);
     updateLogo();
     updateStatusBarVisibility();
@@ -210,6 +216,7 @@ void MainWindow::showRuntimePage()
 {
     ui.crashPane->show();
     ui.runtimeOptionsButton->show();
+    ui.debugFilesButton->show();
     ui.pages->setCurrentWidget(ui.runtimePage);
     updateLogo();
     updateStatusBarVisibility();
@@ -291,6 +298,21 @@ void MainWindow::applyLeftPanelStyles()
 
     ui.runtimeOptionsButton->setIcon(Style::makeBackIcon(palette(), devicePixelRatioF()));
     ui.runtimeOptionsButton->setStyleSheet(Style::circularButtonStyle(palette()));
+    updateDebugFilesStatus();
+}
+
+void MainWindow::updateDebugFilesStatus()
+{
+    // the regular circular button, tinted by upload status
+    QPalette tinted = palette();
+    const QColor color = m_debugFilesUploadStatus == DebugFilesDialog::UploadStatus::UpToDate
+        ? QColor("#34c759")
+        : QColor("#ff453a");
+    tinted.setColor(QPalette::WindowText, color);
+    tinted.setColor(QPalette::ButtonText, color);
+    ui.debugFilesButton->setIcon(Style::makeUploadIcon(tinted, devicePixelRatioF()));
+    ui.debugFilesButton->setStyleSheet(Style::circularButtonStyle(tinted));
+    ui.debugFilesButton->setToolTip(debugFilesUploadToolTip());
 }
 
 void MainWindow::changeEvent(QEvent* event)
@@ -328,8 +350,10 @@ void MainWindow::updateLogo()
     const qreal dpr = logo.devicePixelRatio();
     const int width = qRound(logo.width() / dpr);
     const int height = qRound(logo.height() / dpr);
-    const bool uploadAvailable = Playground::instance()->isInitialized()
+    Playground* playground = Playground::instance();
+    const bool offlineAvailable = playground->isInitialized()
         && ui.pages->currentWidget() == ui.runtimePage;
+    const bool offline = offlineAvailable && playground->offline();
     const int padding = 4;
     const int canvasWidth = width + padding * 2;
     const int canvasHeight = height + padding * 2;
@@ -343,36 +367,47 @@ void MainWindow::updateLogo()
     painter.setRenderHint(QPainter::Antialiasing);
     painter.drawPixmap(logoRect, logo);
 
-    if (uploadAvailable) {
-        const int dotSize = 10;
-        const QRect dotRect(
-            logoRect.right() - dotSize / 2 + 1,
-            logoRect.bottom() - dotSize / 2 + 1,
-            dotSize,
-            dotSize);
-        const QColor dotColor = m_debugFilesUploadStatus == DebugFilesDialog::UploadStatus::UpToDate
-            ? QColor("#34c759")
-            : QColor("#ff453a");
-        QColor dotOutline = palette().color(QPalette::Window);
-        dotOutline.setAlpha(235);
-        painter.setBrush(dotColor);
-        painter.setPen(QPen(dotOutline, 2));
-        painter.drawEllipse(dotRect);
+    if (offlineAvailable) {
+        // purple while online, gray while offline
+        const QColor tint = offline
+            ? Style::blendedColor(palette().color(QPalette::Window), palette().color(QPalette::WindowText), 100)
+            : QColor("#7553ff");
+        painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
+        painter.fillRect(logoRect, tint);
+
+        if (offline) {
+            const QRectF slashRect = QRectF(logoRect).adjusted(16, 13, -16, -13);
+            const QLineF slash(slashRect.topLeft(), slashRect.bottomRight());
+            // cut a gap around the slash so it stands out from the glyph
+            painter.setCompositionMode(QPainter::CompositionMode_Clear);
+            painter.setPen(QPen(Qt::black, 12, Qt::SolidLine, Qt::RoundCap));
+            painter.drawLine(slash);
+            painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+            painter.setPen(QPen(QColor("#ff453a"), 6, Qt::SolidLine, Qt::RoundCap));
+            painter.drawLine(slash);
+        }
     }
     painter.end();
 
     ui.sentryLogoButton->setIcon(QIcon(composite));
     ui.sentryLogoButton->setIconSize(QSize(canvasWidth, canvasHeight));
-    ui.sentryLogoButton->setCursor(uploadAvailable ? Qt::PointingHandCursor : Qt::ArrowCursor);
-    ui.sentryLogoButton->setToolTip(uploadAvailable ? debugFilesUploadToolTip() : QString());
+    ui.sentryLogoButton->setCursor(offlineAvailable ? Qt::PointingHandCursor : Qt::ArrowCursor);
+    QString toolTip;
+    if (offline)
+        toolTip = playground->options().httpRetry
+            ? "Offline — events will be cached until back online"
+            : "Offline — events will be discarded and not sent to Sentry";
+    else if (offlineAvailable)
+        toolTip = "Online — events will be sent to Sentry";
+    ui.sentryLogoButton->setToolTip(toolTip);
     const QColor hoverColor = Style::blendedColor(
         palette().color(QPalette::Window),
         palette().color(QPalette::WindowText),
-        uploadAvailable ? 20 : 0);
+        offlineAvailable ? 20 : 0);
     const QColor pressedColor = Style::blendedColor(
         palette().color(QPalette::Window),
         palette().color(QPalette::WindowText),
-        uploadAvailable ? 32 : 0);
+        offlineAvailable ? 32 : 0);
     ui.sentryLogoButton->setStyleSheet(QStringLiteral(
         "QToolButton { border: none; border-radius: 10px; background: transparent; padding: 0; }"
         "QToolButton:hover { background: %1; }"
@@ -384,5 +419,5 @@ QString MainWindow::debugFilesUploadToolTip() const
 {
     return m_debugFilesUploadStatus == DebugFilesDialog::UploadStatus::UpToDate
         ? QStringLiteral("Debug files uploaded")
-        : QStringLiteral("Upload debug files");
+        : QStringLiteral("Debug files not uploaded");
 }

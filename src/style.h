@@ -29,6 +29,7 @@ public:
     static QIcon makeRestartIcon(const QPalette& palette, qreal dpr);
     static QIcon makeStatusIcon(bool enabled, qreal dpr);
     static QIcon makeStopIcon(const QPalette& palette, qreal dpr);
+    static QIcon makeUploadIcon(const QPalette& palette, qreal dpr);
     static QIcon makeWarningIcon(const QColor& color, qreal dpr);
 
     void drawPrimitive(PrimitiveElement element, const QStyleOption* option,

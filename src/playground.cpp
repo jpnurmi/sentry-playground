@@ -113,6 +113,7 @@ void Playground::open(const Options& options)
     emit playground->optionsChanged(playground->m_options);
     emit playground->releaseChanged(playground->m_release);
     emit playground->environmentChanged(playground->m_environment);
+    emit playground->offlineChanged(playground->offline());
     emit playground->initializedChanged(true);
 }
 
@@ -194,6 +195,22 @@ void Playground::setFilter(bool filter)
 
     m_filter = filter;
     emit filterChanged(filter);
+}
+
+bool Playground::offline() const
+{
+    return m_initialized && sentry_is_offline();
+}
+
+void Playground::setOffline(bool offline)
+{
+    TRACE_FUNCTION();
+
+    if (!m_initialized || this->offline() == offline)
+        return;
+
+    sentry_set_offline(offline);
+    emit offlineChanged(offline);
 }
 
 Qt::CheckState Playground::consent() const
