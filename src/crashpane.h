@@ -21,15 +21,10 @@ public:
     explicit CrashPane(QWidget* parent = nullptr);
     ~CrashPane() override;
 
-    DebugFilesDialog::UploadStatus debugFilesUploadStatus() const;
-
-public slots:
-    void uploadDebugFiles();
-
-signals:
-    void debugFilesUploadStatusChanged(DebugFilesDialog::UploadStatus status);
+    void refreshPaletteStyles();
 
 private:
+    void updateDebugFilesStatus();
     void triggerPluginCrash();
     void triggerAppHang();
     void triggerCrash(std::function<void()> crashFunction);

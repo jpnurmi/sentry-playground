@@ -1,4 +1,5 @@
 #include "debugfilesdialog.h"
+#include "style.h"
 
 #include <QtCore/qcoreapplication.h>
 #include <QtCore/qdir.h>
@@ -23,6 +24,7 @@
 
 static constexpr auto kUploadedDebugIdsSettingsKey = "debugFiles/uploadedDebugIds";
 static constexpr auto kUploadedDebugIdsHistorySettingsKey = "debugFiles/uploadedDebugIdsHistory";
+static constexpr auto kUploadedQtDebugIdsHistorySettingsKey = "debugFiles/uploadedQtDebugIdsHistory";
 static constexpr int kMaxUploadedDebugIdSets = 10;
 
 struct UploadTarget
@@ -114,14 +116,16 @@ static QStringList checkedDebugIds(const QString& path)
     return normalizedDebugIds(debugIds);
 }
 
-static QJsonArray uploadedDebugIdsHistory()
+static QJsonArray uploadedDebugIdsHistory(const QString& key)
 {
     QSettings settings;
     QJsonArray history = QJsonDocument::fromJson(
-        settings.value(kUploadedDebugIdsHistorySettingsKey).toByteArray()).array();
+        settings.value(key).toByteArray()).array();
 
-    const QStringList legacyDebugIds = normalizedDebugIds(
-        settings.value(kUploadedDebugIdsSettingsKey).toStringList());
+    // only the app's debug IDs were stored before the history
+    const QStringList legacyDebugIds = key == QLatin1String(kUploadedDebugIdsHistorySettingsKey)
+        ? normalizedDebugIds(settings.value(kUploadedDebugIdsSettingsKey).toStringList())
+        : QStringList();
     if (!legacyDebugIds.isEmpty()) {
         QJsonArray legacyEntry;
         for (const QString& debugId : legacyDebugIds)
@@ -133,23 +137,25 @@ static QJsonArray uploadedDebugIdsHistory()
     return history;
 }
 
-static bool uploadedDebugIdsHistoryContains(const QStringList& debugIds)
+static bool uploadedDebugIdsHistoryContains(const QString& key, const QStringList& debugIds)
 {
     if (debugIds.isEmpty())
         return false;
 
-    const QJsonArray history = uploadedDebugIdsHistory();
-    for (const QJsonValue& entry : history) {
-        QStringList uploadedDebugIds;
+    // Qt plugins loaded later add debug IDs, so look for each in any upload
+    QStringList uploadedDebugIds;
+    for (const QJsonValue& entry : uploadedDebugIdsHistory(key)) {
         for (const QJsonValue& debugId : entry.toArray())
             uploadedDebugIds.append(debugId.toString());
-        if (normalizedDebugIds(uploadedDebugIds) == debugIds)
-            return true;
     }
-    return false;
+    for (const QString& debugId : debugIds) {
+        if (!uploadedDebugIds.contains(debugId))
+            return false;
+    }
+    return true;
 }
 
-static void rememberUploadedDebugIds(const QStringList& debugIds)
+static void rememberUploadedDebugIds(const QString& key, const QStringList& debugIds)
 {
     QJsonArray nextEntry;
     for (const QString& debugId : debugIds)
@@ -157,7 +163,7 @@ static void rememberUploadedDebugIds(const QStringList& debugIds)
 
     QJsonArray nextHistory;
     nextHistory.append(nextEntry);
-    for (const QJsonValue& entry : uploadedDebugIdsHistory()) {
+    for (const QJsonValue& entry : uploadedDebugIdsHistory(key)) {
         QStringList uploadedDebugIds;
         for (const QJsonValue& debugId : entry.toArray())
             uploadedDebugIds.append(debugId.toString());
@@ -167,7 +173,7 @@ static void rememberUploadedDebugIds(const QStringList& debugIds)
             break;
     }
 
-    QSettings().setValue(kUploadedDebugIdsHistorySettingsKey,
+    QSettings().setValue(key,
         QJsonDocument(nextHistory).toJson(QJsonDocument::Compact));
 }
 
@@ -181,11 +187,12 @@ DebugFilesDialog::DebugFilesDialog(QWidget* parent)
     layout->setContentsMargins(12, 12, 12, 12);
     layout->setSpacing(0);
 
-    auto* tabs = new QTabWidget(this);
-    layout->addWidget(tabs);
+    m_tabs = new QTabWidget(this);
+    layout->addWidget(m_tabs);
 
-    auto addSection = [this, tabs](Section& section, const QString& title) {
-        auto* page = new QWidget(tabs);
+    auto addSection = [this](Section& section, const QString& title) {
+        auto* page = new QWidget(m_tabs);
+        section.page = page;
         auto* pageLayout = new QVBoxLayout(page);
         auto* headerLayout = new QHBoxLayout;
         section.summary = new QLabel(page);
@@ -212,7 +219,7 @@ DebugFilesDialog::DebugFilesDialog(QWidget* parent)
             " selection-background-color: #3b82f6;"
             " }");
         pageLayout->addWidget(section.output);
-        tabs->addTab(page, title);
+        m_tabs->addTab(page, title);
     };
 
     addSection(m_app, "App");
@@ -224,8 +231,10 @@ DebugFilesDialog::DebugFilesDialog(QWidget* parent)
     };
     m_app.directory = QCoreApplication::applicationDirPath();
     m_app.summary->setText(QDir::toNativeSeparators(m_app.directory));
+    m_app.historyKey = kUploadedDebugIdsHistorySettingsKey;
 
     addSection(m_qt, "Qt");
+    m_qt.historyKey = kUploadedQtDebugIdsHistorySettingsKey;
 }
 
 DebugFilesDialog::UploadStatus DebugFilesDialog::uploadStatus() const
@@ -235,10 +244,19 @@ DebugFilesDialog::UploadStatus DebugFilesDialog::uploadStatus() const
 
 void DebugFilesDialog::refreshUploadStatus()
 {
-    const QStringList debugIds = checkedDebugIds(QCoreApplication::applicationFilePath());
-    setUploadStatus(uploadedDebugIdsHistoryContains(debugIds)
-        ? UploadStatus::UpToDate
-        : UploadStatus::OutOfDate);
+    if (!m_qt.process)
+        refreshQtUpload();
+    for (Section* section : { &m_app, &m_qt }) {
+        // without debug IDs, nothing is known to be missing
+        const QStringList debugIds = currentDebugIds(*section);
+        if (debugIds.isEmpty())
+            section->status = UploadStatus::Unknown;
+        else if (uploadedDebugIdsHistoryContains(section->historyKey, debugIds))
+            section->status = UploadStatus::UpToDate;
+        else
+            section->status = UploadStatus::OutOfDate;
+    }
+    updateUploadStatus();
 }
 
 void DebugFilesDialog::prepareUpload(const QString& dsn)
@@ -256,12 +274,21 @@ void DebugFilesDialog::prepareUpload(const QString& dsn)
     activateWindow();
 }
 
+QStringList DebugFilesDialog::currentDebugIds(const Section& section) const
+{
+    // the app's own debug IDs, and those of the loaded Qt libraries and plugins
+    if (&section == &m_app)
+        return checkedDebugIds(QCoreApplication::applicationFilePath());
+    return m_qtDebugIds;
+}
+
 void DebugFilesDialog::refreshQtUpload()
 {
     // only the Qt libraries and plugins loaded in this process, matched by
     // debug ID so that their separate debug files are found too
     const QString prefix = QLibraryInfo::path(QLibraryInfo::PrefixPath);
     QStringList ids;
+    QStringList debugIds;
     QStringList paths;
 
     const sentry_value_t modules = sentry_get_modules_list();
@@ -272,16 +299,19 @@ void DebugFilesDialog::refreshQtUpload()
         if (!codeFile.startsWith(prefix + '/'))
             continue;
 
-        ids += {
-            QStringLiteral("--id"),
-            QString::fromUtf8(sentry_value_as_string(sentry_value_get_by_key(module, "debug_id"))),
-        };
+        const QString debugId = QString::fromUtf8(sentry_value_as_string(sentry_value_get_by_key(module, "debug_id")));
+        ids += { QStringLiteral("--id"), debugId };
+        debugIds.append(debugId);
         const QString path = codeFile.mid(prefix.size() + 1).section('/', 0, 0);
         if (!paths.contains(path))
             paths.append(path);
     }
     sentry_value_decref(modules);
+    // the SDK caches the list for events, so don't leave it one that misses
+    // libraries loaded later
+    sentry_clear_modulecache();
 
+    m_qtDebugIds = normalizedDebugIds(debugIds);
     m_qt.directory = prefix;
     m_qt.summary->setText(QDir::toNativeSeparators(prefix));
     if (ids.isEmpty())
@@ -308,9 +338,7 @@ void DebugFilesDialog::startUpload(Section& section)
         return;
 
     const UploadTarget target = uploadTargetFromDsn(m_dsn);
-    // the upload status tracks the app's own debug IDs
-    if (&section == &m_app)
-        section.debugIds = checkedDebugIds(QCoreApplication::applicationFilePath());
+    section.debugIds = currentDebugIds(section);
 
     section.output->clear();
     appendOutput(section, QStringLiteral("$ cd %1\n").arg(section.directory));
@@ -477,11 +505,33 @@ void DebugFilesDialog::finishUpload(Section& section, int exitCode)
         return;
 
     if (exitCode == 0) {
-        rememberUploadedDebugIds(debugIds);
-        setUploadStatus(UploadStatus::UpToDate);
+        rememberUploadedDebugIds(section.historyKey, debugIds);
+        section.status = UploadStatus::UpToDate;
+        updateUploadStatus();
     } else {
         refreshUploadStatus();
     }
+}
+
+void DebugFilesDialog::updateUploadStatus()
+{
+    QPalette red = palette();
+    red.setColor(QPalette::ButtonText, QColor("#ff453a"));
+    for (const Section* section : { &m_app, &m_qt }) {
+        QIcon icon;
+        if (section->status == UploadStatus::UpToDate)
+            icon = Style::makeCheckIcon(QColor("#34c759"), devicePixelRatioF());
+        else if (section->status == UploadStatus::OutOfDate)
+            icon = Style::makeClearIcon(red, devicePixelRatioF());
+        m_tabs->setTabIcon(m_tabs->indexOf(section->page), icon);
+    }
+
+    if (m_app.status == UploadStatus::OutOfDate || m_qt.status == UploadStatus::OutOfDate)
+        setUploadStatus(UploadStatus::OutOfDate);
+    else if (m_app.status == UploadStatus::UpToDate || m_qt.status == UploadStatus::UpToDate)
+        setUploadStatus(UploadStatus::UpToDate);
+    else
+        setUploadStatus(UploadStatus::Unknown);
 }
 
 void DebugFilesDialog::setUploadStatus(UploadStatus status)

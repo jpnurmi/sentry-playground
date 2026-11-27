@@ -37,14 +37,37 @@
     </spacer>
    </item>
    <item>
-    <widget class="QLabel" name="crashesHeader">
-     <property name="styleSheet">
-      <string notr="true">color: palette(placeholder-text); font-weight: bold;</string>
+    <layout class="QHBoxLayout" name="crashesHeaderLayout">
+     <property name="spacing">
+      <number>0</number>
      </property>
-     <property name="text">
-      <string>CRASH</string>
-     </property>
-    </widget>
+     <item>
+      <widget class="QLabel" name="crashesHeader">
+       <property name="styleSheet">
+        <string notr="true">color: palette(placeholder-text); font-weight: bold;</string>
+       </property>
+       <property name="text">
+        <string>CRASH</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="crashesHeaderSpacer">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QToolButton" name="debugFilesButton"/>
+     </item>
+    </layout>
    </item>
    <item>
     <widget class="QPushButton" name="crashButton">

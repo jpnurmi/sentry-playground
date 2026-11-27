@@ -1,6 +1,7 @@
 #include "crashpane.h"
 #include "crashplugininterface.h"
 #include "playground.h"
+#include "style.h"
 #include "tracing.h"
 
 #include <QtCore/qcoreapplication.h>
@@ -136,8 +137,20 @@ CrashPane::CrashPane(QWidget* parent)
     connect(ui.appHangButton, &QAbstractButton::clicked, this, &CrashPane::triggerAppHang);
 
     m_debugFilesDialog = new DebugFilesDialog(this);
-    connect(m_debugFilesDialog, &DebugFilesDialog::uploadStatusChanged, this, &CrashPane::debugFilesUploadStatusChanged);
+    ui.debugFilesButton->setFixedSize(22, 22);
+    ui.debugFilesButton->setIconSize(QSize(14, 14));
+    ui.debugFilesButton->setToolTip("Debug files not uploaded");
+    // keep the header height while the button is hidden
+    QSizePolicy policy = ui.debugFilesButton->sizePolicy();
+    policy.setRetainSizeWhenHidden(true);
+    ui.debugFilesButton->setSizePolicy(policy);
+    connect(ui.debugFilesButton, &QAbstractButton::clicked, this, [this] {
+        m_debugFilesDialog->prepareUpload(Playground::instance()->options().dsn);
+    });
+    connect(m_debugFilesDialog, &DebugFilesDialog::uploadStatusChanged, this, &CrashPane::updateDebugFilesStatus);
     m_debugFilesDialog->refreshUploadStatus();
+    updateDebugFilesStatus();
+    refreshPaletteStyles();
 
     connect(ui.workerBox, &QAbstractButton::toggled, playground, &Playground::setWorker);
     connect(playground, &Playground::workerChanged, ui.workerBox, &QAbstractButton::setChecked);
@@ -226,12 +239,19 @@ void CrashPane::setThreadStressEnabled(bool enabled)
     m_threadStressWorkers.clear();
 }
 
-void CrashPane::uploadDebugFiles()
+void CrashPane::refreshPaletteStyles()
 {
-    m_debugFilesDialog->prepareUpload(Playground::instance()->options().dsn);
+    // the regular circular button, tinted red
+    const QColor color("#ff453a");
+    QPalette tinted = palette();
+    tinted.setColor(QPalette::WindowText, color);
+    tinted.setColor(QPalette::ButtonText, color);
+    ui.debugFilesButton->setIcon(Style::makeWarningIcon(color, devicePixelRatioF()));
+    ui.debugFilesButton->setStyleSheet(Style::circularButtonStyle(tinted));
 }
 
-DebugFilesDialog::UploadStatus CrashPane::debugFilesUploadStatus() const
+void CrashPane::updateDebugFilesStatus()
 {
-    return m_debugFilesDialog->uploadStatus();
+    // only shown when debug files are known to be missing
+    ui.debugFilesButton->setVisible(m_debugFilesDialog->uploadStatus() == DebugFilesDialog::UploadStatus::OutOfDate);
 }

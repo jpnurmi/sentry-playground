@@ -3,7 +3,6 @@
 
 #include <QMainWindow>
 
-#include "debugfilesdialog.h"
 #include "playground.h"
 #include "ui_mainwindow.h"
 
@@ -29,11 +28,9 @@ private:
     void updateConsentStatus(Qt::CheckState state);
     void updateFooterMargins();
     void applyLeftPanelStyles();
-    void updateDebugFilesStatus();
     void updateLogo();
-    QString debugFilesUploadToolTip() const;
 
     Ui::MainWindow ui;
-    DebugFilesDialog::UploadStatus m_debugFilesUploadStatus = DebugFilesDialog::UploadStatus::OutOfDate;};
+};
 
 #endif // MAINWINDOW_H

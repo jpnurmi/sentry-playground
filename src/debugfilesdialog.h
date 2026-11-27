@@ -10,6 +10,7 @@ class QPlainTextEdit;
 class QProcess;
 class QPushButton;
 class QString;
+class QTabWidget;
 
 class DebugFilesDialog : public QDialog
 {
@@ -17,6 +18,7 @@ class DebugFilesDialog : public QDialog
 
 public:
     enum class UploadStatus {
+        Unknown,
         OutOfDate,
         UpToDate,
     };
@@ -36,12 +38,15 @@ signals:
 private:
     struct Section
     {
+        QWidget* page = nullptr;
         QLabel* summary = nullptr;
         QPushButton* button = nullptr;
         QPlainTextEdit* output = nullptr;
         QProcess* process = nullptr;
         QString directory;
         QStringList arguments;
+        QString historyKey;
+        UploadStatus status = UploadStatus::Unknown;
         QStringList debugIds;
         // the CLI writes UTF-8 regardless of the locale, and streamed reads
         // may split multi-byte characters, so decode with state
@@ -49,6 +54,7 @@ private:
         QStringDecoder stderrDecoder{ QStringDecoder::Utf8 };
     };
 
+    QStringList currentDebugIds(const Section& section) const;
     void refreshQtUpload();
     void previewUpload(Section& section);
     void startUpload(Section& section);
@@ -58,12 +64,15 @@ private:
     QProcess* startSentry(Section& section, const QStringList& variables, const QStringList& arguments);
     void appendOutput(Section& section, const QString& text);
     void finishUpload(Section& section, int exitCode);
+    void updateUploadStatus();
     void setUploadStatus(UploadStatus status);
 
     QString m_dsn;
+    QTabWidget* m_tabs = nullptr;
     Section m_app;
     Section m_qt;
-    UploadStatus m_uploadStatus = UploadStatus::OutOfDate;
+    QStringList m_qtDebugIds;
+    UploadStatus m_uploadStatus = UploadStatus::Unknown;
 };
 
 #endif // DEBUGFILESDIALOG_H

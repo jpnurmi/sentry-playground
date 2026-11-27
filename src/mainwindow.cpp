@@ -91,14 +91,6 @@ MainWindow::MainWindow(QWidget* parent)
         if (playground->isInitialized() && ui.pages->currentWidget() == ui.runtimePage)
             playground->setOffline(!playground->offline());
     });
-    QObject::connect(ui.debugFilesButton, &QAbstractButton::clicked,
-        ui.crashPane, &CrashPane::uploadDebugFiles);
-    QObject::connect(ui.crashPane, &CrashPane::debugFilesUploadStatusChanged, this,
-        [this](DebugFilesDialog::UploadStatus status) {
-            m_debugFilesUploadStatus = status;
-            updateDebugFilesStatus();
-        });
-    m_debugFilesUploadStatus = ui.crashPane->debugFilesUploadStatus();
     updateLogo();
 
     ui.runtimeOptionsButton->setIconSize(QSize(14, 14));
@@ -106,8 +98,6 @@ MainWindow::MainWindow(QWidget* parent)
     QObject::connect(ui.runtimeOptionsButton, &QAbstractButton::clicked, this, []() {
         Playground::close();
     });
-    ui.debugFilesButton->setIconSize(QSize(14, 14));
-    ui.debugFilesButton->hide();
     applyLeftPanelStyles();
 
     QObject::connect(ui.actionQuit, &QAction::triggered, qApp, &QCoreApplication::quit);
@@ -205,7 +195,6 @@ void MainWindow::showInitPage()
     ui.initPage->populate();
     ui.crashPane->hide();
     ui.runtimeOptionsButton->hide();
-    ui.debugFilesButton->hide();
     ui.pages->setCurrentWidget(ui.initPage);
     updateLogo();
     updateConsentVisibility();
@@ -215,7 +204,6 @@ void MainWindow::showRuntimePage()
 {
     ui.crashPane->show();
     ui.runtimeOptionsButton->show();
-    ui.debugFilesButton->show();
     ui.pages->setCurrentWidget(ui.runtimePage);
     updateLogo();
     updateConsentVisibility();
@@ -301,21 +289,6 @@ void MainWindow::applyLeftPanelStyles()
 
     ui.runtimeOptionsButton->setIcon(Style::makeBackIcon(palette(), devicePixelRatioF()));
     ui.runtimeOptionsButton->setStyleSheet(Style::circularButtonStyle(palette()));
-    updateDebugFilesStatus();
-}
-
-void MainWindow::updateDebugFilesStatus()
-{
-    // the regular circular button, tinted by upload status
-    QPalette tinted = palette();
-    const QColor color = m_debugFilesUploadStatus == DebugFilesDialog::UploadStatus::UpToDate
-        ? QColor("#34c759")
-        : QColor("#ff453a");
-    tinted.setColor(QPalette::WindowText, color);
-    tinted.setColor(QPalette::ButtonText, color);
-    ui.debugFilesButton->setIcon(Style::makeUploadIcon(tinted, devicePixelRatioF()));
-    ui.debugFilesButton->setStyleSheet(Style::circularButtonStyle(tinted));
-    ui.debugFilesButton->setToolTip(debugFilesUploadToolTip());
 }
 
 void MainWindow::changeEvent(QEvent* event)
@@ -323,6 +296,7 @@ void MainWindow::changeEvent(QEvent* event)
     if (event->type() == QEvent::PaletteChange) {
         ui.initPage->refreshPaletteStyles();
         ui.runtimePage->refreshPaletteStyles();
+        ui.crashPane->refreshPaletteStyles();
         ui.eventCard->refreshPaletteStyles();
         applyLeftPanelStyles();
         updateLogo();
@@ -421,11 +395,4 @@ void MainWindow::updateLogo()
         "QToolButton:hover { background: %1; }"
         "QToolButton:pressed { background: %2; }")
             .arg(Style::cssRgb(hoverColor), Style::cssRgb(pressedColor)));
-}
-
-QString MainWindow::debugFilesUploadToolTip() const
-{
-    return m_debugFilesUploadStatus == DebugFilesDialog::UploadStatus::UpToDate
-        ? QStringLiteral("Debug files uploaded")
-        : QStringLiteral("Debug files not uploaded");
 }
