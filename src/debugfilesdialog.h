@@ -24,6 +24,8 @@ public:
 
     explicit DebugFilesDialog(QWidget* parent = nullptr);
 
+    static QString sentryProgram();
+
     UploadStatus uploadStatus() const;
     void refreshUploadStatus();
     void prepareUpload(const QString& dsn);

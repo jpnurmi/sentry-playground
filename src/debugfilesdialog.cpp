@@ -33,7 +33,7 @@ struct UploadTarget
     QString project;
 };
 
-static QString sentryProgram()
+QString DebugFilesDialog::sentryProgram()
 {
     // QProcess doesn't apply PATHEXT on Windows, so a bare "sentry" would
     // only match sentry.exe and miss the npm-installed sentry.cmd shim
@@ -87,7 +87,7 @@ static UploadTarget uploadTargetFromDsn(const QString& dsn)
 static QStringList checkedDebugIds(const QString& path)
 {
     QProcess process;
-    process.setProgram(sentryProgram());
+    process.setProgram(DebugFilesDialog::sentryProgram());
     process.setArguments({
         QStringLiteral("debug-files"),
         QStringLiteral("check"),

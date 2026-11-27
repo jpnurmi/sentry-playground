@@ -15,6 +15,7 @@ public:
     static QColor blendedColor(QColor base, QColor overlay, int overlayAlpha);
     static QString cssRgb(const QColor& color);
     static QString cssRgba(QColor color, int alpha);
+    static QString cardStyle(const QPalette& palette, const QColor& color);
     static QString circularButtonStyle(const QPalette& palette);
     static QString circularButtonStyle(const QPalette& palette, const QString& extra);
     static QString segmentedButtonStyle(const QPalette& palette, const QString& extra);

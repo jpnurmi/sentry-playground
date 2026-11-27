@@ -335,6 +335,28 @@
       </layout>
      </widget>
     </item>
+    <item>
+     <layout class="QVBoxLayout" name="footerLayout">
+      <property name="spacing">
+       <number>8</number>
+      </property>
+      <property name="leftMargin">
+       <number>22</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>22</number>
+      </property>
+      <property name="bottomMargin">
+       <number>16</number>
+      </property>
+      <item>
+       <widget class="EventCard" name="eventCard"/>
+      </item>
+     </layout>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -368,7 +390,6 @@
    <addaction name="menuView"/>
    <addaction name="menuHelp"/>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
   <action name="actionQuit">
    <property name="text">
     <string>&amp;Quit</string>
@@ -406,6 +427,11 @@
    <extends>QWidget</extends>
    <header>crashpane.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>EventCard</class>
+   <extends>QPushButton</extends>
+   <header>eventcard.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

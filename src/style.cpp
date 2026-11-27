@@ -70,6 +70,15 @@ QString Style::cssRgba(QColor color, int alpha)
         .arg(color.alpha());
 }
 
+QString Style::cardStyle(const QPalette& palette, const QColor& color)
+{
+    const QColor window = palette.color(QPalette::Window);
+    return QStringLiteral(
+        "background: %1; border: 1px solid %2; border-radius: 6px;")
+        .arg(cssRgb(blendedColor(window, color, 34)),
+             cssRgb(blendedColor(window, color, 110)));
+}
+
 QString Style::circularButtonStyle(const QPalette& palette)
 {
     const QColor window = palette.color(QPalette::Window);

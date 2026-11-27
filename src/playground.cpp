@@ -5,6 +5,7 @@
 #include <QtCore/qsettings.h>
 
 #include <cmath>
+#include <utility>
 
 namespace {
 
@@ -37,6 +38,16 @@ sentry_value_t makeAttributes(const QJsonObject& attributes)
             sentry_value_new_attribute(native, nullptr));
     }
     return result;
+}
+
+QString eventIdString(const sentry_uuid_t& uuid)
+{
+    if (sentry_uuid_is_nil(&uuid))
+        return {};
+    char buf[37];
+    sentry_uuid_as_string(&uuid, buf);
+    // Sentry refers to events by their dashless IDs
+    return QString::fromLatin1(buf).remove('-');
 }
 
 } // namespace
@@ -81,6 +92,13 @@ void Playground::open(const Options& options)
         return event;
     }, NULL);
 
+    sentry_options_set_on_crashed_last_run(opt, [](const sentry_envelope_t *envelope, void *userdata) {
+        // init is still running, so report the latest crash after it
+        sentry_value_t eventId = sentry_envelope_get_header(envelope, "event_id");
+        Playground::instance()->m_crashEventId = eventIdString(
+            sentry_uuid_from_string(sentry_value_as_string(eventId)));
+    }, nullptr);
+
     sentry_options_set_before_send_log(opt, [](sentry_value_t log, void*) {
         if (Playground::instance()->filter()) {
             sentry_value_decref(log);
@@ -115,6 +133,8 @@ void Playground::open(const Options& options)
     emit playground->environmentChanged(playground->m_environment);
     emit playground->offlineChanged(playground->offline());
     emit playground->initializedChanged(true);
+    if (!playground->m_crashEventId.isEmpty())
+        emit playground->crashedLastRun(std::exchange(playground->m_crashEventId, QString()));
 }
 
 void Playground::close()
@@ -443,7 +463,7 @@ void Playground::captureMessage(int level, const QString& message)
         static_cast<sentry_level_t>(level),
         "sentry-playground",
         message.toUtf8().constData());
-    sentry_capture_event(event);
+    emit eventCaptured(eventIdString(sentry_capture_event(event)));
 }
 
 void Playground::captureException(int level, const QString& type, const QString& value)
@@ -470,7 +490,7 @@ void Playground::captureException(int level, const QString& type, const QString&
         value.toUtf8().constData());
     sentry_value_set_stacktrace(exc, nullptr, 0);
     sentry_event_add_exception(event, exc);
-    sentry_capture_event(event);
+    emit eventCaptured(eventIdString(sentry_capture_event(event)));
 }
 
 void Playground::captureFeedback(const QString& message, const QString& name, const QString& email)

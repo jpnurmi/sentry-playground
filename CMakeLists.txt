@@ -25,6 +25,8 @@ qt_add_executable(sentry-playground
     src/crashpane.ui
     src/debugfilesdialog.h
     src/debugfilesdialog.cpp
+    src/eventcard.h
+    src/eventcard.cpp
     src/feedbackdialog.h
     src/feedbackdialog.cpp
     src/initpane.h

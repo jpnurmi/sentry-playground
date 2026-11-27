@@ -84,6 +84,8 @@ signals:
     void sessionChanged(bool session);
     void initializedChanged(bool initialized);
     void optionsChanged(const Options& options);
+    void eventCaptured(const QString& eventId);
+    void crashedLastRun(const QString& eventId);
 
 public slots:
     void captureMessage(int level, const QString& message);
@@ -123,6 +125,7 @@ private:
     QString m_release;
     QString m_environment;
     bool m_session = true;
+    QString m_crashEventId;
     QTimer m_appHangTimer;
 };
 
