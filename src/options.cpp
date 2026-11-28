@@ -27,6 +27,22 @@ bool resolveDebug()
     return false;
 }
 
+bool defaultSymbolizeStacktraces()
+{
+    // native resolves symbols out-of-process
+    return qstrcmp(SENTRY_BACKEND, "native") == 0;
+}
+
+bool defaultLoggerEnabledWhenCrashed()
+{
+#if defined(Q_OS_MACOS)
+    // breakpad can deadlock on stdio locks held by suspended threads
+    return qstrcmp(SENTRY_BACKEND, "breakpad") != 0;
+#else
+    return true;
+#endif
+}
+
 int normalizeLoggerLevel(int level)
 {
     switch (level) {
@@ -120,6 +136,8 @@ Options::Options()
     , appHangThreadStackwalkMode(SENTRY_THREAD_STACKWALK_MODE_HUNG_ONLY)
     , threadStackwalkMode(SENTRY_THREAD_STACKWALK_MODE_ALL)
     , crashUploadMode(SENTRY_CRASH_UPLOAD_MODE_SYNC)
+    , symbolizeStacktraces(defaultSymbolizeStacktraces())
+    , loggerEnabledWhenCrashed(defaultLoggerEnabledWhenCrashed())
 {
 }
 
@@ -136,7 +154,6 @@ bool Options::load(const QByteArray &data)
         return false;
 
     dsn = values.value("dsn", dsn).toString();
-    sdkName = values.value("sdkName", sdkName).toString();
     databasePath = values.value("databasePath", databasePath).toString();
     release = values.value("release", release).toString();
     environment = values.value("environment", environment).toString();
@@ -167,6 +184,18 @@ bool Options::load(const QByteArray &data)
     threadStackwalkMode = values.value("threadStackwalkMode", threadStackwalkMode).toInt();
     crashUploadMode = values.value("crashUploadMode", crashUploadMode).toInt();
     maxStackCaptureSize = values.value("maxStackCaptureSize", maxStackCaptureSize).toInt();
+    attachStacktrace = values.value("attachStacktrace", attachStacktrace).toBool();
+    autoSessionTracking = values.value("autoSessionTracking", autoSessionTracking).toBool();
+    sendClientReports = values.value("sendClientReports", sendClientReports).toBool();
+    symbolizeStacktraces = values.value("symbolizeStacktraces", symbolizeStacktraces).toBool();
+    propagateTraceparent = values.value("propagateTraceparent", propagateTraceparent).toBool();
+    strictTraceContinuation = values.value("strictTraceContinuation", strictTraceContinuation).toBool();
+    loggerEnabledWhenCrashed = values.value("loggerEnabledWhenCrashed", loggerEnabledWhenCrashed).toBool();
+    proxy = values.value("proxy", proxy).toString();
+    caCerts = values.value("caCerts", caCerts).toString();
+    orgId = values.value("orgId", orgId).toString();
+    transferTimeout = values.value("transferTimeout", transferTimeout).toInt();
+    crashMemoryReserve = values.value("crashMemoryReserve", crashMemoryReserve).toInt();
 
     maxBreadcrumbs = std::max(0, maxBreadcrumbs);
     maxSpans = std::max(0, maxSpans);
@@ -183,6 +212,8 @@ bool Options::load(const QByteArray &data)
     threadStackwalkMode = normalizeThreadStackwalkMode(threadStackwalkMode);
     crashUploadMode = normalizeCrashUploadMode(crashUploadMode);
     maxStackCaptureSize = std::max(0, maxStackCaptureSize);
+    transferTimeout = std::max(0, transferTimeout);
+    crashMemoryReserve = std::max(0, crashMemoryReserve);
     return true;
 }
 
@@ -191,7 +222,6 @@ QVariantMap Options::toMap() const
     QVariantMap values;
     values.insert("version", kOptionsSchemaVersion);
     values.insert("dsn", dsn);
-    values.insert("sdkName", sdkName);
     values.insert("databasePath", databasePath);
     values.insert("release", release);
     values.insert("environment", environment);
@@ -222,6 +252,18 @@ QVariantMap Options::toMap() const
     values.insert("threadStackwalkMode", normalizeThreadStackwalkMode(threadStackwalkMode));
     values.insert("crashUploadMode", normalizeCrashUploadMode(crashUploadMode));
     values.insert("maxStackCaptureSize", maxStackCaptureSize);
+    values.insert("attachStacktrace", attachStacktrace);
+    values.insert("autoSessionTracking", autoSessionTracking);
+    values.insert("sendClientReports", sendClientReports);
+    values.insert("symbolizeStacktraces", symbolizeStacktraces);
+    values.insert("propagateTraceparent", propagateTraceparent);
+    values.insert("strictTraceContinuation", strictTraceContinuation);
+    values.insert("loggerEnabledWhenCrashed", loggerEnabledWhenCrashed);
+    values.insert("proxy", proxy);
+    values.insert("caCerts", caCerts);
+    values.insert("orgId", orgId);
+    values.insert("transferTimeout", transferTimeout);
+    values.insert("crashMemoryReserve", crashMemoryReserve);
     return values;
 }
 
@@ -239,8 +281,6 @@ sentry_options_t *Options::toNative() const
     sentry_options_t *opt = sentry_options_new();
     if (!dsn.isEmpty())
         sentry_options_set_dsn(opt, dsn.toUtf8());
-    if (!sdkName.isEmpty())
-        sentry_options_set_sdk_name(opt, sdkName.toUtf8());
     if (!databasePath.isEmpty())
         sentry_options_set_database_path(opt, databasePath.toUtf8());
     if (!release.isEmpty())
@@ -286,5 +326,20 @@ sentry_options_t *Options::toNative() const
         opt,
         static_cast<sentry_crash_upload_mode_t>(normalizeCrashUploadMode(crashUploadMode)));
     sentry_options_set_max_stack_capture_size(opt, static_cast<uint32_t>(std::max(0, maxStackCaptureSize)));
+    sentry_options_set_attach_stacktrace(opt, attachStacktrace);
+    sentry_options_set_auto_session_tracking(opt, autoSessionTracking);
+    sentry_options_set_send_client_reports(opt, sendClientReports);
+    sentry_options_set_symbolize_stacktraces(opt, symbolizeStacktraces);
+    sentry_options_set_propagate_traceparent(opt, propagateTraceparent);
+    sentry_options_set_strict_trace_continuation(opt, strictTraceContinuation);
+    sentry_options_set_logger_enabled_when_crashed(opt, loggerEnabledWhenCrashed);
+    if (!proxy.isEmpty())
+        sentry_options_set_proxy(opt, proxy.toUtf8());
+    if (!caCerts.isEmpty())
+        sentry_options_set_ca_certs(opt, caCerts.toUtf8());
+    if (!orgId.isEmpty())
+        sentry_options_set_org_id(opt, orgId.toUtf8());
+    sentry_options_set_transfer_timeout(opt, static_cast<uint64_t>(std::max(0, transferTimeout)));
+    sentry_options_set_crash_memory_reserve(opt, static_cast<size_t>(std::max(0, crashMemoryReserve)));
     return opt;
 }

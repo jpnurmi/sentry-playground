@@ -17,7 +17,6 @@ struct Options
     sentry_options_t *toNative() const;
 
     QString dsn = qEnvironmentVariable("SENTRY_DSN");
-    QString sdkName;
     QString databasePath;
     QString release = QString::fromUtf8(SENTRY_RELEASE);
     QString environment = "playground";
@@ -48,6 +47,18 @@ struct Options
     int threadStackwalkMode;
     int crashUploadMode;
     int maxStackCaptureSize = 0;
+    bool attachStacktrace = false;
+    bool autoSessionTracking = true;
+    bool sendClientReports = true;
+    bool symbolizeStacktraces;
+    bool propagateTraceparent = false;
+    bool strictTraceContinuation = false;
+    bool loggerEnabledWhenCrashed;
+    QString proxy;
+    QString caCerts;
+    QString orgId;
+    int transferTimeout = 0;
+    int crashMemoryReserve = 0;
 };
 
 #endif // OPTIONS_H

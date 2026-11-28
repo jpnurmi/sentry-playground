@@ -12,7 +12,6 @@
 #include <QtCore/qobject.h>
 #include <QtCore/qsettings.h>
 #include <QtCore/qstandardpaths.h>
-#include <QtCore/qurl.h>
 #include <QtGui/qaction.h>
 #include <QtGui/qevent.h>
 #include <QtWidgets/qabstractbutton.h>
@@ -155,14 +154,15 @@ void InitPane::setupSummaryRows()
             delete item;
         return row;
     };
-    wrapSummaryRow(ui.sdkSummaryLayout, "sdkSummaryWidget");
-    wrapSummaryRow(ui.appSummaryLayout, "appSummaryWidget");
+    wrapSummaryRow(ui.releaseSummaryLayout, "releaseSummaryWidget");
+    wrapSummaryRow(ui.healthSummaryLayout, "healthSummaryWidget");
     wrapSummaryRow(ui.loggingSummaryLayout, "loggingSummaryWidget");
-    wrapSummaryRow(ui.featuresSummaryLayout, "featuresSummaryWidget");
-    wrapSummaryRow(ui.parametersSummaryLayout, "parametersSummaryWidget");
+    wrapSummaryRow(ui.transportSummaryLayout, "transportSummaryWidget");
+    wrapSummaryRow(ui.tracingSummaryLayout, "tracingSummaryWidget");
+    wrapSummaryRow(ui.eventsSummaryLayout, "eventsSummaryWidget");
     wrapSummaryRow(ui.databaseSummaryLayout, "databaseSummaryWidget");
     wrapSummaryRow(ui.appHangSummaryLayout, "appHangSummaryWidget");
-    wrapSummaryRow(ui.crashReporterSummaryLayout, "crashReporterSummaryWidget");
+    wrapSummaryRow(ui.crashHandlingSummaryLayout, "crashHandlingSummaryWidget");
     wrapSummaryRow(ui.nativeSummaryLayout, "nativeSummaryWidget");
 }
 
@@ -170,12 +170,15 @@ void InitPane::setupFormAlignment()
 {
     QLabel* formLabels[] = {
         ui.dsnLabel,
-        ui.sdkNameLabel,
         ui.releaseLabel,
         ui.environmentLabel,
         ui.distLabel,
-        ui.featuresFormSpacerLabel,
+        ui.healthFormSpacerLabel,
         ui.shutdownTimeoutLabel,
+        ui.transferTimeoutLabel,
+        ui.proxyLabel,
+        ui.caCertsLabel,
+        ui.orgIdLabel,
         ui.maxBreadcrumbsLabel,
         ui.maxSpansLabel,
         ui.sampleRateLabel,
@@ -188,8 +191,9 @@ void InitPane::setupFormAlignment()
         ui.cacheMaxAgeLabel,
         ui.appHangTimeoutLabel,
         ui.appHangThreadStackwalkModeLabel,
-        ui.crashReporterSpacerLabel,
+        ui.crashHandlingSpacerLabel,
         ui.crashReporterPathLabel,
+        ui.crashMemoryReserveLabel,
         ui.crashReportingModeLabel,
         ui.minidumpModeLabel,
         ui.threadStackwalkModeLabel,
@@ -197,14 +201,15 @@ void InitPane::setupFormAlignment()
         ui.maxStackCaptureSizeLabel,
     };
     QLabel* summaryTitles[] = {
-        ui.sdkSummaryTitle,
-        ui.appSummaryTitle,
+        ui.releaseSummaryTitle,
+        ui.healthSummaryTitle,
         ui.loggingSummaryTitle,
-        ui.featuresSummaryTitle,
-        ui.parametersSummaryTitle,
+        ui.transportSummaryTitle,
+        ui.tracingSummaryTitle,
+        ui.eventsSummaryTitle,
         ui.databaseSummaryTitle,
         ui.appHangSummaryTitle,
-        ui.crashReporterSummaryTitle,
+        ui.crashHandlingSummaryTitle,
         ui.nativeSummaryTitle,
     };
     int formLabelWidth = 0;
@@ -218,23 +223,24 @@ void InitPane::setupFormAlignment()
     }
     const int formHorizontalSpacing = 12;
     const int summaryHorizontalSpacing = formHorizontalSpacing;
-    const int summaryIconWidth = ui.sdkSummaryStatus->minimumWidth();
+    const int summaryIconWidth = ui.releaseSummaryStatus->minimumWidth();
     const int summaryLabelLeftMargin =
-        ui.sdkSummaryLayout->contentsMargins().left() + summaryIconWidth + summaryHorizontalSpacing;
+        ui.releaseSummaryLayout->contentsMargins().left() + summaryIconWidth + summaryHorizontalSpacing;
     auto alignDetailsForm = [summaryLabelLeftMargin, formHorizontalSpacing](QFormLayout* layout) {
         const QMargins margins = layout->contentsMargins();
         layout->setContentsMargins(summaryLabelLeftMargin, margins.top(), margins.right(), margins.bottom());
         layout->setHorizontalSpacing(formHorizontalSpacing);
         layout->setProperty("visibleVerticalSpacing", layout->verticalSpacing());
     };
-    alignDetailsForm(ui.sdkDetailsFormLayout);
-    alignDetailsForm(ui.appDetailsFormLayout);
+    alignDetailsForm(ui.releaseDetailsFormLayout);
+    alignDetailsForm(ui.healthDetailsFormLayout);
     alignDetailsForm(ui.loggingDetailsFormLayout);
-    alignDetailsForm(ui.featuresDetailsFormLayout);
-    alignDetailsForm(ui.parametersDetailsFormLayout);
+    alignDetailsForm(ui.transportDetailsFormLayout);
+    alignDetailsForm(ui.tracingDetailsFormLayout);
+    alignDetailsForm(ui.eventsDetailsFormLayout);
     alignDetailsForm(ui.databaseDetailsFormLayout);
     alignDetailsForm(ui.appHangDetailsFormLayout);
-    alignDetailsForm(ui.crashReporterDetailsFormLayout);
+    alignDetailsForm(ui.crashHandlingDetailsFormLayout);
     alignDetailsForm(ui.nativeDetailsFormLayout);
 
     auto alignSummaryValue = [formLabelWidth, summaryHorizontalSpacing](
@@ -246,25 +252,27 @@ void InitPane::setupFormAlignment()
         title->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
         summary->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     };
-    alignSummaryValue(ui.sdkSummaryLayout, ui.sdkSummaryTitle, ui.sdkSummaryLabel);
-    alignSummaryValue(ui.appSummaryLayout, ui.appSummaryTitle, ui.appSummaryLabel);
+    alignSummaryValue(ui.releaseSummaryLayout, ui.releaseSummaryTitle, ui.releaseSummaryLabel);
+    alignSummaryValue(ui.healthSummaryLayout, ui.healthSummaryTitle, ui.healthSummaryLabel);
     alignSummaryValue(ui.loggingSummaryLayout, ui.loggingSummaryTitle, ui.loggingSummaryLabel);
-    alignSummaryValue(ui.featuresSummaryLayout, ui.featuresSummaryTitle, ui.featuresSummaryLabel);
-    alignSummaryValue(ui.parametersSummaryLayout, ui.parametersSummaryTitle, ui.parametersSummaryLabel);
+    alignSummaryValue(ui.transportSummaryLayout, ui.transportSummaryTitle, ui.transportSummaryLabel);
+    alignSummaryValue(ui.tracingSummaryLayout, ui.tracingSummaryTitle, ui.tracingSummaryLabel);
+    alignSummaryValue(ui.eventsSummaryLayout, ui.eventsSummaryTitle, ui.eventsSummaryLabel);
     alignSummaryValue(ui.databaseSummaryLayout, ui.databaseSummaryTitle, ui.databaseSummaryLabel);
     alignSummaryValue(ui.appHangSummaryLayout, ui.appHangSummaryTitle, ui.appHangSummaryLabel);
-    alignSummaryValue(ui.crashReporterSummaryLayout, ui.crashReporterSummaryTitle, ui.crashReporterSummaryLabel);
+    alignSummaryValue(ui.crashHandlingSummaryLayout, ui.crashHandlingSummaryTitle, ui.crashHandlingSummaryLabel);
     alignSummaryValue(ui.nativeSummaryLayout, ui.nativeSummaryTitle, ui.nativeSummaryLabel);
 
     for (QWidget* widget : {
-             ui.sdkSummaryStatus, ui.sdkSummaryTitle, ui.sdkSummaryLabel,
-             ui.appSummaryStatus, ui.appSummaryTitle, ui.appSummaryLabel,
+             ui.releaseSummaryStatus, ui.releaseSummaryTitle, ui.releaseSummaryLabel,
+             ui.healthSummaryStatus, ui.healthSummaryTitle, ui.healthSummaryLabel,
              ui.loggingSummaryStatus, ui.loggingSummaryTitle, ui.loggingSummaryLabel,
-             ui.featuresSummaryStatus, ui.featuresSummaryTitle, ui.featuresSummaryLabel,
-             ui.parametersSummaryStatus, ui.parametersSummaryTitle, ui.parametersSummaryLabel,
+             ui.transportSummaryStatus, ui.transportSummaryTitle, ui.transportSummaryLabel,
+             ui.tracingSummaryStatus, ui.tracingSummaryTitle, ui.tracingSummaryLabel,
+             ui.eventsSummaryStatus, ui.eventsSummaryTitle, ui.eventsSummaryLabel,
              ui.databaseSummaryStatus, ui.databaseSummaryTitle, ui.databaseSummaryLabel,
              ui.appHangSummaryStatus, ui.appHangSummaryTitle, ui.appHangSummaryLabel,
-             ui.crashReporterSummaryStatus, ui.crashReporterSummaryTitle, ui.crashReporterSummaryLabel,
+             ui.crashHandlingSummaryStatus, ui.crashHandlingSummaryTitle, ui.crashHandlingSummaryLabel,
              ui.nativeSummaryStatus, ui.nativeSummaryTitle, ui.nativeSummaryLabel,
          }) {
         widget->setAttribute(Qt::WA_TransparentForMouseEvents);
@@ -319,14 +327,15 @@ void InitPane::setupControls()
                 updateDetailsVisibility();
             });
     };
-    setupDisclosureButton(ui.sdkEditButton, "init/sdkExpanded");
-    setupDisclosureButton(ui.appEditButton, "init/appExpanded");
+    setupDisclosureButton(ui.releaseEditButton, "init/releaseExpanded");
+    setupDisclosureButton(ui.healthEditButton, "init/healthExpanded");
     setupDisclosureButton(ui.loggingEditButton, "init/loggingExpanded");
-    setupDisclosureButton(ui.featuresEditButton, "init/featuresExpanded");
-    setupDisclosureButton(ui.parametersEditButton, "init/parametersExpanded");
+    setupDisclosureButton(ui.transportEditButton, "init/transportExpanded");
+    setupDisclosureButton(ui.tracingEditButton, "init/tracingExpanded");
+    setupDisclosureButton(ui.eventsEditButton, "init/eventsExpanded");
     setupDisclosureButton(ui.databaseEditButton, "init/databaseExpanded");
     setupDisclosureButton(ui.appHangEditButton, "init/appHangExpanded");
-    setupDisclosureButton(ui.crashReporterEditButton, "init/crashReporterExpanded");
+    setupDisclosureButton(ui.crashHandlingEditButton, "init/crashHandlingExpanded");
     setupDisclosureButton(ui.nativeEditButton, "init/nativeExpanded");
 
     QAction* databaseBrowseAction = ui.databasePathEdit->addAction(
@@ -412,6 +421,13 @@ void InitPane::setupControls()
     connect(ui.maxStackCaptureSizeBox, qOverload<int>(&QSpinBox::valueChanged),
         this, &InitPane::updateSummaries);
     connect(ui.crashReporterPathEdit, &QLineEdit::textChanged, this, &InitPane::updateSummaries);
+    connect(ui.proxyEdit, &QLineEdit::textChanged, this, &InitPane::updateSummaries);
+    connect(ui.caCertsEdit, &QLineEdit::textChanged, this, &InitPane::updateSummaries);
+    connect(ui.orgIdEdit, &QLineEdit::textChanged, this, &InitPane::updateSummaries);
+    connect(ui.transferTimeoutBox, qOverload<int>(&QSpinBox::valueChanged),
+        this, &InitPane::updateSummaries);
+    connect(ui.crashMemoryReserveBox, qOverload<int>(&QSpinBox::valueChanged),
+        this, &InitPane::updateSummaries);
     for (QCheckBox* box : {
              ui.attachScreenshotBox,
              ui.requireUserConsentBox,
@@ -420,6 +436,13 @@ void InitPane::setupControls()
              ui.enableLargeAttachmentsBox,
              ui.httpRetryBox,
              ui.enableAppHangTrackingBox,
+             ui.attachStacktraceBox,
+             ui.autoSessionTrackingBox,
+             ui.sendClientReportsBox,
+             ui.symbolizeStacktracesBox,
+             ui.propagateTraceparentBox,
+             ui.strictTraceContinuationBox,
+             ui.loggerEnabledWhenCrashedBox,
          }) {
         connect(box, &QAbstractButton::toggled, this, &InitPane::updateSummaries);
     }
@@ -482,6 +505,18 @@ void InitPane::populate(const Options& options)
         ui.threadStackwalkModeBox,
         ui.crashUploadModeBox,
         ui.maxStackCaptureSizeBox,
+        ui.attachStacktraceBox,
+        ui.autoSessionTrackingBox,
+        ui.sendClientReportsBox,
+        ui.symbolizeStacktracesBox,
+        ui.propagateTraceparentBox,
+        ui.strictTraceContinuationBox,
+        ui.loggerEnabledWhenCrashedBox,
+        ui.proxyEdit,
+        ui.caCertsEdit,
+        ui.orgIdEdit,
+        ui.transferTimeoutBox,
+        ui.crashMemoryReserveBox,
     };
     std::vector<std::unique_ptr<QSignalBlocker>> blockers;
     blockers.reserve(widgets.size());
@@ -544,6 +579,19 @@ void InitPane::populate(const Options& options)
         ? crashUploadModeIndex
         : ui.crashUploadModeBox->findData(SENTRY_CRASH_UPLOAD_MODE_SYNC));
     ui.maxStackCaptureSizeBox->setValue(options.maxStackCaptureSize);
+    ui.attachStacktraceBox->setChecked(options.attachStacktrace);
+    ui.autoSessionTrackingBox->setChecked(options.autoSessionTracking);
+    ui.sendClientReportsBox->setChecked(options.sendClientReports);
+    ui.symbolizeStacktracesBox->setChecked(options.symbolizeStacktraces);
+    ui.propagateTraceparentBox->setChecked(options.propagateTraceparent);
+    ui.strictTraceContinuationBox->setChecked(options.strictTraceContinuation);
+    ui.loggerEnabledWhenCrashedBox->setChecked(options.loggerEnabledWhenCrashed);
+    ui.proxyEdit->setText(options.proxy);
+    ui.caCertsEdit->setText(options.caCerts);
+    ui.caCertsEdit->setCursorPosition(0);
+    ui.orgIdEdit->setText(options.orgId);
+    ui.transferTimeoutBox->setValue(options.transferTimeout);
+    ui.crashMemoryReserveBox->setValue(options.crashMemoryReserve);
     for (QAction* action : ui.databasePathEdit->actions()) {
         if (action->objectName() == "databasePathClearAction")
             action->setEnabled(!ui.databasePathEdit->text().isEmpty());
@@ -592,15 +640,27 @@ Options InitPane::optionsFromPage() const
     options.threadStackwalkMode = ui.threadStackwalkModeBox->currentData().toInt();
     options.crashUploadMode = ui.crashUploadModeBox->currentData().toInt();
     options.maxStackCaptureSize = ui.maxStackCaptureSizeBox->value();
+    options.attachStacktrace = ui.attachStacktraceBox->isChecked();
+    options.autoSessionTracking = ui.autoSessionTrackingBox->isChecked();
+    options.sendClientReports = ui.sendClientReportsBox->isChecked();
+    options.symbolizeStacktraces = ui.symbolizeStacktracesBox->isChecked();
+    options.propagateTraceparent = ui.propagateTraceparentBox->isChecked();
+    options.strictTraceContinuation = ui.strictTraceContinuationBox->isChecked();
+    options.loggerEnabledWhenCrashed = ui.loggerEnabledWhenCrashedBox->isChecked();
+    options.proxy = ui.proxyEdit->text().trimmed();
+    options.caCerts = ui.caCertsEdit->text();
+    options.orgId = ui.orgIdEdit->text().trimmed();
+    options.transferTimeout = ui.transferTimeoutBox->value();
+    options.crashMemoryReserve = ui.crashMemoryReserveBox->value();
     return options;
 }
 
 void InitPane::updateCrashReporterControls()
 {
     const bool externalCrashReporterEnabled = ui.externalCrashReporterBox->isChecked();
-    const bool crashReporterDetailsVisible = ui.crashReporterEditButton->isChecked();
-    ui.crashReporterDetailsFormLayout->setRowVisible(
-        ui.crashReporterPathEdit, crashReporterDetailsVisible && externalCrashReporterEnabled);
+    const bool crashHandlingDetailsVisible = ui.crashHandlingEditButton->isChecked();
+    ui.crashHandlingDetailsFormLayout->setRowVisible(
+        ui.crashReporterPathEdit, crashHandlingDetailsVisible && externalCrashReporterEnabled);
     ui.crashReporterPathEdit->setReadOnly(!externalCrashReporterEnabled);
 
     for (QAction* action : ui.crashReporterPathEdit->actions()) {
@@ -625,7 +685,6 @@ void InitPane::updateNativeControls()
 
     if (QWidget* nativeSummaryWidget = findChild<QWidget*>(QStringLiteral("nativeSummaryWidget")))
         nativeSummaryWidget->setVisible(nativeSectionVisible);
-    ui.crashReporterSectionDivider->setVisible(nativeSectionVisible);
     ui.nativeSectionDivider->setVisible(nativeSectionVisible);
     ui.nativeEditButton->setEnabled(nativeSectionVisible);
 
@@ -640,14 +699,15 @@ void InitPane::updateNativeControls()
 
 void InitPane::updateDetailsVisibility()
 {
-    const bool dsnVisible = ui.sdkEditButton->isChecked();
-    const bool appVisible = ui.appEditButton->isChecked();
+    const bool releaseVisible = ui.releaseEditButton->isChecked();
+    const bool healthVisible = ui.healthEditButton->isChecked();
     const bool loggingVisible = ui.loggingEditButton->isChecked();
-    const bool featuresVisible = ui.featuresEditButton->isChecked();
-    const bool parametersVisible = ui.parametersEditButton->isChecked();
+    const bool transportVisible = ui.transportEditButton->isChecked();
+    const bool tracingVisible = ui.tracingEditButton->isChecked();
+    const bool eventsVisible = ui.eventsEditButton->isChecked();
     const bool databaseVisible = ui.databaseEditButton->isChecked();
     const bool appHangVisible = ui.appHangEditButton->isChecked();
-    const bool crashReporterVisible = ui.crashReporterEditButton->isChecked();
+    const bool crashHandlingVisible = ui.crashHandlingEditButton->isChecked();
     const bool nativeVisible = supportsNativeOptions() && ui.nativeEditButton->isChecked();
 
     auto setFormVisible = [](QFormLayout* layout, bool visible) {
@@ -660,14 +720,15 @@ void InitPane::updateDetailsVisibility()
             layout->setRowVisible(row, visible);
         layout->invalidate();
     };
-    setFormVisible(ui.sdkDetailsFormLayout, dsnVisible);
-    setFormVisible(ui.appDetailsFormLayout, appVisible);
+    setFormVisible(ui.releaseDetailsFormLayout, releaseVisible);
+    setFormVisible(ui.healthDetailsFormLayout, healthVisible);
     setFormVisible(ui.loggingDetailsFormLayout, loggingVisible);
-    setFormVisible(ui.featuresDetailsFormLayout, featuresVisible);
-    setFormVisible(ui.parametersDetailsFormLayout, parametersVisible);
+    setFormVisible(ui.transportDetailsFormLayout, transportVisible);
+    setFormVisible(ui.tracingDetailsFormLayout, tracingVisible);
+    setFormVisible(ui.eventsDetailsFormLayout, eventsVisible);
     setFormVisible(ui.databaseDetailsFormLayout, databaseVisible);
     setFormVisible(ui.appHangDetailsFormLayout, appHangVisible);
-    setFormVisible(ui.crashReporterDetailsFormLayout, crashReporterVisible);
+    setFormVisible(ui.crashHandlingDetailsFormLayout, crashHandlingVisible);
     setFormVisible(ui.nativeDetailsFormLayout, nativeVisible);
     updateCrashReporterControls();
     updateNativeControls();
@@ -691,14 +752,16 @@ void InitPane::refreshPaletteStyles()
     const QString dividerStyle = QStringLiteral(
         "QFrame { background-color: %1; border: none; }").arg(Style::cssRgba(textColor, 26));
     QWidget* const sectionDividers[] = {
-        ui.sdkSectionDivider,
-        ui.appSectionDivider,
+        ui.dsnSectionDivider,
+        ui.releaseSectionDivider,
+        ui.healthSectionDivider,
         ui.loggingSectionDivider,
-        ui.featuresSectionDivider,
-        ui.parametersSectionDivider,
+        ui.transportSectionDivider,
+        ui.tracingSectionDivider,
+        ui.eventsSectionDivider,
         ui.databaseSectionDivider,
         ui.appHangSectionDivider,
-        ui.crashReporterSectionDivider,
+        ui.crashHandlingSectionDivider,
         ui.nativeSectionDivider,
     };
     for (QWidget* divider : sectionDividers)
@@ -734,33 +797,36 @@ void InitPane::updateSummaries()
             : inactiveStatusStyle);
     };
 
-    QStringList sdkParts;
-    const QUrl dsnUrl(ui.dsnEdit->currentText().trimmed());
-    if (!dsnUrl.host().isEmpty()) {
-        QString dsnSummary = dsnUrl.host();
-        if (dsnUrl.port() >= 0)
-            dsnSummary += QStringLiteral(":%1").arg(dsnUrl.port());
-        sdkParts.append(dsnSummary);
-    }
-    ui.sdkSummaryLabel->setText(sdkParts.isEmpty()
-            ? QStringLiteral("N/A")
-            : sdkParts.join(QStringLiteral(", ")));
-    setStatus(ui.sdkSummaryStatus, !dsnUrl.host().isEmpty());
+    const bool hasDsn = !ui.dsnEdit->currentText().trimmed().isEmpty();
+    ui.dsnStatus->setText(hasDsn ? QStringLiteral("✓") : QStringLiteral("✗"));
+    ui.dsnStatus->setStyleSheet(hasDsn
+        ? QStringLiteral("color: #21c26a; font-weight: bold;")
+        : QStringLiteral("color: #ff453a; font-weight: bold;"));
 
-    QStringList appParts;
+    QStringList releaseParts;
     const QString release = ui.releaseEdit->text().trimmed();
     const QString environment = ui.environmentEdit->currentText().trimmed();
     const QString dist = ui.distEdit->text().trimmed();
     if (!release.isEmpty())
-        appParts.append(release);
+        releaseParts.append(release);
     if (!environment.isEmpty())
-        appParts.append(environment);
+        releaseParts.append(environment);
     if (!dist.isEmpty())
-        appParts.append(dist);
-    ui.appSummaryLabel->setText(appParts.isEmpty()
+        releaseParts.append(dist);
+    ui.releaseSummaryLabel->setText(releaseParts.isEmpty()
             ? QStringLiteral("N/A")
-            : appParts.join(QStringLiteral(", ")));
-    setStatus(ui.appSummaryStatus, !appParts.isEmpty());
+            : releaseParts.join(QStringLiteral(", ")));
+    setStatus(ui.releaseSummaryStatus, !releaseParts.isEmpty());
+
+    QStringList healthParts;
+    if (ui.autoSessionTrackingBox->isChecked())
+        healthParts.append(QStringLiteral("auto-sessions"));
+    if (ui.sendClientReportsBox->isChecked())
+        healthParts.append(QStringLiteral("client reports"));
+    ui.healthSummaryLabel->setText(healthParts.isEmpty()
+            ? QStringLiteral("N/A")
+            : healthParts.join(QStringLiteral(", ")));
+    setStatus(ui.healthSummaryStatus, !healthParts.isEmpty());
 
     const bool loggingEnabled = ui.loggerLevelBox->currentData().toInt() != kLoggerLevelNone;
     ui.loggingSummaryLabel->setText(loggingEnabled
@@ -768,27 +834,41 @@ void InitPane::updateSummaries()
             : QStringLiteral("N/A"));
     setStatus(ui.loggingSummaryStatus, loggingEnabled);
 
-    QStringList features;
-    if (ui.requireUserConsentBox->isChecked())
-        features.append(QStringLiteral("consent"));
+    QStringList transportParts = {
+        QStringLiteral("%1 ms").arg(ui.shutdownTimeoutBox->value()),
+    };
+    if (!ui.proxyEdit->text().trimmed().isEmpty())
+        transportParts.append(QStringLiteral("proxy"));
     if (ui.httpRetryBox->isChecked())
-        features.append(QStringLiteral("retry"));
-    if (ui.attachScreenshotBox->isChecked())
-        features.append(QStringLiteral("screenshot"));
+        transportParts.append(QStringLiteral("retry"));
+    if (ui.requireUserConsentBox->isChecked())
+        transportParts.append(QStringLiteral("consent"));
     if (ui.enableLargeAttachmentsBox->isChecked())
-        features.append(QStringLiteral("large attachments"));
-    ui.featuresSummaryLabel->setText(features.isEmpty()
-            ? QStringLiteral("N/A")
-            : features.join(QStringLiteral(", ")));
-    setStatus(ui.featuresSummaryStatus, !features.isEmpty());
+        transportParts.append(QStringLiteral("large attachments"));
+    ui.transportSummaryLabel->setText(transportParts.join(QStringLiteral(", ")));
+    setStatus(ui.transportSummaryStatus, true);
 
-    ui.parametersSummaryLabel->setText(
-        QStringLiteral("sample %1x, traces %2x, %3 crumbs, %4 spans")
-            .arg(QLocale::c().toString(ui.sampleRateBox->value(), 'f', 2))
-            .arg(QLocale::c().toString(ui.tracesSampleRateBox->value(), 'f', 2))
-            .arg(ui.maxBreadcrumbsBox->value())
-            .arg(ui.maxSpansBox->value()));
-    setStatus(ui.parametersSummaryStatus, true);
+    QStringList tracingParts = {
+        QStringLiteral("sample %1x").arg(QLocale::c().toString(ui.tracesSampleRateBox->value(), 'f', 2)),
+        QStringLiteral("%1 spans").arg(ui.maxSpansBox->value()),
+    };
+    if (ui.propagateTraceparentBox->isChecked())
+        tracingParts.append(QStringLiteral("traceparent"));
+    if (ui.strictTraceContinuationBox->isChecked())
+        tracingParts.append(QStringLiteral("strict traces"));
+    ui.tracingSummaryLabel->setText(tracingParts.join(QStringLiteral(", ")));
+    setStatus(ui.tracingSummaryStatus, ui.tracesSampleRateBox->value() > 0);
+
+    QStringList eventParts = {
+        QStringLiteral("sample %1x").arg(QLocale::c().toString(ui.sampleRateBox->value(), 'f', 2)),
+        QStringLiteral("%1 crumbs").arg(ui.maxBreadcrumbsBox->value()),
+    };
+    if (ui.attachStacktraceBox->isChecked())
+        eventParts.append(QStringLiteral("stacktrace"));
+    if (ui.symbolizeStacktracesBox->isChecked())
+        eventParts.append(QStringLiteral("symbolize"));
+    ui.eventsSummaryLabel->setText(eventParts.join(QStringLiteral(", ")));
+    setStatus(ui.eventsSummaryStatus, true);
 
     QStringList databaseParts;
     const QString databasePath = ui.databasePathEdit->text().trimmed();
@@ -830,19 +910,21 @@ void InitPane::updateSummaries()
             : QStringLiteral("N/A"));
     setStatus(ui.appHangSummaryStatus, appHangEnabled);
 
-    QStringList crashReporterParts;
+    QStringList crashHandlingParts = {
+        Playground::backend(),
+    };
     if (ui.systemCrashReporterBox->isChecked())
-        crashReporterParts.append(QStringLiteral("system"));
+        crashHandlingParts.append(QStringLiteral("system"));
     if (ui.externalCrashReporterBox->isChecked()) {
         const QString path = ui.crashReporterPathEdit->text().trimmed();
-        crashReporterParts.append(path.isEmpty()
+        crashHandlingParts.append(path.isEmpty()
             ? QStringLiteral("external")
             : QFileInfo(path).fileName());
     }
-    ui.crashReporterSummaryLabel->setText(crashReporterParts.isEmpty()
-                                         ? QStringLiteral("N/A")
-                                         : crashReporterParts.join(QStringLiteral(", ")));
-    setStatus(ui.crashReporterSummaryStatus, !crashReporterParts.isEmpty());
+    if (ui.attachScreenshotBox->isChecked())
+        crashHandlingParts.append(QStringLiteral("screenshot"));
+    ui.crashHandlingSummaryLabel->setText(crashHandlingParts.join(QStringLiteral(", ")));
+    setStatus(ui.crashHandlingSummaryStatus, true);
 
     if (supportsNativeOptions()) {
         const int crashReportingMode = ui.crashReportingModeBox->currentData().toInt();
@@ -852,8 +934,6 @@ void InitPane::updateSummaries()
         if (crashReportingModeUsesStackwalk(crashReportingMode))
             nativeParts.append(ui.threadStackwalkModeBox->currentText().toLower());
         nativeParts.append(ui.crashUploadModeBox->currentText().toLower());
-        if (ui.maxStackCaptureSizeBox->value() > 0)
-            nativeParts.append(QLocale().formattedDataSize(ui.maxStackCaptureSizeBox->value()));
         ui.nativeSummaryLabel->setText(nativeParts.join(QStringLiteral(", ")));
         setStatus(ui.nativeSummaryStatus, true);
     } else {
@@ -862,10 +942,7 @@ void InitPane::updateSummaries()
     }
 
     const Options options = optionsFromPage();
-    Options defaults;
-    // not on the page, so Reset keeps it
-    defaults.sdkName = options.sdkName;
-    ui.resetButton->setEnabled(options.toMap() != defaults.toMap());
+    ui.resetButton->setEnabled(options.toMap() != Options().toMap());
 }
 
 bool InitPane::eventFilter(QObject* watched, QEvent* event)
@@ -881,24 +958,28 @@ bool InitPane::eventFilter(QObject* watched, QEvent* event)
             summaryRow->setAutoFillBackground(hovered);
         } else if (event->type() == QEvent::MouseButtonRelease) {
             const QString name = summaryRow->objectName();
-            if (name == QLatin1String("appSummaryWidget")) {
-                ui.appEditButton->toggle();
+            if (name == QLatin1String("releaseSummaryWidget")) {
+                ui.releaseEditButton->toggle();
+                return true;
+            }
+            if (name == QLatin1String("healthSummaryWidget")) {
+                ui.healthEditButton->toggle();
                 return true;
             }
             if (name == QLatin1String("loggingSummaryWidget")) {
                 ui.loggingEditButton->toggle();
                 return true;
             }
-            if (name == QLatin1String("sdkSummaryWidget")) {
-                ui.sdkEditButton->toggle();
+            if (name == QLatin1String("transportSummaryWidget")) {
+                ui.transportEditButton->toggle();
                 return true;
             }
-            if (name == QLatin1String("featuresSummaryWidget")) {
-                ui.featuresEditButton->toggle();
+            if (name == QLatin1String("tracingSummaryWidget")) {
+                ui.tracingEditButton->toggle();
                 return true;
             }
-            if (name == QLatin1String("parametersSummaryWidget")) {
-                ui.parametersEditButton->toggle();
+            if (name == QLatin1String("eventsSummaryWidget")) {
+                ui.eventsEditButton->toggle();
                 return true;
             }
             if (name == QLatin1String("databaseSummaryWidget")) {
@@ -909,8 +990,8 @@ bool InitPane::eventFilter(QObject* watched, QEvent* event)
                 ui.appHangEditButton->toggle();
                 return true;
             }
-            if (name == QLatin1String("crashReporterSummaryWidget")) {
-                ui.crashReporterEditButton->toggle();
+            if (name == QLatin1String("crashHandlingSummaryWidget")) {
+                ui.crashHandlingEditButton->toggle();
                 return true;
             }
             if (name == QLatin1String("nativeSummaryWidget")) {
